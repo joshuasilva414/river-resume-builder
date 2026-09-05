@@ -1,6 +1,18 @@
 # ATS scoring implementation
 
-Phase 3 is in progress. River's scoring domain, persistence, Workflow, adapter and Paper interface are not implemented yet. The design contract is `history-scoring-design.md`.
+Phase 3 is in progress. River's scoring domain and bounded HTTP adapter are implemented locally. Persistence, Workflow, application services and the Paper interface remain in progress. No scoring controls are exposed. The design contract is `history-scoring-design.md`.
+
+## River adapter foundation
+
+`packages/domain/src/scoring.ts` validates exactly six unique simulations, all five dimensions, bounded scores, boolean filter outcomes, complete suggestion structures and consistent bullet counts. It rejects provider/identity mismatches and contradictory input coverage. Missing legacy metadata remains absent; valid historical results can still be inspected. Preflight counts the exact UTF-16 strings and never trims or truncates submitted content.
+
+Comparison policy `river-reported-scoring-identity-v1` requires the same provider origin, adapter, immutable job snapshot, complete returned input coverage and exactly equal reported scoring identities, including rubric, build, model and request configuration. Missing provider-reported model identity suppresses deltas. This policy compares reported identities; it does not certify immutable weights behind a provider alias. Raw scores and provider pass outcomes remain distinct, with no cross-platform average.
+
+`apps/web/src/server/scoring-provider.ts` captures `/api/version` capabilities before any résumé submission. New submissions require the supported effective-limit metadata. It sends exact saved strings to `/api/analyze`, does not follow redirects or attach browser credentials, and limits the actual response stream to 256 KiB. Capability responses are limited to 16 KiB. Requests have 10-second discovery and 65-second scoring deadlines. The adapter performs no automatic retries. Rate limits retain a parsed retry time; cancellation, outages, incompatible capabilities and malformed output have safe typed failures without provider body contents.
+
+`ATS_SCREENER_ORIGIN` is an optional validated HTTPS origin. It is not configured or enabled yet. Result identity always comes from the scoring response; the separate version observation never supplies or replaces it. Full raw JSON remains available to the future persistence boundary alongside validated fields.
+
+Verification: four domain tests, five Workers adapter tests, workspace type checks and lint pass. The adapter tests use synthetic mocked responses only. Persistent operations, captured artifact/text/job fingerprints, reviewable findings and hosted tests are still required.
 
 ## Provider identity milestone — 2026-09-05
 

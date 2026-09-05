@@ -18,6 +18,7 @@ export const Configuration = Schema.Struct({
   OPENAI_REFINEMENT_MODEL: Schema.optional(Schema.NonEmptyString),
   OPENAI_WORDING_MODEL: Schema.optional(Schema.NonEmptyString),
   OPENAI_RANKING_MODEL: Schema.optional(Schema.NonEmptyString),
+  ATS_SCREENER_ORIGIN: Schema.optional(Schema.NonEmptyString),
   D1_EXPORT_API_TOKEN: Schema.optional(Schema.NonEmptyString),
   BACKUP_ACCOUNT_ID: Schema.optional(Schema.NonEmptyString),
   BACKUP_DATABASE_ID: Schema.optional(Schema.NonEmptyString),
@@ -58,6 +59,16 @@ export function bindings(): Env {
     throw new Error("APP_URL must be an origin, using HTTPS outside development.");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(env.OWNER_EMAIL))
     throw new Error("OWNER_EMAIL must be a valid email address.");
+  if (env.ATS_SCREENER_ORIGIN) {
+    const provider = new URL(env.ATS_SCREENER_ORIGIN);
+    if (
+      provider.origin !== env.ATS_SCREENER_ORIGIN ||
+      provider.protocol !== "https:" ||
+      provider.username ||
+      provider.password
+    )
+      throw new Error("ATS_SCREENER_ORIGIN must be an HTTPS origin without credentials or a path.");
+  }
   if (Boolean(env.GITHUB_CLIENT_ID) !== Boolean(env.GITHUB_CLIENT_SECRET))
     throw new Error("Configure both GitHub OAuth credentials together.");
   return env;
