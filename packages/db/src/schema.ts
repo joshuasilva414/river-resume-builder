@@ -25,6 +25,7 @@ import type {
   OperationState,
   ResumeDocument,
   ReviewState,
+  ScoringProfile,
   SourceAiInput,
   SourceAiProfile,
   SourceCandidate,
@@ -60,6 +61,12 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import type { RefinementDependencies, SourceRefinementInput } from "./refinement-types";
+import type {
+  ScoringFailure,
+  ScoringInput,
+  ScoringObservation,
+  ScoringResult,
+} from "./scoring-types";
 import type {
   TemplateDependency,
   TemplateFixtureResult,
@@ -177,6 +184,7 @@ export const operations = sqliteTable(
         | { type: "source-refinement"; taskId: string }
         | { type: "source-refinement-accept"; taskId: string }
         | { type: "database-backup"; date: string }
+        | { type: "checkpoint-score"; runId: string }
       >()
       .notNull(),
     artifacts: text("artifacts", { mode: "json" }).$type<ArtifactManifest>(),
@@ -836,6 +844,54 @@ export const checkpointState = sqliteTable("checkpoint_state", {
     .references(() => operations.id),
   attempts: integer("attempts").notNull().default(1),
 });
+export const scoringRuns = sqliteTable(
+  "scoring_runs",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id),
+    checkpointId: text("checkpoint_id")
+      .notNull()
+      .references(() => checkpoints.id),
+    snapshotId: text("snapshot_id")
+      .notNull()
+      .references(() => jobSnapshots.id),
+    documentOperationId: text("document_operation_id")
+      .notNull()
+      .references(() => operations.id),
+    operationId: text("operation_id")
+      .notNull()
+      .references(() => operations.id),
+    revision: integer("revision").notNull().default(0),
+    attempts: integer("attempts").notNull().default(1),
+    profile: text("profile", { mode: "json" }).$type<ScoringProfile>().notNull(),
+    input: text("input", { mode: "json" }).$type<ScoringInput>(),
+    result: text("result", { mode: "json" }).$type<ScoringResult>(),
+    completedAt: integer("completed_at"),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    index("scoring_checkpoint_history").on(table.ownerId, table.checkpointId, table.createdAt),
+  ],
+);
+export const scoringAttempts = sqliteTable(
+  "scoring_attempts",
+  {
+    operationId: text("operation_id")
+      .primaryKey()
+      .references(() => operations.id),
+    runId: text("run_id")
+      .notNull()
+      .references(() => scoringRuns.id),
+    ordinal: integer("ordinal").notNull(),
+    observation: text("observation", { mode: "json" }).$type<ScoringObservation>(),
+    submittedAt: integer("submitted_at"),
+    failure: text("failure", { mode: "json" }).$type<ScoringFailure>(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [uniqueIndex("scoring_attempt_ordinal").on(table.runId, table.ordinal)],
+);
 export const checkpointAcknowledgments = sqliteTable(
   "checkpoint_acknowledgments",
   {

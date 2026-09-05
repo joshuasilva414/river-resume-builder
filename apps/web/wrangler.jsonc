@@ -47,6 +47,11 @@
       "class_name": "JobAiWorkflow"
     },
     {
+      "binding": "SCORING_WORKFLOW",
+      "name": "river-local-scoring",
+      "class_name": "ScoringWorkflow"
+    },
+    {
       "binding": "BACKUP_WORKFLOW",
       "name": "river-local-backups",
       "class_name": "BackupWorkflow"
@@ -127,6 +132,11 @@
           "binding": "JOB_AI_WORKFLOW",
           "name": "river-staging-job-analysis",
           "class_name": "JobAiWorkflow"
+        },
+        {
+          "binding": "SCORING_WORKFLOW",
+          "name": "river-staging-scoring",
+          "class_name": "ScoringWorkflow"
         },
         {
           "binding": "BACKUP_WORKFLOW",

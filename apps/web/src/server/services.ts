@@ -189,6 +189,15 @@ export async function reconcileOperations(env: Env) {
     const expired = Date.now() - operation.updatedAt > 10 * 60_000;
     if (!terminal && !expired) continue;
     if (!terminal) await instance.terminate();
+    if ("type" in operation.input && operation.input.type === "checkpoint-score") {
+      await repository.failScoring(operation.id, {
+        code: "Interrupted",
+        message:
+          "Scoring stopped before publication. Any retained response is preserved for recovery; review this attempt before retrying.",
+        retryAt: null,
+      });
+      continue;
+    }
     await repository.failSource(
       operation.id,
       "Text extraction was interrupted. The original is preserved; retry extraction.",
@@ -233,6 +242,8 @@ function workflowFor(
       return env.WORDING_WORKFLOW;
     case "database-backup":
       return env.BACKUP_WORKFLOW;
+    case "checkpoint-score":
+      return env.SCORING_WORKFLOW;
     default: {
       const exhaustive: never = input;
       return exhaustive;

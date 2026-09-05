@@ -11,6 +11,7 @@ export { DocumentWorkflow } from "./server/document-workflow";
 export { DuplicateAiWorkflow } from "./server/duplicate-ai-workflow";
 export { JobAiWorkflow } from "./server/job-ai-workflow";
 export { SourceRefinementWorkflow } from "./server/refinement-workflow";
+export { ScoringWorkflow } from "./server/scoring-workflow";
 export { SourceAiWorkflow } from "./server/source-ai-workflow";
 export { TemplateAiWorkflow } from "./server/template-ai-workflow";
 export { TemplateValidationWorkflow } from "./server/template-validation-workflow";

@@ -194,3 +194,48 @@ export function compareScoringResults(before: ComparableScores, after: Comparabl
       });
   return { policy: SCORING_COMPARISON_POLICY, compatible: reasons.length === 0, reasons, deltas };
 }
+
+const CapabilityCount = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 1000000 }));
+export const ScoringProviderVersion = Schema.Struct({
+  version: Label,
+  commit: Schema.String.check(Schema.isMaxLength(300)),
+  branch: Schema.NullOr(Label),
+  env: Label,
+  deployment: Schema.optional(
+    Schema.Struct({
+      buildId: Label,
+      version: Label,
+      commit: Schema.NullOr(Label),
+      environment: Label,
+    }),
+  ),
+  scoring: Schema.optional(
+    Schema.Struct({
+      version: Schema.Literal("ats-analyze-text-v1"),
+      units: Schema.Literal("utf16-code-units"),
+      identitySchema: Schema.Literal("ats-scoring-identity-v1"),
+      accepted: Schema.Struct({ resumeText: CapabilityCount, jobDescription: CapabilityCount }),
+      effective: Schema.Struct({ resumeText: CapabilityCount, jobDescription: CapabilityCount }),
+      truncatesOversizedInput: Schema.Boolean,
+      simulations: Schema.Array(Label).check(Schema.isMinLength(6), Schema.isMaxLength(6)),
+      rubric: Schema.Struct({
+        version: Label,
+        digest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
+      }),
+    }),
+  ),
+});
+export type ScoringProviderVersion = typeof ScoringProviderVersion.Type;
+
+export function scoringProfile(origin: string) {
+  const url = new URL(origin);
+  if (url.origin !== origin || url.protocol !== "https:" || url.username || url.password)
+    throw new Error("The scoring provider must be an HTTPS origin without credentials or a path.");
+  return {
+    origin,
+    adapterVersion: ATS_ADAPTER_VERSION,
+    timeoutMs: 65000,
+    maxResponseBytes: 262144,
+  } as const;
+}
+export type ScoringProfile = ReturnType<typeof scoringProfile>;

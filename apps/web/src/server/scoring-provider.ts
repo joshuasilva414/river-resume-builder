@@ -1,6 +1,7 @@
 import {
-  ATS_ADAPTER_VERSION,
   type AtsScoringResponse,
+  type ScoringProfile,
+  ScoringProviderVersion,
   scoringLimits,
   scoringPlatforms,
   scoringPreflight,
@@ -8,38 +9,8 @@ import {
 } from "@river/domain";
 import { Schema } from "effect";
 
-const Label = Schema.NonEmptyString.check(Schema.isMaxLength(300));
-const Count = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 1000000 }));
-export const ScoringProviderVersion = Schema.Struct({
-  version: Label,
-  commit: Schema.String.check(Schema.isMaxLength(300)),
-  branch: Schema.NullOr(Label),
-  env: Label,
-  deployment: Schema.optional(
-    Schema.Struct({
-      buildId: Label,
-      version: Label,
-      commit: Schema.NullOr(Label),
-      environment: Label,
-    }),
-  ),
-  scoring: Schema.optional(
-    Schema.Struct({
-      version: Schema.Literal("ats-analyze-text-v1"),
-      units: Schema.Literal("utf16-code-units"),
-      identitySchema: Schema.Literal("ats-scoring-identity-v1"),
-      accepted: Schema.Struct({ resumeText: Count, jobDescription: Count }),
-      effective: Schema.Struct({ resumeText: Count, jobDescription: Count }),
-      truncatesOversizedInput: Schema.Boolean,
-      simulations: Schema.Array(Label).check(Schema.isMinLength(6), Schema.isMaxLength(6)),
-      rubric: Schema.Struct({
-        version: Label,
-        digest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
-      }),
-    }),
-  ),
-});
-export type ScoringProviderVersion = typeof ScoringProviderVersion.Type;
+export { type ScoringProfile, ScoringProviderVersion, scoringProfile } from "@river/domain";
+
 const messages = {
   RateLimited: "The score provider is rate limited. Retry after the recorded time.",
   Unavailable:
@@ -62,19 +33,6 @@ export class ScoringProviderError extends Error {
     this.name = "ScoringProviderError";
   }
 }
-
-export function scoringProfile(origin: string) {
-  const url = new URL(origin);
-  if (url.origin !== origin || url.protocol !== "https:" || url.username || url.password)
-    throw new Error("The scoring provider must be an HTTPS origin without credentials or a path.");
-  return {
-    origin,
-    adapterVersion: ATS_ADAPTER_VERSION,
-    timeoutMs: 65000,
-    maxResponseBytes: 262144,
-  } as const;
-}
-export type ScoringProfile = ReturnType<typeof scoringProfile>;
 
 function retryTime(header: string | null, now: number) {
   if (!header) return now + 60000;

@@ -21,6 +21,7 @@ import { createJobRepository } from "./jobs";
 import { createLibraryRepository } from "./library";
 import { createSourceRefinementRepository } from "./refinement";
 import * as schema from "./schema";
+import { createScoringRepository } from "./scoring";
 import { createSourceAiRepository } from "./source-ai";
 import { createSourceRepository } from "./sources";
 import { createTemplateAiRepository } from "./template-ai";
@@ -29,6 +30,7 @@ import { createTemplateRepository } from "./templates";
 import { createWordingRepository } from "./wording";
 
 export type { RefinementBaseArtifacts, SourceRefinementInput } from "./refinement-types";
+export type { ScoringFailure, ScoringInput, ScoringResult } from "./scoring-types";
 export { schema };
 export const createDatabase = (binding: D1Database) => drizzle(binding, { schema });
 export type Database = ReturnType<typeof createDatabase>;
@@ -56,6 +58,7 @@ export function createRepository(binding: D1Database) {
     ...createAccessRepository(db),
     ...createBackupRepository(db),
     ...createCheckpointRepository(db),
+    ...createScoringRepository(db),
     ...createSourceRefinementRepository(db),
     ...createCompositionRepository(db),
     ...createClarificationRepository(db),

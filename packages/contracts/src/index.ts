@@ -188,6 +188,7 @@ export * from "./job-ai";
 export * from "./jobs";
 export * from "./library";
 export * from "./refinement";
+export * from "./scoring";
 export * from "./source-ai";
 export * from "./template-studio";
 export * from "./wording";
