@@ -4,7 +4,7 @@
   "applicationUrl": "https://river-staging.jilva.workers.dev",
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
-  "webVersion": "22be781c-a417-46da-af6a-9b743c0e6d2a",
+  "webVersion": "6c544922-2ada-4cdd-ad38-77c0574e812e",
   "documentWorkerVersion": "6459e815-8f14-4772-827d-5aff881a30ca",
   "containerImageDigest": "sha256:5ca4c176095b9f4663fee737eaa9a7ec30d7662b4eeb7af51273c6bdd4dc6905",
   "database": "river-staging",
@@ -47,11 +47,11 @@
     "previewRetention": "R2 transient/previews/ lifecycle configured for seven days; expired artifact requests return 410",
     "backupRetention": "Owner-approved dedicated token installed; live daily backup succeeded on the third bounded attempt. Private SQL and manifest retained for 30 days; Settings verifies artifact availability and expiry.",
     "restoreDrill": "passed: isolated local SQLite, 39 base tables, FTS equality, foreign keys, exact citation offsets, 14 retained objects, one exported checkpoint",
-    "jobAnalysis": "47 Workers tests; local synthetic review, stale rejection, payload discard, ranking review and explicit selection passed; live OpenAI generation not yet exercised with the configured key",
+    "jobAnalysis": "Passed: hosted live v2 requirement extraction and complete-map acceptance; v3 ranking with one cited Draft match and two explicit gaps; review alone leaves selections empty, separate exact-revision selection persists. Weak v2 ranking rejected with null payload. Fictional job and claims archived. Citation fix: 136 Workers tests; latest ranking guard: 10 focused tests; workspace types/lint and staging build pass.",
     "streamedRestoreDrill": "passed: v2 format derived from a real 42-table staging snapshot; isolated SQLite, FTS, foreign keys, one citation, 14 retained objects, one export; live scheduled export remains unverified",
     "wording": "Passed: live local and hosted gpt-5.4-mini-2026-03-17 generation and complete inline review on synthetic fixtures. Local unrelated rename, acceptance r8, undo r9, redo r10; hosted visible name-formatting acceptance r3, undo r4, retained r3 decision. Actual PDFs and 75% zoom retained. 14 focused Workers tests, workspace types/lint and staging build pass.",
-    "sourceProposals": "64 service tests pass; local synthetic individual acceptance, rejection, manual origin, exact citation, stale source guards, and source-backed clarification passed; live generation and configured launch not yet exercised with the configured key",
-    "duplicateComparison": "70 Workers tests pass; local synthetic acknowledgment, optional disposition attribution, both-claim saved history, stale rejection and payload removal pass; 1280px light and 621px dark inspected; live generation and configured launch not yet exercised with the configured key",
+    "sourceProposals": "Passed: hosted live source capture and first-attempt generation, exact citation inspection, individual Draft creation and sibling rejection with null payload confirmed in D1. Fictional Draft archived; no verification submitted. Live clarification generation remains unverified.",
+    "duplicateComparison": "Passed: hosted first-attempt generation, full findings/captured/current inspection, independent acknowledgment preserving both claims, separate attributed Keep separate decision and saved access through both claim histories. Fictional claims archived. Model inconsistency retained and identified in review rationale.",
     "templateStudio": "Passed: local real fixture validation, approval, concurrent preservation, mixing, exact draft/preview/checkpoint, retirement and retained export. Hosted third validation passed all four fixtures twice after fixing Container RPC stream ownership. Hosted graph remains Validated pending Owner visual approval. Anonymous PDF request returns 401.",
     "templateGeneration": "Hosted real model response and first-attempt 11-point PDF passed graph, text-integrity and runtime checks. Full component change, PDF, text and report reviewed; accepted into immutable Draft. All 86 Workers tests through conversations and eight focused backup tests pass; workspace checks/lint/build pass.",
     "dailyBackupRestore": "Passed: live token-driven v2 backup, 58 base tables, FTS equality, foreign keys, exact citation offsets, 30 retained objects, one exported checkpoint. Fresh unpublished local SQLite; no remote cutover.",
@@ -133,7 +133,7 @@
     "validation": "All four fixtures rendered twice and passed; Validated, awaiting separate Owner visual approval.",
     "conversationId": "01a071e6-f217-7952-93c0-b97743159fc3"
   },
-  "deployedWebCommit": "cc5370e",
+  "deployedWebCommit": "c3bfc9d",
   "scoringWorkflow": "river-staging-scoring",
   "sourceRefinementWorkflow": "river-staging-source-refinement",
   "hostedHistory": {
@@ -194,5 +194,21 @@
     "acceptedPdfOperationId": "01a07312-0273-7c69-bc3c-16f82e161fcd",
     "undoPdfOperationId": "01a07313-0e47-77fc-858b-7d07437af265",
     "checkpointCreated": false
+  },
+  "hostedEvidenceAi": {
+    "sourceId": "01a07316-636d-74af-9a45-c12ffa42e177",
+    "sourceTaskId": "01a07317-38b0-7cb7-a328-59ec1692a4fb",
+    "claimIds": [
+      "01a07317-e671-7eea-98f2-a7b92c5be987",
+      "01a0732d-7f64-7b83-9fcd-f62c1473540b"
+    ],
+    "claimsArchived": true,
+    "jobId": "01a07317-0c52-7545-b111-8a05135624a8",
+    "jobArchived": true,
+    "requirementsTaskId": "01a07325-8848-75f7-bfce-bb6b5bba3d11",
+    "rankingTaskId": "01a0732c-0d1a-7c10-aa4c-01d10e9e1cd2",
+    "duplicateTaskId": "01a0732f-f444-7563-994f-09bcdcb6b840",
+    "duplicateProposalId": "01a07330-0ea1-7825-8f80-ef5c33143680",
+    "duplicateDisposition": "Separate; attributed synthetic QA rationale; neither claim verified"
   }
 }

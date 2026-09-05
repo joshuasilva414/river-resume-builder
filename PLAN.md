@@ -145,12 +145,12 @@ Depends on M2.
 - [x] Implement Job Targets, immutable posting snapshots, current pointers, and Requirement Map revisions.
 - [x] Provide manual requirement editing and evidence search before relying on AI availability.
 - [x] Persist exact evidence selections per posting and requirement; preserve historical maps and provide explicit conflict recovery.
-- [ ] Implement the OpenAI adapter, requirement extraction, bounded evidence ranking, and requirement/global views with explanations and citations.
+- [x] Implement the OpenAI adapter, requirement extraction, bounded evidence ranking, and requirement/global views with explanations and citations.
 - [x] Persist pending proposals for later review; retain accepted proposals; discard rejected proposal content. Do not add detailed trace retention in MVP.
 - [x] Pin proposal inputs and targets. At acceptance, atomically reject changes to relevant revisions and require review of an updated proposal.
 - [x] Keep Operation completion separate from proposal review. Preserve manual use when AI generation fails.
 
-The adapter and review UI are implemented and tested with synthetic responses. The Owner-approved `OPENAI_API_KEY` is installed on staging; live requirement extraction and ranking remain unverified. See `docs/implementation/job-analysis.md` for profile pins and bounds.
+The adapter and review UI are deployed. Live hosted extraction, complete-map acceptance, ranking review and explicit evidence selection pass with fictional fixtures. Captured passage indexes fix unreliable model-calculated offsets; the current ranking contract requires gaps for partial support. Rejected weak rankings retain no payload. See `docs/implementation/job-analysis.md` for identities, profile pins and limits.
 
 Exit: a posting can be analyzed and evidence selected with or without AI. Reloads preserve pending proposals, and accepting a stale proposal cannot change current data.
 
@@ -202,9 +202,9 @@ Exit: the Owner can complete the core loop; failures are diagnosable; data can b
 - [x] Extract candidate evidence into reviewable drafts with exact citations; never auto-verify generated claims.
 - [x] Preserve clarification questions and record source-backed answers against new Evidence Revisions without automatic verification.
 - [x] Add bounded AI duplicate comparisons to the existing manual comparison and disposition workflow.
-Duplicate comparison services, Paper review/history UI, and atomic optional disposition attribution are implemented and locally verified. The staging credential is installed; live provider generation remains unverified. See `docs/implementation/duplicate-comparison.md`.
+Duplicate comparison services, Paper review/history UI, and atomic optional disposition attribution are deployed. Live hosted generation, independent acknowledgment, attributed Keep separate and both-claim history pass. The fictional claims are archived. An inconsistent AI explanation is retained and explicitly identified in the review rationale. See `docs/implementation/duplicate-comparison.md`.
 
-Source proposal services, Paper UI, and clarification tracking are deployed with synthetic acceptance checks. The staging credential is installed; live generation remains unverified. See `docs/implementation/source-proposals.md`.
+Source proposal services, Paper UI, and clarification tracking are deployed. Live hosted generation, exact citation inspection, individual Draft creation and sibling rejection pass. The fictional Draft is archived; live clarification generation remains open. See `docs/implementation/source-proposals.md`.
 - [x] Add the keyword rewrite queue with original/proposed wording, supporting evidence, meaning-change explanation, individual acceptance, and stale-input checks.
 Wording assistance is implemented and deployed. Live local and hosted provider requests, placement acceptance, session undo and retained PDF state pass; local redo also passes. All browser data in these checks is synthetic. See `docs/implementation/wording.md`.
 

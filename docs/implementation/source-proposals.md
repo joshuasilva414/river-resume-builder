@@ -1,6 +1,6 @@
 # Reviewed source proposals and clarification
 
-Updated 2026-09-05. Phase 2 source-to-claim review is implemented. The Owner-approved staging provider key is installed; live generation remains unverified. Browser candidates below are explicitly synthetic, not provider output or Owner facts.
+Updated 2026-09-05. Phase 2 source-to-claim review is implemented. The Owner-approved staging provider key is installed. Live hosted generation, individual Draft creation and rejection now pass using an explicitly fictional source. The earlier local fixtures below were synthetic responses; neither set establishes Owner facts.
 
 ## Input and execution
 
@@ -29,7 +29,7 @@ The dedicated Paper agent completed the source launch and individual review desi
 - Seven source service tests cover exact citation resolution, individual acceptance/replay, rejected-content removal, stale source/context rollback, independent manual origin, source-backed clarification, whole-batch validation, empty results, cancellation/retry bounds, cross-owner denial, concurrent acceptance, preflight limits, and stored-extraction integrity.
 - All **64 Workers service tests** passed in one complete run. All six workspace type checks and lint passed; the staging build passed.
 - Local browser intake produced a real extracted source. Synthetic proposals were then inserted only into the local fixture database. Review accepted one candidate, rejected a sibling, created an independent manual Draft from another, and preserved two Pending candidates. Reprocessing the source disabled their acceptance. The clarification flow added a real source, cited it in a new Draft revision, and recorded the explicit answer without verification.
-- Desktop review was inspected at 1280px. Source queue and clarification review were inspected at 621px in dark appearance with document width equal to viewport width. Live generation and configured launch remain separate credential-dependent checks.
+- Desktop review was inspected at 1280px. Source queue and clarification review were inspected at 621px in dark appearance with document width equal to viewport width. The hosted configured launch and live generation were subsequently exercised below; live clarification generation remains unverified.
 
 Reproduce service checks with `pnpm --filter @river/web exec vitest run test/source-ai.test.ts`; the complete service suite uses `pnpm --filter @river/web test`. Apply migrations with `pnpm db:migrate:local`. Staging uses migration `0012_fast_shadowcat.sql` and workflow `river-staging-source-claims` in the personal Cloudflare account.
 
@@ -45,3 +45,15 @@ Local fixture identities:
 | Clarification question | `01a07102-89de-742d-b62b-2baecaa716ab` |
 | Answering source | `01a07104-4bb5-7617-b9e2-01558f6d17ff` |
 | Answering Evidence Revision | `01a07105-3635-7481-97a6-379428775f43` |
+
+## Hosted provider journey
+
+On web version `22be781c-a417-46da-af6a-9b743c0e6d2a`, source `01a07316-636d-74af-9a45-c12ffa42e177` was entered through normal pasted-text intake. It explicitly describes an invented Sample Candidate rather than the Owner and includes Unicode and repeated text. Its current processing result is `01a07316-636d-7ab3-8225-3212349a5571` (`utf8` version 1).
+
+Launch displayed the complete extraction, zero selected contexts and 1,243 serialized UTF-16 units. First-attempt task `01a07317-38b0-7cb7-a328-59ec1692a4fb`, profile `river-source-claims-v1` / `gpt-5.4-mini-2026-03-17`, produced two complete cited candidates. Captured input SHA-256: `eaf0bc99626dba32f241c61d8d60e37a8bf72a839aeb1f8d060e5ce8703830e3`.
+
+- Candidate `01a07317-5032-7517-99e8-c6fa45455118` quotes line 2 at exact UTF-16 offsets 78–195. Full assertion, highlighted occurrence, rationale and metadata were inspected before creating Draft Claim `01a07317-e671-7eea-98f2-a7b92c5be987`, Evidence Revision `01a07317-e671-76e3-b49e-b2016301d8c6`. The claim remains Draft and explicitly fictional; no verification decision was submitted.
+- Candidate `01a07317-5032-7227-bcfe-6bfef082f6ed` quotes line 3 at offsets 196–300. It was rejected individually. The review removed assertion/quotes/metadata, and a read-only D1 query confirmed `payload IS NULL`, state Rejected and no created Claim/Evidence Revision. The accepted sibling remained intact.
+- Neither candidate proposed a clarification question. This run does not verify live clarification authoring or repeated-occurrence selection by the provider.
+
+The accepted fictional Draft was subsequently used for reviewed job ranking and duplicate-comparison QA, then archived through the normal claim command. Default active evidence search excludes it. Its source, exact material revision, accepted candidate and comparison history remain retained. No verification decision was submitted.

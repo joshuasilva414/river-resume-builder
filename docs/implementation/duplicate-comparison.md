@@ -32,4 +32,16 @@ Local browser review used clearly labeled synthetic explanations inserted only i
 
 Fixture pair: `01a0700c-a0f8-7027-8a75-4850d065b6a8`. Reviewed task: `01a07122-f441-7d87-87f9-52fa20a2621c`; proposal: `01a07122-f441-755b-bc02-f93ccfe72c55`. Rejected task: `01a07122-f441-7eb5-b4d7-93f43ded2001`. The remaining Pending task is historical after the explicit pair decision. Fixture identities are also in `test-results/duplicate-ai-browser-fixture.json`.
 
-Migration `0013_new_sue_storm.sql` adds the task and proposal tables. The configured Workflow is `river-staging-duplicate-comparison`. The Owner-approved staging key is installed; live generation and the configured launch UI remain unverified. Current hosted version and acceptance status are recorded in `deployment.json`.
+Migration `0013_new_sue_storm.sql` adds the task and proposal tables. The configured Workflow is `river-staging-duplicate-comparison`. The Owner-approved staging key is installed. Current hosted version and acceptance status are recorded in `deployment.json`.
+
+## Hosted provider journey
+
+On web version `6c544922-2ada-4cdd-ad38-77c0574e812e`, fictional Claims `01a07317-e671-7eea-98f2-a7b92c5be987` and `01a0732d-7f64-7b83-9fcd-f62c1473540b` produced Pending pair `01a0732e-8229-7690-806b-ced2cb2e7439`. Both explicitly describe an invented Sample Candidate and cite the same source's line 2 at UTF-16 offsets 78–195. A manual wording revision crossed the existing 0.8 similarity threshold; the threshold was unchanged.
+
+Launch displayed 1,687 serialized UTF-16 units and zero contexts. Task `01a0732f-f444-7563-994f-09bcdcb6b840` succeeded on its first attempt using `river-duplicate-comparison-v1` / `gpt-5.4-mini-2026-03-17`. Comparison `01a07330-0ea1-7825-8f80-ef5c33143680` has digest `b5c4ce4ee5af0adbc2b7f9cb581cc785397aa5603c5fa92ad53d3f78446be7bf` and Operation `01a0732f-f444-7aae-a3b2-d53d0638f0f6`.
+
+Full findings, captured inputs, current assertions and exact citation provenance were inspected. The model assessed Same fact. Its Shared finding incorrectly said the first assertion differed from its quote, while Different correctly said they matched. This advisory inconsistency remains visible in the retained payload; review does not endorse every generated explanation.
+
+`Mark reviewed` changed only comparison review state: the pair stayed Pending and both Draft Claims kept their material revisions. The separately selected attribution control linked the comparison to a manual Keep separate decision. Its rationale states that the claims describe the same fictional fact, are retained separately for workflow QA, and will be archived; it also records the model inconsistency. Both Claim histories reopened the same reviewed comparison, saved rationale, actor and timestamp. The resolved pair was Separate, with no new disposition action.
+
+Both fixtures were archived through normal claim commands after this check. Default active search is empty; archived evidence and the selected job association retain their exact provenance. No merge or verification decision was submitted. Hosted stale-race and rejection paths were not rerun; their focused service and earlier local checks remain the evidence for those paths.
