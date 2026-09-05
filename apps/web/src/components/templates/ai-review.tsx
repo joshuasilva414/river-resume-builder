@@ -283,7 +283,10 @@ function TemplateAiReviewBody({
               {proposal.payload.explanation}
             </p>
             <Tabs defaultValue="preview" className="min-w-0">
-              <TabsList className="flex h-auto flex-wrap justify-start" variant="line">
+              <TabsList
+                className="flex max-w-full flex-wrap justify-start gap-y-3 group-data-[orientation=horizontal]/tabs:h-auto [&>[data-slot=tabs-trigger]]:h-9"
+                variant="line"
+              >
                 <TabsTrigger value="preview">Synthetic preview</TabsTrigger>
                 <TabsTrigger value="component">Component change</TabsTrigger>
                 <TabsTrigger value="graph">Complete graph</TabsTrigger>

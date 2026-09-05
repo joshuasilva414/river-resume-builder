@@ -112,6 +112,30 @@ for (const item of fixture.templateFixtures) {
 console.log(
   "Custom graph: four canonical fixtures, inherited styles, cross-pack bindings, and repeat rendering passed.",
 );
+// Each supported article size needs its own offline class resources (size11/size12.clo).
+for (const bodySize of [9, 10, 11, 12]) {
+  const graph = fixture.customGraph;
+  const templateGraph = {
+    ...graph,
+    document: {
+      ...graph.document,
+      manifest: {
+        ...graph.document.manifest,
+        overrides: { ...graph.document.manifest.overrides, bodySize },
+      },
+    },
+  };
+  const result = await run({
+    type: "validate-template",
+    jobId: `article-${bodySize}`,
+    theme: "classic",
+    templateGraph,
+    document: fixture.allTypesDocument,
+  });
+  assert.equal(result.status, 200, `offline article size ${bodySize}`);
+  assert.equal(result.body.validation.passed, true, `article size ${bodySize} text integrity`);
+}
+console.log("All supported document body sizes rendered offline with text integrity passing.");
 const normalize = (text) => text.replace(/\s+/g, " ").trim();
 const expectedSource = await readFile(
   new URL("../fixtures/representative.txt", import.meta.url),

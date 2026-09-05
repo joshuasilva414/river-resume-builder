@@ -9,7 +9,11 @@ ENV XDG_CACHE_HOME=/opt/tectonic-cache SOURCE_DATE_EPOCH=0
 COPY apps/documents/resources/warmup.tex /tmp/warmup/resume.tex
 COPY apps/documents/check-resources.mjs /tmp/check-resources.mjs
 RUN mkdir -p /app /opt/tectonic-cache && cd /tmp/warmup \
- && timeout 600 tectonic -X compile --untrusted -Z deterministic-mode --keep-logs --outdir . resume.tex \
+ && cp resume.tex original.tex \
+ && for size in 9 10 11 12; do \
+      sed "s/10pt,letterpaper/${size}pt,letterpaper/" original.tex > resume.tex; \
+      timeout 600 tectonic -X compile --untrusted -Z deterministic-mode --keep-logs --outdir . resume.tex || exit 1; \
+    done \
  && node /tmp/check-resources.mjs && rm -rf /tmp/warmup /tmp/check-resources.mjs
 WORKDIR /workspace
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
