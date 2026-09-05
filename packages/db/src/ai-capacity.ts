@@ -4,13 +4,17 @@ import type { Guard } from "./commands";
 import type { Database } from "./index";
 import type * as s from "./schema";
 
-type AiOperation = Extract<(typeof s.operations.$inferSelect)["input"], { type: `${string}-ai` }>;
+type AiOperation = Extract<
+  (typeof s.operations.$inferSelect)["input"],
+  { type: `${string}-ai` | "source-refinement" }
+>;
 const types = {
   "job-ai": true,
   "wording-ai": true,
   "source-ai": true,
   "duplicate-ai": true,
   "template-ai": true,
+  "source-refinement": true,
 } satisfies Record<AiOperation["type"], true>;
 /** All interactive AI profiles share one atomic Owner capacity limit. */
 export function aiCapacityGuard(db: Database, ownerId: string): Guard {

@@ -7,20 +7,20 @@ import type {
 } from "@river/contracts";
 import {
   ApplicationError,
-  type CapturedEvidence,
   canonicalJson,
   compositionEvidence,
-  type EvidenceStatus,
-  EXPORT_POLICY_VERSION,
-  exportIssues,
-  fingerprint,
   type LibraryGraphNode,
   newId,
   type Principal,
   renderComposition,
 } from "@river/domain";
-import { CUSTOM_RENDERER_VERSION, RENDERER_VERSION } from "@river/templates";
+import {
+  CUSTOM_RENDERER_VERSION,
+  RENDERER_VERSION,
+  SOURCE_RENDERER_VERSION,
+} from "@river/templates";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { createCheckpointReview, observeCheckpointEvidence } from "./checkpoint-review";
 import { createCommands, type Guard, type Write } from "./commands";
 import { createCompositionRepository } from "./composition";
 import type { Database } from "./index";
@@ -47,9 +47,14 @@ export function createCheckpointRepository(db: Database) {
   const get = async (ownerId: string, id: string) => {
     const row = (
       await db
-        .select({ checkpoint: s.checkpoints, state: s.checkpointState })
+        .select({
+          checkpoint: s.checkpoints,
+          state: s.checkpointState,
+          source: s.checkpointSources,
+        })
         .from(s.checkpoints)
         .innerJoin(s.checkpointState, eq(s.checkpointState.checkpointId, s.checkpoints.id))
+        .leftJoin(s.checkpointSources, eq(s.checkpointSources.checkpointId, s.checkpoints.id))
         .where(and(eq(s.checkpoints.ownerId, ownerId), eq(s.checkpoints.id, id)))
         .limit(1)
     )[0];
@@ -82,132 +87,6 @@ export function createCheckpointRepository(db: Database) {
         });
     },
   });
-  /** Collect immutable material plus a guarded observation of every mutable review/context record. */
-  const evidenceState = async (
-    ownerId: string,
-    references: readonly { claimId: string; revisionId: string }[],
-  ) => {
-    const refs = [...new Map(references.map((ref) => [ref.revisionId, ref])).values()];
-    if (refs.length > 500)
-      throw new ApplicationError({
-        code: "InvalidInput",
-        message: "A checkpoint supports at most 500 Evidence Revisions.",
-      });
-    const captured: CapturedEvidence[] = [],
-      statuses: EvidenceStatus[] = [],
-      claimVersions = new Map<string, number>(),
-      contextVersions = new Map<string, number>();
-    for (let offset = 0; offset < refs.length; offset += 80) {
-      const chunk = refs.slice(offset, offset + 80),
-        ids = chunk.map((ref) => ref.revisionId);
-      const rows = await db
-        .select({ claim: s.claims, revision: s.evidenceRevisions, decision: s.reviewDecisions })
-        .from(s.evidenceRevisions)
-        .innerJoin(s.claims, eq(s.claims.id, s.evidenceRevisions.claimId))
-        .leftJoin(
-          s.reviewDecisions,
-          sql`${s.reviewDecisions.id} = (SELECT d.id FROM evidence_review_decisions d WHERE d.claim_id = ${s.claims.id} AND d.revision_id = ${s.evidenceRevisions.id} ORDER BY d.created_at DESC, d.id DESC LIMIT 1)`,
-        )
-        .where(and(eq(s.claims.ownerId, ownerId), inArray(s.evidenceRevisions.id, ids)));
-      const contexts = await db
-        .select({ ref: s.evidenceContexts, context: s.contexts, revision: s.contextRevisions })
-        .from(s.evidenceContexts)
-        .innerJoin(s.contexts, eq(s.contexts.id, s.evidenceContexts.contextId))
-        .innerJoin(
-          s.contextRevisions,
-          eq(s.contextRevisions.id, s.evidenceContexts.contextRevisionId),
-        )
-        .where(and(inArray(s.evidenceContexts.revisionId, ids), eq(s.contexts.ownerId, ownerId)));
-      for (const ref of chunk) {
-        const row = rows.find(
-          (row) => row.claim.id === ref.claimId && row.revision.id === ref.revisionId,
-        );
-        if (!row)
-          throw new ApplicationError({
-            code: "NotFound",
-            message: "Checkpoint evidence is unavailable.",
-          });
-        const related = contexts.filter((context) => context.ref.revisionId === row.revision.id);
-        if (related.length !== row.revision.material.contexts.length)
-          throw new ApplicationError({
-            code: "NotFound",
-            message: "A pinned evidence context is unavailable.",
-          });
-        const previousClaim = claimVersions.get(row.claim.id);
-        if (previousClaim !== undefined && previousClaim !== row.claim.revision) conflict();
-        claimVersions.set(row.claim.id, row.claim.revision);
-        for (const { context } of related) {
-          const previous = contextVersions.get(context.id);
-          if (previous !== undefined && previous !== context.revision) conflict();
-          contextVersions.set(context.id, context.revision);
-        }
-        captured.push({
-          claimId: row.claim.id,
-          revisionId: row.revision.id,
-          material: row.revision.material,
-          contexts: related.map(({ context, revision }) => ({
-            id: context.id,
-            revisionId: revision.id,
-            data: revision.data,
-          })),
-        });
-        statuses.push({
-          claimId: row.claim.id,
-          revisionId: row.revision.id,
-          currentRevisionId: row.claim.currentRevisionId,
-          archived: row.claim.archivedAt !== null,
-          state: row.decision?.state ?? "Draft",
-          rationale: row.decision?.rationale ?? "",
-          decisionId: row.decision?.id ?? null,
-          contexts: related.map(({ context, revision }) => ({
-            id: context.id,
-            revisionId: revision.id,
-            currentRevisionId: context.currentRevisionId,
-          })),
-        });
-      }
-    }
-    const guards: Guard[] = [];
-    for (const [table, versions] of [
-      ["evidence_claims", claimVersions],
-      ["contexts", contextVersions],
-    ] as const) {
-      if (!versions.size) continue;
-      const observed = JSON.stringify([...versions].map(([id, revision]) => ({ id, revision })));
-      guards.push({
-        condition: sql`NOT EXISTS (SELECT 1 FROM json_each(${observed}) observation LEFT JOIN ${sql.raw(table)} current ON current.id = json_extract(observation.value, '$.id') AND current.owner_id = ${ownerId} WHERE current.id IS NULL OR current.revision != json_extract(observation.value, '$.revision'))`,
-        check: async () => {
-          conflict();
-        },
-      });
-    }
-    return { captured, statuses, guards };
-  };
-  const report = async (
-    checkpointId: string,
-    data: typeof s.checkpoints.$inferSelect.data,
-    graph: readonly LibraryGraphNode[],
-    evidence: readonly CapturedEvidence[],
-    statuses: readonly EvidenceStatus[],
-  ) => {
-    const issues = exportIssues(data, graph, evidence, statuses);
-    if (issues.length > 5000)
-      throw new ApplicationError({
-        code: "InvalidInput",
-        message: "The checkpoint exceeds 5,000 review issues. Reduce its evidence references.",
-      });
-    return {
-      id: newId(),
-      checkpointId,
-      policyVersion: EXPORT_POLICY_VERSION,
-      digest: await fingerprint(
-        canonicalJson({ checkpointId, policy: EXPORT_POLICY_VERSION, issues }),
-      ),
-      issues,
-      evidence: statuses,
-      createdAt: Date.now(),
-    };
-  };
   const observe = async (actor: Principal, input: ReviewCheckpointRequest) => {
     const row = await get(actor.ownerId, input.id);
     if (row.state.revision !== input.revision) conflict();
@@ -220,13 +99,14 @@ export function createCheckpointRepository(db: Database) {
     )[0];
     if (!current)
       throw new ApplicationError({ code: "NotFound", message: "Review report not found." });
-    const live = await evidenceState(actor.ownerId, row.checkpoint.evidence);
-    const next = await report(
+    const live = await observeCheckpointEvidence(db, actor.ownerId, row.checkpoint.evidence);
+    const next = await createCheckpointReview(
       input.id,
       row.checkpoint.data,
       row.checkpoint.graph,
       row.checkpoint.evidence,
       live.statuses,
+      row.source?.fields,
     );
     const changed = current.digest !== next.digest;
     return {
@@ -285,7 +165,11 @@ export function createCheckpointRepository(db: Database) {
           item: { id: node.item.id, currentRevisionId: node.revision.id },
           revision: { id: node.revision.id, data: node.revision.data },
         }));
-        const live = await evidenceState(actor.ownerId, compositionEvidence(draft.data, graph));
+        const live = await observeCheckpointEvidence(
+          db,
+          actor.ownerId,
+          compositionEvidence(draft.data, graph),
+        );
         const document = renderComposition(draft.data, graph),
           id = newId(),
           operationId = newId(),
@@ -310,7 +194,13 @@ export function createCheckpointRepository(db: Database) {
             message:
               "The complete checkpoint exceeds 1.5 MB. Reduce the draft or its evidence links.",
           });
-        const review = await report(id, draft.data, graph, live.captured, live.statuses),
+        const review = await createCheckpointReview(
+            id,
+            draft.data,
+            graph,
+            live.captured,
+            live.statuses,
+          ),
           active = activeGuard(actor);
         await active.check();
         return {
@@ -508,6 +398,12 @@ export function createCheckpointRepository(db: Database) {
       return commands.commit(actor, "retry-checkpoint", input.idempotencyKey, input, async () => {
         const row = await get(actor.ownerId, input.id);
         if (row.state.revision !== input.revision) conflict();
+        if (row.source)
+          throw new ApplicationError({
+            code: "InvalidInput",
+            message:
+              "Accepted source checkpoints preserve their reviewed artifacts. Start a new source proposal to make a correction.",
+          });
         if (await exported(input.id))
           throw new ApplicationError({
             code: "InvalidInput",
@@ -598,7 +494,11 @@ export function createCheckpointRepository(db: Database) {
             .where(eq(s.operations.id, row.state.operationId))
             .limit(1)
         )[0];
-        const renderer = row.checkpoint.templateGraph ? CUSTOM_RENDERER_VERSION : RENDERER_VERSION;
+        const renderer = row.source
+          ? SOURCE_RENDERER_VERSION
+          : row.checkpoint.templateGraph
+            ? CUSTOM_RENDERER_VERSION
+            : RENDERER_VERSION;
         if (
           operation?.state !== "Succeeded" ||
           !operation.artifacts ||

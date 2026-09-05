@@ -226,6 +226,9 @@ function workflowFor(
       return env.TEMPLATE_VALIDATION_WORKFLOW;
     case "template-ai":
       return env.TEMPLATE_AI_WORKFLOW;
+    case "source-refinement":
+    case "source-refinement-accept":
+      return env.SOURCE_REFINEMENT_WORKFLOW;
     case "wording-ai":
       return env.WORDING_WORKFLOW;
     case "database-backup":

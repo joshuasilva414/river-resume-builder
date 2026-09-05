@@ -218,6 +218,8 @@ export async function refinedSourceIdentity(
     renderer: SOURCE_RENDERER_VERSION,
     baseTemplateIdentity,
     source: await fingerprint(source),
-    intendedText: await fingerprint(canonicalJson(manifest)),
+    intendedText: await fingerprint(
+      canonicalJson(manifest.map(({ locator, text }) => ({ locator, text }))),
+    ),
   });
 }

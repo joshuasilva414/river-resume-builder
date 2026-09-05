@@ -32,7 +32,7 @@ The sole Owner is created and verified. Two authenticated hosted Classic compila
 
 The source migration and source UI/services are deployed to staging. Hosted source intake passed: a clearly labeled synthetic fixture was uploaded, extracted with repeated text and Unicode, inspected, and downloaded. Both the source listing and concrete original return 401 without authentication. The local browser created a synthetic source containing repeated text and Unicode, reprocessed it, and inspected its preserved first extraction. Local synthetic fixtures are explicitly labeled and are not Owner evidence.
 
-GitHub OAuth and OpenAI credentials are not configured. Their controls are hidden or absent. Hosted password-reset completion and deliberately interrupted hosted-request recovery remain unverified.
+GitHub OAuth remains unconfigured. The Owner-approved OpenAI and daily backup credentials are installed on staging; hosted template generation and a daily backup restore drill passed. Hosted password-reset completion and other live AI journeys remain unverified.
 
 ## Next acceptance work
 
@@ -42,10 +42,10 @@ GitHub OAuth and OpenAI credentials are not configured. Their controls are hidde
 4. Complete hosted password recovery, GitHub OAuth setup, operational diagnostics, upload cleanup, and deployment recovery gates before release. Supply model profiles and credentials before enabling AI execution.
 5. Continue the remaining V1 milestones in PLAN.md. No MVP release is claimed.
 
-## Not implemented
+## Remaining V1 work
 
 Conversational template iteration is implemented, committed and deployed. Real model responses passed the repaired offline preview locally and on staging, and were reviewed before acceptance into immutable Drafts. All 86 Workers tests through conversation work passed. Both Owner-approved staging secrets are installed. Paper-based Settings recovery, bounded retries, artifact availability checks and safe diagnostics pass eight focused backup tests, workspace types/lint and the staging build. The live daily backup succeeded after repairing a Workers request compatibility error. A fresh isolated restore passed for all 58 base tables, one exact citation, 30 retained objects and one exported checkpoint.
 
-Final-document source refinement, general resume history/branching, ATS integration and remaining hosted AI journeys remain incomplete. See `recovery.md` for the completed backup/restore gate. The real Owner tailoring session and remaining release checks are still open.
+Final-document source refinement now has a locally verified offline compiler, complete diff/field contracts and atomic checkpoint persistence. Migration 0019 is applied locally; all 96 Workers tests, 25 template/compiler/review tests, workspace type/lint checks and the staging build pass. R2 publication, Workflow execution and the Paper review interface are in progress. Staging remains on migration 0018. General resume history/branching, ATS integration and remaining hosted AI journeys remain incomplete. See `source-refinement.md` and `recovery.md`. The real Owner tailoring session and remaining release checks are still open.
 
 The current synthetic proof document and acceptance fixtures are not candidate evidence. Fixed packs now have typed document, section, and block manifests. Manual template lifecycle, full-graph validation, explicit mixing, and exact custom résumé bindings are deployed through migration 0015. Local synthetic browser journeys include repeated Container fixtures, approval, concurrent recovery, new bindings, retirement, and retained checkpoint export. See `template-studio.md`. Template proposal generation, preview recovery and exact review are deployed through migration 0016; the complete service suite passes 83 tests. Conversational iteration and live provider validation remain in progress. See `template-generation.md`. No later-phase controls are exposed as if those workflows existed. The ATS Screener repository has not been changed.

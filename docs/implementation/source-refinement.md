@@ -12,13 +12,23 @@ The complete source can change wording and layout. A closed command grammar reje
 
 This internal manifest is the compiler contract. The upcoming proposal service must separately enforce the base checkpoint's required fields, assign identities for source-only additions, retain support for changed fields, and classify all intended/extracted text changes. A model-supplied manifest cannot grant verification or erase required-field obligations.
 
+## Review and persistence foundation
+
+`diff@9.0.0` produces complete source and extracted-text comparisons, including unchanged context and exact whitespace. A bounded line diff falls back to a clearly identified complete replacement comparison. Stable field comparisons separately record additions, removals, wording, evidence links and ordering. A layout-only summary requires identical complete intended fields and extracted bytes. Meaning classifications remain model assessments; they cannot verify evidence or hide a change.
+
+River assigns source-only addition locators. Existing required fields retain their obligations, and normalized-empty fields cannot bypass them. The model can select only captured evidence identities. Changed wording/support and additions receive a fresh clarification issue even if the model calls the meaning preserved. Those issues remain attached through repeated source refinement.
+
+Migration 0019 adds captured refinement tasks, proposals and immutable checkpoint source overrides. Commands capture the exact source/artifact identities and mutable evidence/context revisions, preserve an Operation and dispatch record, and bound generation, preview and publication attempts separately. Acceptance records exact review coverage before publication. Finalization atomically saves the new checkpoint, its source override and fresh issue report, the accepted proposal, audit history and permanent receipt. It preserves the preceding source checkpoint, original structured base, newer working drafts and prior acknowledgments. Export uses the source renderer identity and requires the new checkpoint's own acknowledgments.
+
+The D1 foundation passed focused race tests: changed evidence during final publication rolls back every dependent write; expired previews cannot enqueue acceptance; cancellation prevents finalization; retries preserve the saved candidate; rejection removes its D1 payload and comparison. All 96 Workers tests and 25 template/compiler/review tests pass, as do workspace type/lint checks and the staging bundle build. Complete R2 retention/cleanup, Workflow execution and UI integration remain in progress. Migration 0019 is applied locally and exercised in isolated tests; staging remains on 0018.
+
 ## Remaining workflow
 
 Capture the exact checkpoint source/artifact/report digests, structured base, evidence/contact/context/template values and dependency revisions before dispatch. Generate a schema-validated complete candidate and intended manifest with a bounded server task profile. Store the candidate separately from its execution Operation. Derive complete source, intended-text and extracted-text diffs; classifications never suppress underlying changes.
 
 Review must include before/after source, complete manifest and extracted text changes, exact PDF previews and validation reports. Acceptance requires current passing artifacts and explicit coverage acknowledgment. Preserve retained artifacts through recoverable D1/R2 publication, then atomically create a new immutable source-override checkpoint and accept the proposal. Old checkpoint acknowledgments do not transfer. Returning to structured editing creates a new named draft from the original structured base after explaining which source-only changes regeneration excludes. Source-to-template promotion passes only an allowlisted generic layout delta and synthetic fixtures.
 
-Persistence, AI execution/review, complete comparisons, checkpoint publication, structured return and generic promotion are not implemented yet. The compiler foundation is verified locally and has not been deployed.
+The comparison and database contracts are implemented; artifact publication/recovery, AI execution, browser review, structured return and generic promotion remain. No source-refinement controls or database migration have been deployed.
 
 ## Compiler proof — 2026-09-05
 

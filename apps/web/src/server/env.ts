@@ -15,6 +15,7 @@ export const Configuration = Schema.Struct({
   OPENAI_SOURCE_CLAIMS_MODEL: Schema.optional(Schema.NonEmptyString),
   OPENAI_DUPLICATE_MODEL: Schema.optional(Schema.NonEmptyString),
   OPENAI_TEMPLATE_MODEL: Schema.optional(Schema.NonEmptyString),
+  OPENAI_REFINEMENT_MODEL: Schema.optional(Schema.NonEmptyString),
   OPENAI_WORDING_MODEL: Schema.optional(Schema.NonEmptyString),
   OPENAI_RANKING_MODEL: Schema.optional(Schema.NonEmptyString),
   D1_EXPORT_API_TOKEN: Schema.optional(Schema.NonEmptyString),
@@ -33,6 +34,7 @@ export interface Env extends Configuration {
   DUPLICATE_AI_WORKFLOW?: Workflow<{ operationId: string }>;
   TEMPLATE_VALIDATION_WORKFLOW?: Workflow<{ operationId: string }>;
   TEMPLATE_AI_WORKFLOW?: Workflow<{ operationId: string }>;
+  SOURCE_REFINEMENT_WORKFLOW?: Workflow<{ operationId: string }>;
   WORDING_WORKFLOW?: Workflow<{ operationId: string }>;
   BACKUP_WORKFLOW?: Workflow<{ operationId: string }>;
   DOCUMENTS: { run: (job: DocumentJob) => Promise<DocumentResult> };

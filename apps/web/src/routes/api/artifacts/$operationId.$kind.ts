@@ -31,6 +31,45 @@ export const Route = createFileRoute("/api/artifacts/$operationId/$kind")({
         if (kind !== "pdf" && kind !== "tex" && kind !== "text" && kind !== "report")
           return new Response("Artifact not found", { status: 404 });
         const download = new URL(request.url).searchParams.has("download");
+        if (
+          "type" in operation.input &&
+          (operation.input.type === "source-refinement" ||
+            operation.input.type === "source-refinement-accept")
+        ) {
+          const detail = await repository
+            .inspectSourceRefinement(session.user.id, operation.input.taskId)
+            .catch(() => null);
+          if (!detail?.proposal || detail.proposal.state === "Rejected")
+            return new Response("Artifact not found", { status: 404 });
+          if (operation.input.type === "source-refinement") {
+            if (detail.proposal.previewOperationId !== operation.id)
+              return new Response("Artifact not found", { status: 404 });
+            if ((operation.artifacts.expiresAt ?? 0) <= Date.now())
+              return new Response("Source preview expired", { status: 410 });
+            if (download)
+              return new Response(
+                "Accept the source proposal and review its checkpoint before exporting",
+                { status: 403 },
+              );
+          } else {
+            if (
+              detail.proposal.state !== "Accepted" ||
+              detail.proposal.acceptanceOperationId !== operation.id ||
+              !detail.proposal.resultCheckpointId
+            )
+              return new Response("Artifact not found", { status: 404 });
+            if (download) {
+              const checkpoint = await repository.inspectCheckpoint(
+                session.user.id,
+                detail.proposal.resultCheckpointId,
+              );
+              if (checkpoint.exported?.operationId !== operation.id)
+                return new Response("Complete checkpoint review before downloading export files", {
+                  status: 403,
+                });
+            }
+          }
+        }
         if (download && "document" in operation.input && operation.input.checkpointId) {
           const checkpoint = await repository.inspectCheckpoint(
             session.user.id,

@@ -28,12 +28,16 @@ import type {
   SourceAiInput,
   SourceAiProfile,
   SourceCandidate,
+  SourceFields,
   Theme,
   WordingInput,
   WordingProfile,
   WordingProposal,
 } from "@river/domain";
 import type {
+  SourceComparison,
+  SourceRefinementCandidate,
+  SourceRefinementProfile,
   TemplateAiInput,
   TemplateAiProfile,
   TemplateBase,
@@ -53,6 +57,7 @@ import {
   text,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import type { RefinementDependencies, SourceRefinementInput } from "./refinement-types";
 import type {
   TemplateDependency,
   TemplateFixtureResult,
@@ -167,6 +172,8 @@ export const operations = sqliteTable(
         | { type: "duplicate-ai"; taskId: string }
         | { type: "template-validation"; validationId: string }
         | { type: "template-ai"; taskId: string }
+        | { type: "source-refinement"; taskId: string }
+        | { type: "source-refinement-accept"; taskId: string }
         | { type: "database-backup"; date: string }
       >()
       .notNull(),
@@ -715,6 +722,73 @@ export const checkpoints = sqliteTable(
   },
   (table) => [index("checkpoint_draft_history").on(table.ownerId, table.draftId, table.createdAt)],
 );
+/** Source overrides are immutable siblings of the retained structured checkpoint data. */
+export const checkpointSources = sqliteTable("checkpoint_source_overrides", {
+  checkpointId: text("checkpoint_id")
+    .primaryKey()
+    .references(() => checkpoints.id),
+  baseCheckpointId: text("base_checkpoint_id")
+    .notNull()
+    .references(() => checkpoints.id),
+  structuredBaseId: text("structured_base_id")
+    .notNull()
+    .references(() => checkpoints.id),
+  proposalId: text("proposal_id").notNull().unique(),
+  source: text("source").notNull(),
+  fields: text("fields", { mode: "json" }).$type<SourceFields>().notNull(),
+  candidateDigest: text("candidate_digest").notNull(),
+  reviewDigest: text("review_digest").notNull(),
+  baseTemplateIdentity: text("base_template_identity").notNull(),
+});
+export const sourceRefinementTasks = sqliteTable(
+  "source_refinement_tasks",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id),
+    baseCheckpointId: text("base_checkpoint_id")
+      .notNull()
+      .references(() => checkpoints.id),
+    input: text("input", { mode: "json" }).$type<SourceRefinementInput>().notNull(),
+    dependencies: text("dependencies", { mode: "json" }).$type<RefinementDependencies>().notNull(),
+    profile: text("profile", { mode: "json" }).$type<SourceRefinementProfile>().notNull(),
+    latestOperationId: text("latest_operation_id")
+      .notNull()
+      .references(() => operations.id),
+    generationAttempts: integer("generation_attempts").notNull().default(1),
+    previewAttempts: integer("preview_attempts").notNull().default(1),
+    revision: integer("revision").notNull().default(0),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    index("source_refinement_checkpoint").on(
+      table.ownerId,
+      table.baseCheckpointId,
+      table.createdAt,
+    ),
+  ],
+);
+export const sourceRefinementProposals = sqliteTable("source_refinement_proposals", {
+  id: text("id").primaryKey(),
+  taskId: text("task_id")
+    .notNull()
+    .unique()
+    .references(() => sourceRefinementTasks.id),
+  state: text("state").$type<"Pending" | "Accepted" | "Rejected">().notNull(),
+  payload: text("payload", { mode: "json" }).$type<SourceRefinementCandidate>(),
+  candidateDigest: text("candidate_digest").notNull(),
+  comparison: text("comparison", { mode: "json" }).$type<SourceComparison>(),
+  previewOperationId: text("preview_operation_id").references(() => operations.id),
+  previewArtifacts: text("preview_artifacts", { mode: "json" }).$type<ArtifactManifest>(),
+  reviewDigest: text("review_digest"),
+  acceptanceOperationId: text("acceptance_operation_id").references(() => operations.id),
+  acceptanceAttempts: integer("acceptance_attempts").notNull().default(0),
+  resultCheckpointId: text("result_checkpoint_id"),
+  createdAt: integer("created_at").notNull(),
+  reviewedAt: integer("reviewed_at"),
+});
+
 export const checkpointReviews = sqliteTable("checkpoint_review_reports", {
   id: text("id").primaryKey(),
   checkpointId: text("checkpoint_id")

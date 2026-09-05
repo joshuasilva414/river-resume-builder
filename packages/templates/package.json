@@ -12,8 +12,8 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "effect": "4.0.0-rc.112",
-    "@river/domain": "workspace:*"
-  },
-  "devDependencies": {}
+    "@river/domain": "workspace:*",
+    "diff": "9.0.0",
+    "effect": "4.0.0-rc.112"
+  }
 }
