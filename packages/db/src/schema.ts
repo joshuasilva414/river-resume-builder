@@ -35,9 +35,6 @@ import type {
   WordingProposal,
 } from "@river/domain";
 import type {
-  SourceComparison,
-  SourceRefinementCandidate,
-  SourceRefinementProfile,
   TemplateAiInput,
   TemplateAiProfile,
   TemplateBase,
@@ -47,6 +44,11 @@ import type {
   TemplateOrigin,
   TemplateScope,
 } from "@river/templates";
+import type {
+  SourceComparison,
+  SourceRefinementCandidate,
+  SourceRefinementProfile,
+} from "@river/templates/source-refinement";
 import { sql } from "drizzle-orm";
 import {
   check,
@@ -787,6 +789,16 @@ export const sourceRefinementProposals = sqliteTable("source_refinement_proposal
   resultCheckpointId: text("result_checkpoint_id"),
   createdAt: integer("created_at").notNull(),
   reviewedAt: integer("reviewed_at"),
+});
+
+export const sourceRefinementArtifactCleanup = sqliteTable("source_refinement_artifact_cleanup", {
+  taskId: text("task_id")
+    .primaryKey()
+    .references(() => sourceRefinementTasks.id),
+  createdAt: integer("created_at").notNull(),
+  settleAfter: integer("settle_after").notNull(),
+  lastAttemptAt: integer("last_attempt_at"),
+  completedAt: integer("completed_at"),
 });
 
 export const checkpointReviews = sqliteTable("checkpoint_review_reports", {

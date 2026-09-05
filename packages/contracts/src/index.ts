@@ -151,6 +151,12 @@ export interface ArtifactManifest {
   readonly validationPassed?: boolean;
   readonly expiresAt?: number;
   readonly templateIdentity?: string;
+  readonly objectDigests?: {
+    readonly pdf: string;
+    readonly tex: string;
+    readonly text: string;
+    readonly report: string;
+  };
 }
 
 export interface OperationView {

@@ -18,7 +18,8 @@
     "OPENAI_WORDING_MODEL": "gpt-5.4-mini-2026-03-17",
     "OPENAI_SOURCE_CLAIMS_MODEL": "gpt-5.4-mini-2026-03-17",
     "OPENAI_DUPLICATE_MODEL": "gpt-5.4-mini-2026-03-17",
-    "OPENAI_TEMPLATE_MODEL": "gpt-5.4-mini-2026-03-17"
+    "OPENAI_TEMPLATE_MODEL": "gpt-5.4-mini-2026-03-17",
+    "OPENAI_REFINEMENT_MODEL": "gpt-5.4-mini-2026-03-17"
   },
   "d1_databases": [
     {
@@ -74,6 +75,11 @@
       "binding": "TEMPLATE_AI_WORKFLOW",
       "name": "river-local-template-ai",
       "class_name": "TemplateAiWorkflow"
+    },
+    {
+      "binding": "SOURCE_REFINEMENT_WORKFLOW",
+      "name": "river-local-source-refinement",
+      "class_name": "SourceRefinementWorkflow"
     }
   ],
   "services": [
@@ -102,7 +108,8 @@
         "OPENAI_WORDING_MODEL": "gpt-5.4-mini-2026-03-17",
         "OPENAI_SOURCE_CLAIMS_MODEL": "gpt-5.4-mini-2026-03-17",
         "OPENAI_DUPLICATE_MODEL": "gpt-5.4-mini-2026-03-17",
-        "OPENAI_TEMPLATE_MODEL": "gpt-5.4-mini-2026-03-17"
+        "OPENAI_TEMPLATE_MODEL": "gpt-5.4-mini-2026-03-17",
+        "OPENAI_REFINEMENT_MODEL": "gpt-5.4-mini-2026-03-17"
       },
       "r2_buckets": [
         {
@@ -150,6 +157,11 @@
           "binding": "TEMPLATE_AI_WORKFLOW",
           "name": "river-staging-template-ai",
           "class_name": "TemplateAiWorkflow"
+        },
+        {
+          "binding": "SOURCE_REFINEMENT_WORKFLOW",
+          "name": "river-staging-source-refinement",
+          "class_name": "SourceRefinementWorkflow"
         }
       ],
       "services": [

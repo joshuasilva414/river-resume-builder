@@ -23,16 +23,29 @@ export async function storeCompiledArtifacts(
   };
   const entries = [
     {
+      kind: "pdf",
       key: artifacts.pdf,
       body: Uint8Array.from(atob(result.pdfBase64), (char) => char.charCodeAt(0)),
       type: "application/pdf",
     },
-    { key: artifacts.tex, body: result.tex, type: "application/x-tex" },
-    { key: artifacts.text, body: result.extractedText, type: "text/plain; charset=utf-8" },
-    { key: artifacts.report, body: JSON.stringify(result.validation), type: "application/json" },
-  ];
+    { kind: "tex", key: artifacts.tex, body: result.tex, type: "application/x-tex" },
+    {
+      kind: "text",
+      key: artifacts.text,
+      body: result.extractedText,
+      type: "text/plain; charset=utf-8",
+    },
+    {
+      kind: "report",
+      key: artifacts.report,
+      body: JSON.stringify(result.validation),
+      type: "application/json",
+    },
+  ] as const;
+  const objectDigests = { pdf: "", tex: "", text: "", report: "" };
   for (const entry of entries) {
     const digest = await fingerprint(entry.body);
+    objectDigests[entry.kind] = digest;
     const stored = await bucket.put(entry.key, entry.body, {
       onlyIf: { etagDoesNotMatch: "*" },
       httpMetadata: { contentType: entry.type },
@@ -44,5 +57,5 @@ export async function storeCompiledArtifacts(
         throw new Error("An immutable document artifact failed its integrity check.");
     }
   }
-  return artifacts;
+  return { ...artifacts, objectDigests };
 }

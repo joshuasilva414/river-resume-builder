@@ -2,7 +2,6 @@ import type { ValidationReport } from "./validation-report";
 
 export * from "./graph";
 export * from "./refinement";
-export * from "./source-proposals";
 export { ValidationReport } from "./validation-report";
 
 import {

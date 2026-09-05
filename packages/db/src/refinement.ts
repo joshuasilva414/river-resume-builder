@@ -7,17 +7,19 @@ import type {
 } from "@river/contracts";
 import { ApplicationError, canonicalJson, fingerprint, newId, type Principal } from "@river/domain";
 import {
-  captureSourceCandidate,
-  compareSourceCandidate,
   refinedSourceIdentity,
   SOURCE_RENDERER_VERSION,
+  validateTextManifest,
+} from "@river/templates";
+import {
+  captureSourceCandidate,
+  compareSourceCandidate,
   type SourceRefinementProfile,
   sourceCandidateDigest,
   structuredSourceFields,
   validateSourceFields,
-  validateTextManifest,
-} from "@river/templates";
-import { and, desc, eq, sql } from "drizzle-orm";
+} from "@river/templates/source-refinement";
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { aiCapacityGuard } from "./ai-capacity";
 import { createCheckpointReview, observeCheckpointEvidence } from "./checkpoint-review";
 import { createCheckpointRepository } from "./checkpoints";
@@ -348,6 +350,7 @@ export function createSourceRefinementRepository(db: Database) {
         artifacts.templateIdentity !== expectedIdentity ||
         artifacts.validationPassed !==
           validateTextManifest(proposal.payload.fields, extractedText).passed ||
+        artifacts.objectDigests?.report !== reportDigest ||
         !artifacts.expiresAt ||
         artifacts.expiresAt <= Date.now()
       )
@@ -453,9 +456,16 @@ export function createSourceRefinementRepository(db: Database) {
             fail("Conflict", "Refresh this refinement before retrying.");
           if (row.proposal && row.proposal.state !== "Pending")
             fail("Conflict", "This proposal already has a review decision.");
-          if (row.proposal?.acceptanceOperationId)
-            fail("Conflict", "Retry checkpoint publication from its acceptance action.");
-          if (!previous || !["Failed", "Cancelled"].includes(previous.state))
+          if (row.proposal?.acceptanceOperationId) {
+            const publication = await operation(row.proposal.acceptanceOperationId);
+            if (publication && ["Pending", "Running"].includes(publication.state))
+              fail("Conflict", "Wait or cancel active checkpoint publication before rerendering.");
+          }
+          const expired =
+            previous?.state === "Succeeded" &&
+            row.proposal?.previewOperationId === previous.id &&
+            (row.proposal.previewArtifacts?.expiresAt ?? 0) <= Date.now();
+          if (!previous || (!expired && !["Failed", "Cancelled"].includes(previous.state)))
             fail("Conflict", "Wait for the current source operation to finish.");
           const saved = Boolean(row.proposal?.payload);
           if (!saved && (!profile || canonicalJson(profile) !== canonicalJson(row.task.profile)))
@@ -518,6 +528,11 @@ export function createSourceRefinementRepository(db: Database) {
               result: { id: row.task.id, revision: request.revision + 1, revisionId: proposal.id },
               guards: [taskGuard(row), pendingGuard(row)],
               writes: [
+                db.insert(s.sourceRefinementArtifactCleanup).values({
+                  taskId: row.task.id,
+                  createdAt: Date.now(),
+                  settleAfter: Date.now() + 15 * 60_000,
+                }),
                 db
                   .update(s.sourceRefinementProposals)
                   .set({
@@ -652,6 +667,8 @@ export function createSourceRefinementRepository(db: Database) {
             retained.rendererVersion !== SOURCE_RENDERER_VERSION ||
             retained.templateIdentity !== expectedIdentity ||
             retained.fingerprint !== proposal.previewArtifacts.fingerprint ||
+            canonicalJson(retained.objectDigests) !==
+              canonicalJson(proposal.previewArtifacts.objectDigests) ||
             retained.pdf !== `${prefix}/resume.pdf` ||
             retained.tex !== `${prefix}/resume.tex` ||
             retained.text !== `${prefix}/resume.txt` ||
@@ -741,6 +758,47 @@ export function createSourceRefinementRepository(db: Database) {
           };
         },
       );
+    },
+    async sourceRefinementCleanupCandidates() {
+      return db
+        .select({
+          taskId: s.sourceRefinementArtifactCleanup.taskId,
+          checkpointId: s.sourceRefinementProposals.resultCheckpointId,
+        })
+        .from(s.sourceRefinementArtifactCleanup)
+        .innerJoin(
+          s.sourceRefinementProposals,
+          eq(s.sourceRefinementProposals.taskId, s.sourceRefinementArtifactCleanup.taskId),
+        )
+        .where(
+          and(
+            isNull(s.sourceRefinementArtifactCleanup.completedAt),
+            eq(s.sourceRefinementProposals.state, "Rejected"),
+          ),
+        )
+        .orderBy(
+          asc(sql`coalesce(${s.sourceRefinementArtifactCleanup.lastAttemptAt},0)`),
+          asc(s.sourceRefinementArtifactCleanup.taskId),
+        )
+        .limit(20);
+    },
+    async recordSourceRefinementCleanup(taskId: string, complete: boolean) {
+      const now = Date.now();
+      await db
+        .update(s.sourceRefinementArtifactCleanup)
+        .set({
+          lastAttemptAt: now,
+          completedAt: complete
+            ? sql`CASE WHEN settle_after <= ${now} AND NOT EXISTS (SELECT 1 FROM operations WHERE state IN ('Pending','Running') AND json_extract(input,'$.taskId')=${taskId}) THEN ${now} ELSE NULL END`
+            : null,
+        })
+        .where(
+          and(
+            eq(s.sourceRefinementArtifactCleanup.taskId, taskId),
+            isNull(s.sourceRefinementArtifactCleanup.completedAt),
+            sql`EXISTS (SELECT 1 FROM source_refinement_proposals WHERE task_id=${taskId} AND state='Rejected')`,
+          ),
+        );
     },
   };
 }

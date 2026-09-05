@@ -16,7 +16,6 @@ import {
 import { diffLines } from "diff";
 import { Schema } from "effect";
 import { normalizeText, textLocations } from "./index";
-import { validateRefinedSource } from "./refinement";
 
 const fail = (message: string): never => {
   throw new ApplicationError({ code: "InvalidInput", message });
@@ -107,7 +106,7 @@ export function captureSourceCandidate(
   const value = Schema.decodeUnknownSync(SourceRefinementOutput)(output);
   if (canonicalJson(value).length > 200000)
     fail("The complete source proposal exceeds its output limit.");
-  validateRefinedSource(value.source);
+  // Keep schema-valid source reviewable even when compilation will reject it. The document boundary enforces the LaTeX grammar before execution.
   const prior = new Map(base.map((field) => [field.locator, field])),
     seen = new Set<string>(),
     allowed = new Set(allowedEvidence.map((ref) => `${ref.claimId}/${ref.revisionId}`));

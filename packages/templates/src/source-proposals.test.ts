@@ -1,15 +1,14 @@
 import { newId, type SourceFields, sourceExportIssues } from "@river/domain";
 import { describe, expect, it } from "vitest";
 import { allTypesDocument } from "./fixtures";
+import { compose, textLocations, validateRefinedSource } from "./index";
 import {
   captureSourceCandidate,
   compareSourceCandidate,
   completeTextDiff,
-  compose,
   type SourceRefinementOutput,
   sourceCandidateDigest,
-  textLocations,
-} from "./index";
+} from "./source-proposals";
 
 const source = compose(allTypesDocument, "classic").tex;
 const base: SourceFields = textLocations(allTypesDocument).map((field, index) => ({
@@ -32,6 +31,14 @@ const output = (): SourceRefinementOutput => ({
 });
 
 describe("source proposal review contract", () => {
+  it("preserves an inspectable invalid-source candidate while the compiler gate blocks execution", () => {
+    const candidate = captureSourceCandidate(base, [], newId(), {
+      ...output(),
+      source: `${source}\n\\input{private}`,
+    });
+    expect(candidate.source).toContain("\\input{private}");
+    expect(() => validateRefinedSource(candidate.source)).toThrow("Prohibited");
+  });
   it("enforces required identities, text and exact supplied evidence before a candidate can be persisted", () => {
     const original = output(),
       id = newId();
