@@ -1,13 +1,169 @@
-import { ApplicationError, type BackupObject, newId } from "@river/domain";
-import { and, eq, sql } from "drizzle-orm";
+import type { ReadBackupStatusRequest, RetryBackupRequest } from "@river/contracts";
+import { ApplicationError, type BackupObject, newId, type Principal } from "@river/domain";
+import { and, desc, eq, gt, isNotNull, lt, sql } from "drizzle-orm";
+import { conditionGuard, createCommands } from "./commands";
 import type { Database } from "./index";
 import * as s from "./schema";
 
 export function createBackupRepository(db: Database) {
+  const commands = createCommands(db);
   const getBackup = async (date: string) =>
     (await db.select().from(s.backups).where(eq(s.backups.date, date)).limit(1))[0];
   return {
     getBackup,
+    async readBackupStatus(actor: Principal, input: ReadBackupStatusRequest = {}) {
+      requireBackupOwner(actor);
+      const selection = {
+        date: s.backups.date,
+        attempt: s.backups.attempts,
+        operationId: s.operations.id,
+        state: s.operations.state,
+        stage: s.operations.stage,
+        failure: s.operations.failure,
+        createdAt: s.operations.createdAt,
+        updatedAt: s.operations.updatedAt,
+        completedAt: s.backups.completedAt,
+      };
+      const latest =
+        (
+          await db
+            .select(selection)
+            .from(s.backups)
+            .innerJoin(s.operations, eq(s.operations.id, s.backups.operationId))
+            .where(eq(s.operations.ownerId, actor.ownerId))
+            .orderBy(desc(s.backups.date))
+            .limit(1)
+        )[0] ?? null;
+      const retainedCandidates = await db
+        .select({
+          date: s.backups.date,
+          completedAt: s.backups.completedAt,
+          manifest: s.backups.manifest,
+        })
+        .from(s.backups)
+        .innerJoin(s.operations, eq(s.operations.id, s.backups.operationId))
+        .where(
+          and(
+            eq(s.operations.ownerId, actor.ownerId),
+            isNotNull(s.backups.manifest),
+            gt(s.backups.completedAt, Date.now() - 30 * 86_400_000),
+          ),
+        )
+        .orderBy(desc(s.backups.date))
+        .limit(30);
+      const dates = await db
+        .select(selection)
+        .from(s.backups)
+        .innerJoin(s.operations, eq(s.operations.id, s.backups.operationId))
+        .where(
+          and(
+            eq(s.operations.ownerId, actor.ownerId),
+            input.before ? lt(s.backups.date, input.before) : undefined,
+          ),
+        )
+        .orderBy(desc(s.backups.date))
+        .limit(11);
+      const selectedDate = input.date ?? latest?.date ?? null;
+      const attempts = selectedDate
+        ? await db
+            .select({
+              id: s.operations.id,
+              state: s.operations.state,
+              stage: s.operations.stage,
+              failure: s.operations.failure,
+              createdAt: s.operations.createdAt,
+              updatedAt: s.operations.updatedAt,
+            })
+            .from(s.operations)
+            .where(
+              and(
+                eq(s.operations.ownerId, actor.ownerId),
+                sql`json_extract(${s.operations.input}, '$.type') = 'database-backup'`,
+                sql`json_extract(${s.operations.input}, '$.date') = ${selectedDate}`,
+              ),
+            )
+            .orderBy(s.operations.createdAt, s.operations.id)
+            .limit(3)
+        : [];
+      return {
+        latest,
+        retainedCandidates,
+        dates: dates.slice(0, 10),
+        nextBefore: dates.length > 10 ? (dates[9]?.date ?? null) : null,
+        selectedDate,
+        attempts,
+        maxAttempts: 3,
+      };
+    },
+    async retryBackup(actor: Principal, input: RetryBackupRequest, configured: boolean) {
+      requireBackupOwner(actor);
+      return commands.commit(
+        actor,
+        "retry-database-backup",
+        input.idempotencyKey,
+        input,
+        async () => {
+          const backup = await getBackup(input.date);
+          const operation = backup
+            ? (
+                await db
+                  .select()
+                  .from(s.operations)
+                  .where(
+                    and(
+                      eq(s.operations.id, backup.operationId),
+                      eq(s.operations.ownerId, actor.ownerId),
+                    ),
+                  )
+                  .limit(1)
+              )[0]
+            : null;
+          if (!backup || !operation)
+            throw new ApplicationError({ code: "NotFound", message: "Daily backup not found." });
+          const guard = conditionGuard(
+            db,
+            sql`EXISTS (SELECT 1 FROM database_backups b JOIN operations o ON o.id=b.operation_id WHERE b.date=${input.date} AND b.attempts=${input.attempt} AND b.attempts<3 AND b.manifest IS NULL AND o.id=${operation.id} AND o.owner_id=${actor.ownerId} AND o.state IN ('Failed','Cancelled'))`,
+            "This backup changed, succeeded, or used all three attempts. Reload its status before retrying.",
+          );
+          await guard.check();
+          if (!configured)
+            throw new ApplicationError({
+              code: "Unavailable",
+              message: "Daily backup credentials or personal staging settings are unavailable.",
+            });
+          const id = newId(),
+            now = Date.now(),
+            attempt = input.attempt + 1;
+          return {
+            result: { id, revision: attempt, revisionId: null },
+            guards: [guard],
+            writes: [
+              db.insert(s.operations).values({
+                id,
+                ownerId: actor.ownerId,
+                input: { type: "database-backup", date: input.date },
+                state: "Pending",
+                stage: "Queued for Owner-requested database backup retry",
+                createdAt: now,
+                updatedAt: now,
+              }),
+              db
+                .update(s.backups)
+                .set({ operationId: id, attempts: attempt, createdAt: now })
+                .where(eq(s.backups.date, input.date)),
+              db.insert(s.dispatches).values({ operationId: id }),
+            ],
+            history: [
+              {
+                entityId: id,
+                before: { operationId: operation.id, attempt: input.attempt },
+                after: { date: input.date, attempt },
+              },
+            ],
+          };
+        },
+      );
+    },
     /** The date is the permanent scheduler identity. Concurrent cron deliveries share one durable dispatch. */
     async scheduleBackup(ownerEmail: string, date: string) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
@@ -101,4 +257,12 @@ export function createBackupRepository(db: Database) {
       return true;
     },
   };
+}
+
+function requireBackupOwner(actor: Principal) {
+  if (actor.kind !== "owner")
+    throw new ApplicationError({
+      code: "Forbidden",
+      message: "Only the Owner can inspect or retry database backups.",
+    });
 }

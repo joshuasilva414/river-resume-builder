@@ -1,11 +1,17 @@
 import { applyD1Migrations } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { createRepository, schema } from "@river/db";
-import { fingerprint, newId } from "@river/domain";
+import { fingerprint, newId, type Principal } from "@river/domain";
 import { eq } from "drizzle-orm";
 import { beforeAll, expect, it } from "vitest";
-import { backupResources, exportDatabase, retainBackupManifest } from "../src/server/backup-export";
+import {
+  backupResources,
+  exportDatabase,
+  retainBackupManifest,
+  safeBackupFailure,
+} from "../src/server/backup-export";
 import { backupSchema } from "../src/server/backup-workflow";
+import { retainedBackupStatus } from "../src/server/backups";
 
 beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
 it("deduplicates daily dispatch atomically and records completion only after retained manifest publication", async () => {
@@ -157,4 +163,178 @@ it("bounds export polling and strips private API error details", async () => {
     }),
   ).rejects.toThrow("dedicated token");
   expect(await env.ARTIFACTS.get(base.key)).toBeNull();
+});
+
+it("serializes explicit daily retries, preserves old operations, and enforces the permanent three-attempt limit", async () => {
+  const store = createRepository(env.DB),
+    id = newId(),
+    email = `${id}@example.test`;
+  const actor: Principal = { kind: "owner", id, ownerId: id };
+  const agent: Principal = { kind: "agent", id: newId(), ownerId: id, scopes: [] };
+  await store.db.insert(schema.user).values({
+    id,
+    name: "Retry fixture",
+    email,
+    emailVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  const first = await store.scheduleBackup(email, "2026-02-01");
+  if (!first) throw Error("Backup missing");
+  const input = { date: first.date, attempt: 1, idempotencyKey: "backup-retry" };
+  await expect(store.readBackupStatus(agent)).rejects.toMatchObject({ code: "Forbidden" });
+  await expect(store.retryBackup(agent, input, true)).rejects.toMatchObject({ code: "Forbidden" });
+  await expect(store.retryBackup(actor, input, true)).rejects.toMatchObject({ code: "Conflict" });
+  await store.updateOperation(first.operationId, { state: "Failed", stage: "Synthetic failure" });
+  await expect(store.retryBackup(actor, input, false)).rejects.toMatchObject({
+    code: "Unavailable",
+  });
+  const raced = await Promise.allSettled([
+    store.retryBackup(actor, input, true),
+    store.retryBackup(actor, { ...input, idempotencyKey: "competing-retry" }, true),
+  ]);
+  expect(raced.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+  expect(raced.filter((result) => result.status === "rejected")).toHaveLength(1);
+  const winnerIndex = raced.findIndex((result) => result.status === "fulfilled");
+  const winningInput = winnerIndex === 0 ? input : { ...input, idempotencyKey: "competing-retry" };
+  const second = await store.getBackup(first.date);
+  if (!second) throw Error("Retry missing");
+  expect(second.attempts).toBe(2);
+  expect(second.operationId).not.toBe(first.operationId);
+  expect(await store.retryBackup(actor, winningInput, false)).toMatchObject({
+    id: second.operationId,
+    revision: 2,
+  });
+  expect((await store.readBackupStatus(actor)).attempts).toHaveLength(2);
+  expect((await store.getOperation(first.operationId))?.state).toBe("Failed");
+  expect(
+    await store.completeBackup(first.date, first.operationId, {
+      key: "old/manifest.json",
+      sha256: "a".repeat(64),
+      bytes: 20,
+    }),
+  ).toBe(false);
+  await store.cancelOperation(id, second.operationId, "cancel-second-backup");
+  const third = await store.retryBackup(
+    actor,
+    { ...input, attempt: 2, idempotencyKey: "third-backup" },
+    true,
+  );
+  await store.updateOperation(third.id, { state: "Failed", stage: "Third failure" });
+  await expect(
+    store.retryBackup(actor, { ...input, attempt: 3, idempotencyKey: "fourth-backup" }, true),
+  ).rejects.toMatchObject({ code: "Conflict" });
+  const status = await store.readBackupStatus(actor);
+  expect(status.latest).toMatchObject({ operationId: third.id, attempt: 3, state: "Failed" });
+  expect(status.attempts.map((item) => item.state)).toEqual(["Failed", "Cancelled", "Failed"]);
+  expect(
+    (await store.pendingDispatches()).filter((item) =>
+      status.attempts.some((attempt) => attempt.id === item.operationId),
+    ),
+  ).toHaveLength(3);
+  expect((await store.scheduleBackup(email, first.date))?.operationId).toBe(third.id);
+  const other: Principal = { kind: "owner", id: newId(), ownerId: newId() };
+  expect((await store.readBackupStatus(other)).latest).toBeNull();
+  await expect(store.retryBackup(other, input, true)).rejects.toMatchObject({ code: "NotFound" });
+});
+
+it("pages UTC dates without replacing the latest attempt or another Owner's history", async () => {
+  const store = createRepository(env.DB),
+    id = newId(),
+    email = `${id}@example.test`;
+  const actor: Principal = { kind: "owner", id, ownerId: id };
+  await store.db.insert(schema.user).values({
+    id,
+    name: "History fixture",
+    email,
+    emailVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  for (let day = 1; day <= 11; day++)
+    await store.scheduleBackup(email, `2026-03-${String(day).padStart(2, "0")}`);
+  const first = await store.readBackupStatus(actor);
+  expect(first.dates).toHaveLength(10);
+  expect(first.latest?.date).toBe("2026-03-11");
+  const second = await store.readBackupStatus(actor, {
+    before: first.nextBefore,
+    date: "2026-03-01",
+  });
+  expect(second.dates.map((item) => item.date)).toEqual(["2026-03-01"]);
+  expect(second.latest?.date).toBe("2026-03-11");
+  expect(second.selectedDate).toBe("2026-03-01");
+  expect(second.attempts).toHaveLength(1);
+  expect(second.nextBefore).toBeNull();
+});
+
+it("requires both immutable artifacts before reporting a retained daily success", async () => {
+  const key = `backups/database/staging/${newId()}/data.sql`,
+    content = "Synthetic SQL fixture",
+    bytes = new TextEncoder().encode(content).byteLength;
+  await env.ARTIFACTS.put(key, content);
+  const manifest = await retainBackupManifest(
+    env.ARTIFACTS,
+    key.replace("data.sql", "manifest.json"),
+    JSON.stringify({
+      format: "river-d1-export-v2",
+      id: newId(),
+      createdAt: new Date().toISOString(),
+      resources: backupResources,
+      tables: ["fixture"],
+      migrations: [],
+      data: { key, bytes, sha256: await fingerprint(content) },
+    }),
+  );
+  const candidate = { date: "2026-09-05", completedAt: Date.now(), manifest };
+  const candidates = [candidate];
+  expect(await retainedBackupStatus(env.ARTIFACTS, candidates)).toMatchObject({
+    date: candidates[0]?.date,
+    format: "river-d1-export-v2",
+    bytes,
+  });
+  expect(
+    await retainedBackupStatus(env.ARTIFACTS, [
+      { ...candidate, manifest: { ...manifest, sha256: "a".repeat(64) } },
+    ]),
+  ).toBeNull();
+  await env.ARTIFACTS.delete(key);
+  expect(await retainedBackupStatus(env.ARTIFACTS, candidates)).toBeNull();
+});
+
+it("exposes only allowlisted transfer diagnostics and retains nothing when the download length is missing", async () => {
+  const key = `backups/database/staging/${newId()}/data.sql`;
+  const transport: typeof fetch = async (input) =>
+    String(input).startsWith("https://api.cloudflare.com/")
+      ? Response.json({
+          success: true,
+          result: {
+            success: true,
+            status: "complete",
+            result: { signed_url: "https://fixture.example.test/private?signature=PRIVATE_MARKER" },
+          },
+        })
+      : new Response("PRIVATE_SQL_MARKER");
+  let failure: unknown;
+  try {
+    await exportDatabase({
+      token: "synthetic-token",
+      tables: ["fixture"],
+      key,
+      bucket: env.ARTIFACTS,
+      transport,
+    });
+  } catch (error) {
+    failure = error;
+  }
+  expect(safeBackupFailure(failure)).toContain("bounded-content-length");
+  expect(safeBackupFailure(failure)).not.toContain("PRIVATE");
+  expect(safeBackupFailure(new Error("PRIVATE_SQL_MARKER"))).not.toContain("PRIVATE");
+  expect(
+    safeBackupFailure(
+      new Error(
+        "The database backup download or immutable upload failed at PRIVATE_MARKER. No backup completion was recorded.",
+      ),
+    ),
+  ).not.toContain("PRIVATE");
+  expect(await env.ARTIFACTS.get(key)).toBeNull();
 });

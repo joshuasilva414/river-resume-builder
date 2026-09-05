@@ -7,6 +7,7 @@ import {
   backupResources,
   exportDatabase,
   retainBackupManifest,
+  safeBackupFailure,
 } from "./backup-export";
 import type { Env } from "./env";
 
@@ -85,9 +86,7 @@ export class BackupWorkflow extends WorkflowEntrypoint<Env, { operationId: strin
             canonicalJson(await backupSchema(this.env.DB)) !==
             canonicalJson({ tables: captured.tables, migrations: captured.migrations })
           )
-            throw new Error(
-              "Schema changed during backup; the next daily run must capture the new schema.",
-            );
+            throw new Error("Schema changed during backup; retry must capture the new schema.");
           const value = Schema.decodeUnknownSync(BackupExport)({
             format: "river-d1-export-v2",
             id,
@@ -107,13 +106,12 @@ export class BackupWorkflow extends WorkflowEntrypoint<Env, { operationId: strin
       await step.do("record-backup-completion", persistenceStep, () =>
         store.completeBackup(captured.date, id, manifest),
       );
-    } catch {
+    } catch (error) {
       await step.do("record-backup-failure", persistenceStep, () =>
         store.updateOperation(id, {
           state: "Failed",
           stage: "Daily database backup failed",
-          failure:
-            "Daily export, schema verification, or private artifact retention failed. Inspect the backup Operation and use the manual backup procedure. The next UTC day has a separate scheduled run.",
+          failure: safeBackupFailure(error),
         }),
       );
       throw new Error(`Database backup operation ${id} failed`);

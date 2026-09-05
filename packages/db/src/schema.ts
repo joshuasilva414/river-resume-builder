@@ -179,6 +179,7 @@ export const operations = sqliteTable(
 );
 export const backups = sqliteTable("database_backups", {
   date: text("date").primaryKey(),
+  attempts: integer("attempts").notNull().default(1),
   operationId: text("operation_id")
     .notNull()
     .references(() => operations.id),

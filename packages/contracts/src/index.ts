@@ -160,6 +160,7 @@ export interface ProblemDetails {
   readonly observedRevision?: number;
 }
 
+export * from "./backups";
 export * from "./checkpoints";
 export * from "./composition";
 export * from "./duplicate-ai";

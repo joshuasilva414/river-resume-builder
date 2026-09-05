@@ -6,6 +6,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Check, KeyRound, Monitor, ShieldCheck } from "lucide-react";
 import { useRef, useState } from "react";
 import { Appearance } from "~/components/appearance";
+import { BackupSettings } from "~/components/backup-settings";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -151,6 +152,7 @@ function Settings() {
             <TabsTrigger value="account">Account & sessions</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="backups">Backups</TabsTrigger>
           </TabsList>
         </div>
         {settings.error && (
@@ -349,6 +351,9 @@ function Settings() {
         </TabsContent>
         <TabsContent value="account" className="p-6 md:p-8">
           <Account user={user} />
+        </TabsContent>
+        <TabsContent value="backups">
+          <BackupSettings />
         </TabsContent>
         <TabsContent value="appearance" className="flex flex-col items-start gap-5 p-6 md:p-8">
           <h2 className="text-2xl">Appearance</h2>

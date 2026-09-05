@@ -30,6 +30,25 @@ const ExportResponse = Schema.Struct({
   }),
 });
 const MAX_SQL_BYTES = 64 * 1024 * 1024;
+const fallbackFailure =
+  "Daily export, schema verification, or private artifact retention failed. Inspect the attempt and the operator restore procedure before retrying.";
+
+/** Only fixed diagnostic vocabulary may leave a backup Workflow; provider messages can contain SQL or signed URLs. */
+export function safeBackupFailure(error: unknown) {
+  if (!(error instanceof Error)) return fallbackFailure;
+  const transfer =
+    /^The database backup download or immutable upload failed at (download-url|download-request|download-response-[1-5]\d{2}|bounded-content-length|hash-stream|fixed-length-stream|immutable-r2-upload|verify-upload-length)\. No backup completion was recorded\.$/;
+  const known = [
+    "The D1 export request failed. Check the dedicated token and personal staging resources.",
+    "D1 could not complete the database export.",
+    "D1 export exceeded its 60-poll limit.",
+    "Schema changed during backup; retry must capture the new schema.",
+    "Daily backup settings are unavailable.",
+  ];
+  return transfer.test(error.message) || known.includes(error.message)
+    ? error.message
+    : fallbackFailure;
+}
 
 /** Hash while streaming. SQL never becomes Workflow step output or a large in-memory string. */
 async function hashStoredObject(bucket: R2Bucket, key: string): Promise<BackupObject | null> {
@@ -91,16 +110,20 @@ export async function exportDatabase({
       );
     }
     if (result.status === "complete") {
+      let stage = "download-url";
       try {
         const url = new URL(result.result?.signed_url ?? "");
         if (url.protocol !== "https:" || url.username || url.password)
           throw new Error("Invalid download URL");
+        stage = "download-request";
         const response = await transport(url, {
           redirect: "error",
           headers: { "Accept-Encoding": "identity" },
           signal: AbortSignal.timeout(30_000),
         });
+        stage = `download-response-${response.status}`;
         if (!response.ok || !response.body) throw new Error("Backup download failed");
+        stage = "bounded-content-length";
         const expectedBytes = Number(response.headers.get("content-length"));
         if (
           !Number.isSafeInteger(expectedBytes) ||
@@ -108,6 +131,7 @@ export async function exportDatabase({
           expectedBytes > MAX_SQL_BYTES
         )
           throw new Error("Backup download has no valid bounded length");
+        stage = "hash-stream";
         let bytes = 0;
         const hash = createHash("sha256");
         const body = response.body.pipeThrough(
@@ -124,6 +148,7 @@ export async function exportDatabase({
           }),
         );
         // R2 requires a known-length stream. A transform alone loses the upstream HTTP length.
+        stage = "fixed-length-stream";
         const fixed = new FixedLengthStream(expectedBytes),
           abort = new AbortController();
         const transferred = body.pipeTo(fixed.writable, { signal: abort.signal }).then(
@@ -131,6 +156,7 @@ export async function exportDatabase({
           () => false,
         );
         try {
+          stage = "immutable-r2-upload";
           const object = await bucket.put(key, fixed.readable, {
             onlyIf: { etagDoesNotMatch: "*" },
             httpMetadata: { contentType: "application/sql" },
@@ -141,6 +167,7 @@ export async function exportDatabase({
             if (!raced) throw new Error("Concurrent backup write missing");
             return raced;
           }
+          stage = "verify-upload-length";
           if (!(await transferred) || bytes !== expectedBytes)
             throw new Error("Incomplete backup download");
           return { key, bytes, sha256: hash.digest("hex") };
@@ -150,7 +177,7 @@ export async function exportDatabase({
         }
       } catch {
         throw new Error(
-          "The database backup download or immutable upload failed. No backup completion was recorded.",
+          `The database backup download or immutable upload failed at ${stage}. No backup completion was recorded.`,
         );
       }
     }

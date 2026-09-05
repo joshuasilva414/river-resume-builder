@@ -3,7 +3,9 @@ import {
   CreateCredentialRequest,
   CreateSourceRequest,
   InspectSourceRequest,
+  ReadBackupStatusRequest,
   ResumeSourceRequest,
+  RetryBackupRequest,
   RetrySourceRequest,
   RevokeCredentialRequest,
   StartProofRequest,
@@ -13,6 +15,7 @@ import { getRequestHeaders } from "@tanstack/react-start/server";
 import { Schema } from "effect";
 import { createCredential, getAccessSettings, revokeCredential } from "./access";
 import { authenticate } from "./auth";
+import { readBackupStatus, retryBackup } from "./backups";
 import { bindings } from "./env";
 import { cancelOperation, dispatchPending, execute, listOperations, startProof } from "./services";
 import {
@@ -40,6 +43,20 @@ export const getOperations = createServerFn({ method: "GET" }).handler(async () 
 export const getSettings = createServerFn({ method: "GET" }).handler(async () =>
   execute(bindings(), getRequestHeaders(), getAccessSettings),
 );
+export const getBackupStatus = createServerFn({ method: "GET" })
+  .validator(Schema.decodeUnknownSync(ReadBackupStatusRequest))
+  .handler(async ({ data }) => {
+    const env = bindings();
+    return execute(env, getRequestHeaders(), readBackupStatus(env, data));
+  });
+export const retryDailyBackup = createServerFn({ method: "POST" })
+  .validator(Schema.decodeUnknownSync(RetryBackupRequest))
+  .handler(async ({ data }) => {
+    const env = bindings();
+    const result = await execute(env, getRequestHeaders(), retryBackup(env, data));
+    if (result.ok) await dispatchPending(env).catch(() => {});
+    return result;
+  });
 export const createAgentCredential = createServerFn({ method: "POST" })
   .validator(Schema.decodeUnknownSync(CreateCredentialRequest))
   .handler(async ({ data }) => execute(bindings(), getRequestHeaders(), createCredential(data)));

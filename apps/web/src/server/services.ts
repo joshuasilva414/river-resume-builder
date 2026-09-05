@@ -203,7 +203,7 @@ export async function reconcileOperations(env: Env) {
             : operation.input.type === "template-ai"
               ? "Template generation or preview was interrupted. Any saved candidate is preserved; inspect the task and retry the unfinished stage if attempts remain."
               : operation.input.type === "database-backup"
-                ? "The daily backup was interrupted. Use the manual backup procedure; the next UTC day has a separate scheduled run."
+                ? "The daily backup was interrupted. Inspect its attempt in Settings before requesting a bounded retry."
                 : "This analysis stopped before saving a proposal. Your input is preserved; retry analysis if attempts remain."
           : "This operation stopped before publishing its artifacts. Your input is preserved; compile again to retry.",
     });
