@@ -4,6 +4,7 @@ export * from "./composition";
 export * from "./core";
 export * from "./duplicate-ai";
 export * from "./evidence";
+export * from "./history";
 export * from "./job-ai";
 export * from "./jobs";
 export * from "./library";

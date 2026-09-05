@@ -5,10 +5,12 @@ import { EvidenceDialog, Failure, FormField, unwrap } from "~/components/evidenc
 import { Button } from "~/components/ui/button";
 import { getCheckpoints } from "~/server/checkpoint-functions";
 import { getResume, getResumes } from "~/server/composition-functions";
+import { CheckpointComparison } from "./comparison";
 import { RestoreCheckpoint } from "./restore";
 
 export function CheckpointHistory({ draftId, onClose }: { draftId: string; onClose: () => void }) {
   const [selected, setSelected] = useState(draftId),
+    [compare, setCompare] = useState<string | null>(null),
     [restore, setRestore] = useState<string | null>(null);
   const root = useQuery({
     queryKey: ["resumes", "detail", draftId],
@@ -146,6 +148,9 @@ export function CheckpointHistory({ draftId, onClose }: { draftId: string; onClo
               <Button variant="outline" onClick={() => setRestore(checkpoint.id)}>
                 Restore as a branch
               </Button>
+              <Button variant="outline" onClick={() => setCompare(checkpoint.id)}>
+                Compare versions
+              </Button>
             </div>
             {drafts
               .filter((draft) => draft.fromCheckpointId === checkpoint.id)
@@ -181,6 +186,13 @@ export function CheckpointHistory({ draftId, onClose }: { draftId: string; onClo
         )}
       </div>
       {restore && <RestoreCheckpoint checkpointId={restore} onClose={() => setRestore(null)} />}
+      {compare && (
+        <CheckpointComparison
+          draftId={selected}
+          checkpointId={compare}
+          onClose={() => setCompare(null)}
+        />
+      )}
     </EvidenceDialog>
   );
 }

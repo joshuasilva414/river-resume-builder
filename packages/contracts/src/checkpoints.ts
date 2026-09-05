@@ -46,3 +46,8 @@ export const RestoreCheckpointRequest = Schema.Struct({
   idempotencyKey: CommandKey,
 });
 export type RestoreCheckpointRequest = typeof RestoreCheckpointRequest.Type;
+export const HistorySelection = Schema.Union([
+  Schema.Struct({ kind: Schema.Literal("checkpoint"), id: RecordId }),
+  Schema.Struct({ kind: Schema.Literal("draft"), id: RecordId, revision: Revision }),
+]);
+export type HistorySelection = typeof HistorySelection.Type;
