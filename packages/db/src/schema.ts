@@ -25,6 +25,7 @@ import type {
   OperationState,
   ResumeDocument,
   ReviewState,
+  ScoringFindingOutcome,
   ScoringProfile,
   SourceAiInput,
   SourceAiProfile,
@@ -891,6 +892,26 @@ export const scoringAttempts = sqliteTable(
     createdAt: integer("created_at").notNull(),
   },
   (table) => [uniqueIndex("scoring_attempt_ordinal").on(table.runId, table.ordinal)],
+);
+export const scoringFindingDecisions = sqliteTable(
+  "scoring_finding_decisions",
+  {
+    id: text("id").primaryKey(),
+    runId: text("run_id")
+      .notNull()
+      .references(() => scoringRuns.id),
+    platform: text("platform").notNull(),
+    findingIndex: integer("finding_index").notNull(),
+    resultDigest: text("result_digest").notNull(),
+    findingDigest: text("finding_digest").notNull(),
+    revision: integer("revision").notNull(),
+    outcome: text("outcome").$type<ScoringFindingOutcome>().notNull(),
+    rationale: text("rationale").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("scoring_finding_decision").on(table.runId, table.platform, table.findingIndex),
+  ],
 );
 export const checkpointAcknowledgments = sqliteTable(
   "checkpoint_acknowledgments",

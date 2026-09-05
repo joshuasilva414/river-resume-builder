@@ -4,6 +4,7 @@ import { useState } from "react";
 import { EvidenceDialog, Failure, unwrap } from "~/components/evidence/shared";
 import { Button } from "~/components/ui/button";
 import { captureResumeCheckpoint, getCheckpoints } from "~/server/checkpoint-functions";
+import { captureAndScoreCheckpoint, getScoringSettings } from "~/server/scoring-functions";
 
 export function CaptureCheckpoint({
   id,
@@ -15,11 +16,29 @@ export function CaptureCheckpoint({
   waiting: boolean;
 }) {
   const navigate = useNavigate();
+  const settings = useQuery({
+    queryKey: ["scoring-settings"],
+    queryFn: async () => unwrap(await getScoringSettings()),
+  });
+  const [mode, setMode] = useState<"export" | "score" | null>(null);
   const [request] = useState(() => ({ id, revision, idempotencyKey: crypto.randomUUID() }));
   const capture = useMutation({
-    mutationFn: async () => unwrap(await captureResumeCheckpoint({ data: request })),
+    mutationFn: async (chosen: "export" | "score") => {
+      const selected = mode ?? chosen;
+      setMode(selected);
+      const result = unwrap(
+        selected === "score"
+          ? await captureAndScoreCheckpoint({ data: request })
+          : await captureResumeCheckpoint({ data: request }),
+      );
+      return { ...result, mode: selected };
+    },
     onSuccess: (result) =>
-      void navigate({ to: "/checkpoints/$checkpointId", params: { checkpointId: result.id } }),
+      void navigate({
+        to: "/checkpoints/$checkpointId",
+        params: { checkpointId: result.id },
+        search: result.mode === "score" ? { scores: true } : {},
+      }),
   });
   return (
     <div className="mt-6 space-y-3 border-t pt-5">
@@ -28,7 +47,10 @@ export function CaptureCheckpoint({
         will not change this checkpoint.
       </p>
       <Failure error={capture.error} />
-      <Button disabled={waiting || capture.isPending} onClick={() => capture.mutate()}>
+      <Button
+        disabled={waiting || capture.isPending || mode === "score"}
+        onClick={() => capture.mutate("export")}
+      >
         {waiting
           ? "Waiting for save"
           : capture.isPending
@@ -37,6 +59,25 @@ export function CaptureCheckpoint({
               ? "Retry checkpoint capture"
               : "Capture & review export"}
       </Button>
+      {settings.data?.configured && (
+        <Button
+          className="ml-0 sm:ml-3"
+          variant="outline"
+          disabled={waiting || capture.isPending || mode === "export"}
+          onClick={() => capture.mutate("score")}
+        >
+          {capture.isPending && mode === "score"
+            ? "Capturing and queuing scoring…"
+            : capture.error && mode === "score"
+              ? "Retry Save & score"
+              : "Save & score"}
+        </Button>
+      )}
+      {settings.error && (
+        <p className="text-xs text-muted-foreground">
+          Scoring availability could not be checked. Export capture remains available.
+        </p>
+      )}
     </div>
   );
 }

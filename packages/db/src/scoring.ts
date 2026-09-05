@@ -1,18 +1,21 @@
 import type {
+  CompareScoringRequest,
   RetryScoringRequest,
+  ReviewScoringFindingRequest,
   ScoringHistoryRequest,
   StartScoringRequest,
 } from "@river/contracts";
 import {
   ApplicationError,
   canonicalJson,
+  compareScoringResults,
   fingerprint,
   newId,
   type Principal,
   type ScoringProfile,
   type ScoringProviderVersion,
+  scoringFindings,
   scoringPreflight,
-  scoringProfile,
   validateScoringResponse,
 } from "@river/domain";
 import {
@@ -24,6 +27,7 @@ import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { conditionGuard, createCommands, type Write } from "./commands";
 import type { Database } from "./index";
 import * as s from "./schema";
+import { prepareScoringRun, scoringCapacity } from "./scoring-command";
 import type { ScoringFailure, ScoringInput, ScoringResult } from "./scoring-types";
 
 function owner(actor: Principal) {
@@ -77,14 +81,6 @@ export function createScoringRepository(db: Database) {
   const activeCondition = (operationId: string) => sql`EXISTS (
     SELECT 1 FROM scoring_runs r JOIN operations o ON o.id=r.operation_id
     WHERE o.id=${operationId} AND r.completed_at IS NULL AND o.state IN ('Pending','Running'))`;
-  const capacity = (ownerId: string) =>
-    conditionGuard(
-      db,
-      sql`(
-    SELECT count(*) FROM scoring_runs r JOIN operations o ON o.id=r.operation_id
-    WHERE r.owner_id=${ownerId} AND o.state IN ('Pending','Running')) < 2`,
-      "Two scoring runs are already active. Wait or cancel before starting another.",
-    );
   /** A late provider response cannot overwrite cancellation, a retry, or completion. */
   const commitRuntime = async (operationId: string, writes: readonly Write[]) => {
     const id = newId();
@@ -104,12 +100,6 @@ export function createScoringRepository(db: Database) {
   return {
     async startScoring(actor: Principal, input: StartScoringRequest, profile: ScoringProfile) {
       owner(actor);
-      // Pin the server-selected adapter settings, never request-supplied URLs or limits.
-      if (canonicalJson(profile) !== canonicalJson(scoringProfile(profile.origin)))
-        throw new ApplicationError({
-          code: "InvalidInput",
-          message: "Unsupported scoring adapter settings.",
-        });
       return commands.commit(actor, "start-scoring", input.idempotencyKey, input, async () => {
         const row = (
           await db
@@ -132,51 +122,17 @@ export function createScoringRepository(db: Database) {
           "The checkpoint changed. Refresh before starting scoring.",
         );
         await guard.check();
-        const limit = capacity(actor.ownerId);
-        await limit.check();
-        const id = newId(),
-          operationId = newId(),
-          now = Date.now();
-        return {
-          result: { id, revision: 0, revisionId: operationId },
-          guards: [guard, limit],
-          writes: [
-            db.insert(s.operations).values({
-              id: operationId,
-              ownerId: actor.ownerId,
-              input: { type: "checkpoint-score", runId: id },
-              state: "Pending",
-              stage: "Waiting for checkpoint document",
-              createdAt: now,
-              updatedAt: now,
-            }),
-            db.insert(s.scoringRuns).values({
-              id,
-              ownerId: actor.ownerId,
-              checkpointId: input.checkpointId,
-              snapshotId: row.checkpoint.snapshotId,
-              documentOperationId: row.state.operationId,
-              operationId,
-              profile,
-              createdAt: now,
-            }),
-            db
-              .insert(s.scoringAttempts)
-              .values({ operationId, runId: id, ordinal: 1, createdAt: now }),
-            db.insert(s.dispatches).values({ operationId }),
-          ],
-          history: [
-            {
-              entityId: id,
-              after: {
-                checkpointId: input.checkpointId,
-                snapshotId: row.checkpoint.snapshotId,
-                operationId,
-                profile,
-              },
-            },
-          ],
-        };
+        const plan = await prepareScoringRun(
+          db,
+          actor,
+          {
+            id: row.checkpoint.id,
+            snapshotId: row.checkpoint.snapshotId,
+            operationId: row.state.operationId,
+          },
+          profile,
+        );
+        return { ...plan, guards: [guard, ...plan.guards] };
       });
     },
     async retryScoring(actor: Principal, input: RetryScoringRequest) {
@@ -195,7 +151,7 @@ export function createScoringRepository(db: Database) {
           "This run changed, is still active, has exhausted its three attempts, or is waiting for the provider's retry time.",
         );
         await guard.check();
-        const limit = capacity(actor.ownerId);
+        const limit = scoringCapacity(db, actor.ownerId);
         await limit.check();
         const operationId = newId(),
           now = Date.now();
@@ -243,12 +199,145 @@ export function createScoringRepository(db: Database) {
         .innerJoin(s.operations, eq(s.operations.id, s.scoringAttempts.operationId))
         .where(eq(s.scoringAttempts.runId, id))
         .orderBy(asc(s.scoringAttempts.ordinal));
-      return { run, attempts };
+      const decisions = await db
+        .select()
+        .from(s.scoringFindingDecisions)
+        .where(eq(s.scoringFindingDecisions.runId, id));
+      const findings =
+        run.completedAt && run.result
+          ? await scoringFindings(run.result.response, run.result.digest, run.id)
+          : [];
+      return { run, attempts, decisions, findings };
+    },
+    async reviewScoringFinding(actor: Principal, input: ReviewScoringFindingRequest) {
+      owner(actor);
+      return commands.commit(
+        actor,
+        "review-scoring-finding",
+        input.idempotencyKey,
+        input,
+        async () => {
+          const run = await get(actor.ownerId, input.runId);
+          if (!run.completedAt || !run.result || run.result.digest !== input.resultDigest)
+            throw new ApplicationError({
+              code: "Conflict",
+              message: "Review the exact completed result before saving a finding decision.",
+            });
+          const finding = (
+            await scoringFindings(run.result.response, run.result.digest, run.id)
+          ).find((value) => value.platform === input.platform && value.index === input.index);
+          if (!finding || finding.digest !== input.findingDigest)
+            throw new ApplicationError({
+              code: "Conflict",
+              message: "This finding does not belong to the selected scoring result.",
+            });
+          if (!input.rationale.trim())
+            throw new ApplicationError({
+              code: "InvalidInput",
+              message: "Explain your finding decision.",
+            });
+          const current = (
+            await db
+              .select()
+              .from(s.scoringFindingDecisions)
+              .where(
+                and(
+                  eq(s.scoringFindingDecisions.runId, input.runId),
+                  eq(s.scoringFindingDecisions.platform, input.platform),
+                  eq(s.scoringFindingDecisions.findingIndex, input.index),
+                ),
+              )
+              .limit(1)
+          )[0];
+          const guard = conditionGuard(
+            db,
+            sql`COALESCE((SELECT revision FROM scoring_finding_decisions WHERE run_id=${input.runId} AND platform=${input.platform} AND finding_index=${input.index}),0) = ${input.revision}`,
+            "This finding decision changed elsewhere. Compare the saved decision before trying again.",
+          );
+          await guard.check();
+          const id = current?.id ?? newId(),
+            value = {
+              id,
+              runId: run.id,
+              platform: input.platform,
+              findingIndex: input.index,
+              resultDigest: input.resultDigest,
+              findingDigest: input.findingDigest,
+              revision: input.revision + 1,
+              outcome: input.outcome,
+              rationale: input.rationale,
+              updatedAt: Date.now(),
+            };
+          return {
+            result: { id, revision: value.revision, revisionId: null },
+            guards: [guard],
+            writes: [
+              db
+                .insert(s.scoringFindingDecisions)
+                .values(value)
+                .onConflictDoUpdate({
+                  target: [
+                    s.scoringFindingDecisions.runId,
+                    s.scoringFindingDecisions.platform,
+                    s.scoringFindingDecisions.findingIndex,
+                  ],
+                  set: value,
+                }),
+            ],
+            history: [{ entityId: id, before: current, after: value }],
+          };
+        },
+      );
+    },
+    async compareScoring(actor: Principal, input: CompareScoringRequest) {
+      owner(actor);
+      const [before, after] = await Promise.all([
+        get(actor.ownerId, input.beforeId),
+        get(actor.ownerId, input.afterId),
+      ]);
+      if (!before.completedAt || !before.result || !after.completedAt || !after.result)
+        throw new ApplicationError({
+          code: "InvalidInput",
+          message: "Choose two completed scoring results.",
+        });
+      return {
+        before,
+        after,
+        comparison: compareScoringResults(
+          {
+            providerUrl: before.profile.origin,
+            adapterVersion: before.profile.adapterVersion,
+            snapshotId: before.snapshotId,
+            response: before.result.response,
+          },
+          {
+            providerUrl: after.profile.origin,
+            adapterVersion: after.profile.adapterVersion,
+            snapshotId: after.snapshotId,
+            response: after.result.response,
+          },
+        ),
+      };
     },
     async listScoring(actor: Principal, input: ScoringHistoryRequest) {
       owner(actor);
       const items = await db
-        .select({ run: s.scoringRuns, operation: s.operations })
+        .select({
+          run: {
+            id: s.scoringRuns.id,
+            checkpointId: s.scoringRuns.checkpointId,
+            revision: s.scoringRuns.revision,
+            attempts: s.scoringRuns.attempts,
+            completedAt: s.scoringRuns.completedAt,
+            createdAt: s.scoringRuns.createdAt,
+          },
+          operation: {
+            id: s.operations.id,
+            state: s.operations.state,
+            stage: s.operations.stage,
+            failure: s.operations.failure,
+          },
+        })
         .from(s.scoringRuns)
         .innerJoin(s.operations, eq(s.operations.id, s.scoringRuns.operationId))
         .where(
@@ -299,14 +388,17 @@ export function createScoringRepository(db: Database) {
         !artifact ||
         !artifact.validationPassed ||
         artifact.expiresAt ||
-        !artifact.objectDigests?.text ||
         artifact.templateIdentity !== checkpoint.checkpoint.templateIdentity ||
         artifact.rendererVersion !== renderer
       )
         throw unavailableDocument();
       return { state: "Ready" as const, artifact };
     },
-    async prepareScoringInput(operationId: string, resumeText: string) {
+    async prepareScoringInput(
+      operationId: string,
+      verified: { resumeText: string; textDigest: string; reportDigest: string },
+    ) {
+      const { resumeText } = verified;
       const row = await runtime(operationId);
       if (!active(row) || !row) return false;
       if (row.run.input) return true;
@@ -327,7 +419,11 @@ export function createScoringRepository(db: Database) {
         });
       const textDigest = await fingerprint(resumeText);
       if (
-        textDigest !== document.artifact.objectDigests?.text ||
+        textDigest !== verified.textDigest ||
+        !/^[a-f0-9]{64}$/.test(verified.reportDigest) ||
+        (document.artifact.objectDigests &&
+          (textDigest !== document.artifact.objectDigests.text ||
+            verified.reportDigest !== document.artifact.objectDigests.report)) ||
         !document.artifact.rendererVersion
       )
         throw unavailableDocument();
@@ -336,6 +432,7 @@ export function createScoringRepository(db: Database) {
         jobDescription: posting.text,
         textKey: document.artifact.text,
         textDigest,
+        reportDigest: verified.reportDigest,
         snapshotDigest: posting.digest,
         documentFingerprint: document.artifact.fingerprint,
         rendererVersion: document.artifact.rendererVersion,

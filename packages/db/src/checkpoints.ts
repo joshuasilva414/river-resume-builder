@@ -13,6 +13,7 @@ import {
   newId,
   type Principal,
   renderComposition,
+  type ScoringProfile,
 } from "@river/domain";
 import {
   CUSTOM_RENDERER_VERSION,
@@ -25,6 +26,7 @@ import { createCommands, type Guard, type Write } from "./commands";
 import { createCompositionRepository } from "./composition";
 import type { Database } from "./index";
 import * as s from "./schema";
+import { prepareScoringRun } from "./scoring-command";
 import { createTemplateRepository } from "./templates";
 
 const conflict = () => {
@@ -147,105 +149,123 @@ export function createCheckpointRepository(db: Database) {
       actor: Principal,
       input: CaptureCheckpointRequest,
       requestedTemplateIdentity?: string,
+      score?: ScoringProfile,
     ) {
       owner(actor);
-      return commands.commit(actor, "capture-checkpoint", input.idempotencyKey, input, async () => {
-        const draft = await composition.observeResume(actor, input.id, input.revision);
-        const template = await createTemplateRepository(db).compositionTemplate(
-          actor.ownerId,
-          draft.data,
-          draft.data,
-        );
-        const templateIdentity = draft.data.template
-          ? template.identity
-          : (requestedTemplateIdentity ?? template.identity);
-        const detail = await composition.inspectResume(actor.ownerId, draft.id);
-        if (detail.draft.revision !== draft.revision) conflict();
-        const graph: LibraryGraphNode[] = detail.graph.map((node) => ({
-          item: { id: node.item.id, currentRevisionId: node.revision.id },
-          revision: { id: node.revision.id, data: node.revision.data },
-        }));
-        const live = await observeCheckpointEvidence(
-          db,
-          actor.ownerId,
-          compositionEvidence(draft.data, graph),
-        );
-        const document = renderComposition(draft.data, graph),
-          id = newId(),
-          operationId = newId(),
-          now = Date.now();
-        const snapshot = {
-          id,
-          ownerId: actor.ownerId,
-          draftId: draft.id,
-          draftRevision: draft.revision,
-          snapshotId: draft.snapshotId,
-          data: draft.data,
-          graph,
-          evidence: live.captured,
-          document,
-          templateIdentity,
-          templateGraph: template.graph ?? null,
-          createdAt: now,
-        };
-        if (new TextEncoder().encode(canonicalJson(snapshot)).byteLength > 1500000)
-          throw new ApplicationError({
-            code: "InvalidInput",
-            message:
-              "The complete checkpoint exceeds 1.5 MB. Reduce the draft or its evidence links.",
-          });
-        const review = await createCheckpointReview(
-            id,
+      return commands.commit(
+        actor,
+        score ? "capture-scored-checkpoint" : "capture-checkpoint",
+        input.idempotencyKey,
+        input,
+        async () => {
+          const draft = await composition.observeResume(actor, input.id, input.revision);
+          const template = await createTemplateRepository(db).compositionTemplate(
+            actor.ownerId,
             draft.data,
+            draft.data,
+          );
+          const templateIdentity = draft.data.template
+            ? template.identity
+            : (requestedTemplateIdentity ?? template.identity);
+          const detail = await composition.inspectResume(actor.ownerId, draft.id);
+          if (detail.draft.revision !== draft.revision) conflict();
+          const graph: LibraryGraphNode[] = detail.graph.map((node) => ({
+            item: { id: node.item.id, currentRevisionId: node.revision.id },
+            revision: { id: node.revision.id, data: node.revision.data },
+          }));
+          const live = await observeCheckpointEvidence(
+            db,
+            actor.ownerId,
+            compositionEvidence(draft.data, graph),
+          );
+          const document = renderComposition(draft.data, graph),
+            id = newId(),
+            operationId = newId(),
+            now = Date.now();
+          const snapshot = {
+            id,
+            ownerId: actor.ownerId,
+            draftId: draft.id,
+            draftRevision: draft.revision,
+            snapshotId: draft.snapshotId,
+            data: draft.data,
             graph,
-            live.captured,
-            live.statuses,
-          ),
-          active = activeGuard(actor);
-        await active.check();
-        return {
-          result: { id, revision: 0, revisionId: review.id },
-          guards: [
-            composition.resumeGuard(actor, draft.id, draft.revision),
-            ...live.guards,
-            active,
-          ],
-          writes: [
-            db.insert(s.checkpoints).values(snapshot),
-            db.insert(s.checkpointReviews).values(review),
-            db.insert(s.operations).values({
-              id: operationId,
-              ownerId: actor.ownerId,
-              input: {
-                document,
-                theme: draft.data.theme,
-                checkpointId: id,
-                templateIdentity,
-                ...(template.graph ? { templateGraph: template.graph } : {}),
+            evidence: live.captured,
+            document,
+            templateIdentity,
+            templateGraph: template.graph ?? null,
+            createdAt: now,
+          };
+          if (new TextEncoder().encode(canonicalJson(snapshot)).byteLength > 1500000)
+            throw new ApplicationError({
+              code: "InvalidInput",
+              message:
+                "The complete checkpoint exceeds 1.5 MB. Reduce the draft or its evidence links.",
+            });
+          const review = await createCheckpointReview(
+              id,
+              draft.data,
+              graph,
+              live.captured,
+              live.statuses,
+            ),
+            active = activeGuard(actor);
+          await active.check();
+          const scoring = score
+            ? await prepareScoringRun(
+                db,
+                actor,
+                { id, snapshotId: draft.snapshotId, operationId },
+                score,
+              )
+            : null;
+          return {
+            result: { id, revision: 0, revisionId: review.id },
+            guards: [
+              composition.resumeGuard(actor, draft.id, draft.revision),
+              ...live.guards,
+              active,
+              ...(scoring?.guards ?? []),
+            ],
+            writes: [
+              db.insert(s.checkpoints).values(snapshot),
+              db.insert(s.checkpointReviews).values(review),
+              db.insert(s.operations).values({
+                id: operationId,
+                ownerId: actor.ownerId,
+                input: {
+                  document,
+                  theme: draft.data.theme,
+                  checkpointId: id,
+                  templateIdentity,
+                  ...(template.graph ? { templateGraph: template.graph } : {}),
+                },
+                state: "Pending",
+                stage: "Waiting for document runtime",
+                createdAt: now,
+                updatedAt: now,
+              }),
+              db.insert(s.dispatches).values({ operationId }),
+              db
+                .insert(s.checkpointState)
+                .values({ checkpointId: id, reportId: review.id, operationId }),
+              ...(scoring?.writes ?? []),
+            ],
+            history: [
+              ...(scoring?.history ?? []),
+              {
+                entityId: id,
+                after: {
+                  draftId: draft.id,
+                  revision: draft.revision,
+                  reportId: review.id,
+                  operationId,
+                },
               },
-              state: "Pending",
-              stage: "Waiting for document runtime",
-              createdAt: now,
-              updatedAt: now,
-            }),
-            db.insert(s.dispatches).values({ operationId }),
-            db
-              .insert(s.checkpointState)
-              .values({ checkpointId: id, reportId: review.id, operationId }),
-          ],
-          history: [
-            {
-              entityId: id,
-              after: {
-                draftId: draft.id,
-                revision: draft.revision,
-                reportId: review.id,
-                operationId,
-              },
-            },
-          ],
-        };
-      });
+            ],
+          };
+        },
+      );
     },
     async inspectCheckpoint(ownerId: string, id: string) {
       const row = await get(ownerId, id);

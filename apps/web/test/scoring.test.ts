@@ -2,10 +2,13 @@ import { applyD1Migrations } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { schema } from "@river/db";
 import { canonicalJson, fingerprint, newId, type Principal, scoringProfile } from "@river/domain";
-import { RENDERER_VERSION } from "@river/templates";
+import { RENDERER_VERSION, validateTextManifest } from "@river/templates";
 import { and, eq } from "drizzle-orm";
+import { Effect, Layer } from "effect";
 import { beforeAll, expect, it, vi } from "vitest";
+import { saveAndScore } from "../src/server/scoring";
 import { prepareScoring, scoringFailure, submitScoring } from "../src/server/scoring-runtime";
+import { Actor, Store } from "../src/server/services";
 import { compositionFixture } from "./fixtures/composition";
 import { syntheticScoringResponse, syntheticScoringVersion } from "./fixtures/scoring";
 
@@ -24,6 +27,11 @@ async function fixture(ready = true, resumeText = " Synthetic résumé\nexact sp
   const key = `retained/scoring-fixture/${checkpoint.id}/text.txt`,
     textDigest = await fingerprint(resumeText);
   await env.ARTIFACTS.put(key, resumeText);
+  const reportKey = `${key}.report.json`,
+    report = JSON.stringify(
+      validateTextManifest([{ locator: "synthetic", text: resumeText }], resumeText),
+    );
+  await env.ARTIFACTS.put(reportKey, report);
   if (ready)
     await repository.updateOperation(detail.operation.id, {
       state: "Succeeded",
@@ -32,7 +40,7 @@ async function fixture(ready = true, resumeText = " Synthetic résumé\nexact sp
         text: key,
         tex: "fixture.tex",
         pdf: "fixture.pdf",
-        report: "fixture.json",
+        report: reportKey,
         fingerprint: "synthetic-document",
         durationMs: 1,
         rendererVersion: RENDERER_VERSION,
@@ -42,7 +50,7 @@ async function fixture(ready = true, resumeText = " Synthetic résumé\nexact sp
           text: textDigest,
           tex: "a".repeat(64),
           pdf: "b".repeat(64),
-          report: "c".repeat(64),
+          report: await fingerprint(report),
         },
       },
     });
@@ -301,4 +309,161 @@ it("refuses to silently resubmit an attempt after an uncertain network outcome",
   expect(scoringFailure(new Error("private provider content")).message).not.toContain(
     "private provider",
   );
+});
+it("captures and queues Save & score atomically, replays offline, and rejects a stale saved draft", async () => {
+  const { repository, actor, draft, data } = await compositionFixture();
+  const request = { id: draft.id, revision: 0, idempotencyKey: "save-and-score" };
+  const captured = await repository.captureCheckpoint(actor, request, undefined, profile);
+  const runs = await repository.listScoring(actor, { checkpointId: captured.id, offset: 0 });
+  expect(runs.items).toHaveLength(1);
+  const run = runs.items[0];
+  if (!run) throw new Error("Missing atomic scoring run");
+  const checkpoint = await repository.inspectCheckpoint(actor.ownerId, captured.id);
+  const detail = await repository.inspectScoring(actor, run.run.id);
+  expect(detail.run.documentOperationId).toBe(checkpoint.operation?.id);
+  expect(detail.run.snapshotId).toBe(checkpoint.checkpoint.snapshotId);
+  expect(
+    (await repository.pendingDispatches()).filter((dispatch) =>
+      [detail.run.operationId, detail.run.documentOperationId].includes(dispatch.operationId),
+    ),
+  ).toHaveLength(2);
+  await repository.saveResume(actor, {
+    id: draft.id,
+    revision: 0,
+    data: { ...data, name: "Newer work" },
+    idempotencyKey: "newer",
+  });
+  expect(
+    await Effect.runPromise(
+      saveAndScore(env, request).pipe(
+        Effect.provide(Layer.merge(Layer.succeed(Actor, actor), Layer.succeed(Store, repository))),
+      ),
+    ),
+  ).toEqual(captured);
+  await expect(
+    repository.captureCheckpoint(
+      actor,
+      { ...request, idempotencyKey: "stale-capture-score" },
+      undefined,
+      profile,
+    ),
+  ).rejects.toMatchObject({ code: "Conflict" });
+  expect(
+    (await repository.listCheckpoints(actor.ownerId, { draftId: draft.id, offset: 0 })).items,
+  ).toHaveLength(1);
+  expect(await repository.listOperations(actor.ownerId)).toHaveLength(2);
+  expect(checkpoint.checkpoint.data.name).toBe("Fixture draft");
+});
+it("verifies legacy checkpoint text against its retained report and captures digests without changing history", async () => {
+  const { repository, actor, input, detail, key, resumeText } = await fixture();
+  if (!detail.operation) throw new Error("Missing document operation");
+  const operation = await repository.getOperation(detail.operation.id);
+  if (!operation?.artifacts) throw new Error("Missing retained artifacts");
+  const { objectDigests: _digests, ...legacy } = operation.artifacts;
+  await repository.db
+    .update(schema.operations)
+    .set({ artifacts: legacy })
+    .where(eq(schema.operations.id, operation.id));
+  const run = await repository.startScoring(actor, input, profile);
+  expect(await prepareScoring(env, run.revisionId ?? "")).toBe("Prepared");
+  expect((await repository.inspectScoring(actor, run.id)).run.input).toMatchObject({
+    resumeText,
+    textDigest: await fingerprint(resumeText),
+  });
+  expect((await repository.getOperation(operation.id))?.artifacts).toEqual(legacy);
+  await repository.cancelOperation(actor.id, run.revisionId ?? "", "cancel-legacy-fixture");
+  await env.ARTIFACTS.put(
+    `${key}.report.json`,
+    JSON.stringify({
+      ...validateTextManifest([{ locator: "synthetic", text: resumeText }], resumeText),
+      passed: false,
+    }),
+  );
+  const invalid = await repository.startScoring(
+    actor,
+    { ...input, idempotencyKey: "invalid-legacy-report" },
+    profile,
+  );
+  await expect(prepareScoring(env, invalid.revisionId ?? "")).rejects.toMatchObject({
+    code: "InvalidInput",
+  });
+});
+it("stores concurrent finding decisions against exact completed results and keeps new runs unreviewed", async () => {
+  const { repository, actor, input, resumeText } = await fixture();
+  const first = await repository.startScoring(actor, input, profile),
+    id = first.revisionId ?? "";
+  await prepareScoring(env, id);
+  await submitScoring(env, id, provider({ resumeText, jobDescription: "Synthetic posting" }));
+  await repository.completeScoring(id);
+  const detail = await repository.inspectScoring(actor, first.id),
+    finding = detail.findings[0];
+  if (!finding || !detail.run.result) throw new Error("Missing result finding");
+  const request = {
+    runId: first.id,
+    resultDigest: detail.run.result.digest,
+    findingDigest: finding.digest,
+    platform: finding.platform,
+    index: finding.index,
+    revision: 0,
+    outcome: "Accepted" as const,
+    rationale: "Synthetic review of this exact finding",
+    idempotencyKey: "review-score-finding",
+  };
+  const agent: Principal = {
+    kind: "agent",
+    id: newId(),
+    ownerId: actor.ownerId,
+    scopes: ["evidence:verify"],
+  };
+  await expect(repository.reviewScoringFinding(agent, request)).rejects.toMatchObject({
+    code: "Forbidden",
+  });
+  await expect(
+    repository.reviewScoringFinding(actor, { ...request, findingDigest: "0".repeat(64) }),
+  ).rejects.toMatchObject({ code: "Conflict" });
+  await expect(
+    repository.reviewScoringFinding(actor, { ...request, resultDigest: "0".repeat(64) }),
+  ).rejects.toMatchObject({ code: "Conflict" });
+  const concurrent = await Promise.allSettled(
+    [
+      request,
+      { ...request, outcome: "Addressed" as const, idempotencyKey: "competing-review" },
+    ].map((value) => repository.reviewScoringFinding(actor, value)),
+  );
+  expect(concurrent.filter((value) => value.status === "fulfilled")).toHaveLength(1);
+  expect(concurrent.filter((value) => value.status === "rejected")).toHaveLength(1);
+  const reviewed = await repository.inspectScoring(actor, first.id);
+  expect(reviewed.decisions).toHaveLength(1);
+  expect(reviewed.run.result).toEqual(detail.run.result);
+  expect(
+    await repository.db
+      .select()
+      .from(schema.audit)
+      .where(eq(schema.audit.entityId, reviewed.decisions[0]?.id ?? "")),
+  ).toHaveLength(1);
+  const second = await repository.startScoring(
+      actor,
+      { ...input, idempotencyKey: "rescore" },
+      profile,
+    ),
+    secondId = second.revisionId ?? "";
+  await prepareScoring(env, secondId);
+  await submitScoring(env, secondId, provider({ resumeText, jobDescription: "Synthetic posting" }));
+  await repository.completeScoring(secondId);
+  const rescored = await repository.inspectScoring(actor, second.id);
+  expect(rescored.decisions).toHaveLength(0);
+  expect(rescored.findings[0]?.digest).not.toBe(finding.digest);
+  // Equal provider payloads may hash equally; the run identity still separates review ownership.
+  expect(
+    (await repository.compareScoring(actor, { beforeId: first.id, afterId: second.id })).comparison
+      .compatible,
+  ).toBe(true);
+  await expect(
+    repository.reviewScoringFinding(actor, {
+      ...request,
+      runId: second.id,
+      revision: 1,
+      idempotencyKey: "wrong-review-revision",
+    }),
+  ).rejects.toMatchObject({ code: "Conflict" });
 });

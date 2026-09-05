@@ -6,6 +6,7 @@ export interface ScoringInput {
   readonly jobDescription: string;
   readonly textKey: string;
   readonly textDigest: string;
+  readonly reportDigest: string;
   readonly snapshotDigest: string;
   readonly documentFingerprint: string;
   readonly rendererVersion: string;

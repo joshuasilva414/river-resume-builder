@@ -17,6 +17,7 @@ import { PdfPreview } from "~/components/pdf-preview";
 import { SourceRefinements } from "~/components/refinement/launch";
 import { StructuredReturn } from "~/components/refinement/structured-return";
 import { TemplatePromotion } from "~/components/refinement/template-promotion";
+import { CheckpointScoring } from "~/components/scoring/launch";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { WorkspaceShell } from "~/components/workspace-shell";
@@ -30,6 +31,8 @@ import {
 import { cancelDocumentOperation, getSession } from "~/server/functions";
 
 export const Route = createFileRoute("/checkpoints/$checkpointId")({
+  validateSearch: (search: Record<string, unknown>): { scores?: true } =>
+    search.scores === true || search.scores === "true" ? { scores: true } : {},
   beforeLoad: async () => {
     const session = await getSession();
     if (!session.user) throw redirect({ to: "/sign-in" });
@@ -66,6 +69,7 @@ function CheckpointPage() {
 function Review({ detail }: { detail: Detail }) {
   const client = useQueryClient(),
     { checkpoint, state, report, operation, exported } = detail;
+  const [scores, setScores] = useState(Boolean(Route.useSearch().scores));
   const [history, setHistory] = useState(false),
     [refinements, setRefinements] = useState(false),
     [structuredReturn, setStructuredReturn] = useState(false),
@@ -166,6 +170,9 @@ function Review({ detail }: { detail: Detail }) {
           </Button>
           <Button variant="outline" onClick={() => setRefinements(true)}>
             Source refinements
+          </Button>
+          <Button variant="outline" onClick={() => setScores(true)}>
+            Scores
           </Button>
           {detail.source && (
             <>
@@ -522,6 +529,13 @@ function Review({ detail }: { detail: Detail }) {
         </aside>
       </div>
       {refinements && <SourceRefinements detail={detail} onClose={() => setRefinements(false)} />}
+      {scores && (
+        <CheckpointScoring
+          checkpointId={checkpoint.id}
+          draftId={checkpoint.draftId}
+          onClose={() => setScores(false)}
+        />
+      )}
       {structuredReturn && (
         <StructuredReturn checkpointId={checkpoint.id} onClose={() => setStructuredReturn(false)} />
       )}

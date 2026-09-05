@@ -1,6 +1,7 @@
 import { createRepository, type ScoringFailure } from "@river/db";
 import { ApplicationError } from "@river/domain";
 import type { Env } from "./env";
+import { readScoringText } from "./scoring-artifacts";
 import {
   inspectScoringProvider,
   ScoringProviderError,
@@ -27,16 +28,14 @@ export async function prepareScoring(env: ScoringEnvironment, id: string) {
   await store.updateOperation(id, { state: "Running", stage: "Preparing exact checkpoint text" });
   const document = await store.scoringDocument(id);
   if (document.state !== "Ready") return document.state;
-  const object = await env.ARTIFACTS.get(document.artifact.text);
-  if (!object || object.size > 24000) {
-    await object?.body.cancel();
+  const verified = await readScoringText(env.ARTIFACTS, document.artifact).catch(() => {
     throw new ApplicationError({
       code: "InvalidInput",
       message:
-        "The checkpoint's retained text is missing or exceeds the scoring input limit. Export remains available.",
+        "The checkpoint's retained text and validation report could not be verified. Export review remains available.",
     });
-  }
-  return (await store.prepareScoringInput(id, await object.text())) ? "Prepared" : "Stopped";
+  });
+  return (await store.prepareScoringInput(id, verified)) ? "Prepared" : "Stopped";
 }
 
 /** One provider submission per attempt. Saved responses survive failed finalization and later retries. */

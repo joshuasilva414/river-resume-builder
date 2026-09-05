@@ -1,6 +1,6 @@
 # ATS scoring implementation
 
-Phase 3 is in progress. River's scoring domain and bounded HTTP adapter are implemented locally. Durable scoring persistence and its bounded Workflow are also implemented locally. Application services, Save & score, finding decisions and the Paper interface remain in progress. No scoring controls are exposed. The design contract is `history-scoring-design.md`.
+Phase 3 is in progress. River's scoring domain and bounded HTTP adapter are implemented locally. Durable scoring persistence and its bounded Workflow are also implemented locally. Authenticated application services, atomic Save & score, exact finding decisions and the Paper-based scoring interface are implemented locally. Provider configuration and hosted verification remain open. New submissions stay unavailable without a configured provider. The design contract is `history-scoring-design.md`.
 
 ## River adapter foundation
 
@@ -12,13 +12,13 @@ Comparison policy `river-reported-scoring-identity-v1` requires the same provide
 
 `ATS_SCREENER_ORIGIN` is an optional validated HTTPS origin. It is not configured or enabled yet. Result identity always comes from the scoring response; the separate version observation never supplies or replaces it. Full raw JSON is retained in D1 alongside validated fields.
 
-Verification: four domain tests, five Workers adapter tests, workspace type checks and lint pass. The adapter tests use synthetic mocked responses only. Persistent operations and captured artifact/text/job fingerprints are now implemented below; reviewable finding decisions and hosted tests remain open.
+Verification: four domain tests, five Workers adapter tests, workspace type checks and lint pass. The adapter tests use synthetic mocked responses only. Persistent operations and captured artifact/text/job fingerprints are now implemented below; finding decisions are implemented below; hosted tests remain open.
 
 ## Durable runs and recovery — 2026-09-05
 
 Migration `0023_scoring_runs.sql` adds Owner-scoped runs and chronological attempts. Start and retry commands commit the Operation, dispatch, audit and permanent receipt together. A stale checkpoint revision prevents every dependent write. Two scoring runs may be active per Owner; each run permits three attempts. External Agent Credentials cannot start, inspect or retry these runs.
 
-Each run pins its checkpoint, immutable posting snapshot, document Operation and server-selected adapter profile. The background Workflow waits up to two minutes for that compilation. Preparation requires a successful retained artifact set with passing validation and matching renderer/template identities. The exact extracted text must match its retained SHA-256. Preparation saves the exact résumé and job strings, source keys, digests, document fingerprint and submission fingerprint in D1. Input never gets trimmed or shortened. Effective limits remain 6,000/4,000 UTF-16 code units.
+Each run pins its checkpoint, immutable posting snapshot, document Operation and server-selected adapter profile. The background Workflow waits up to two minutes for that compilation. Preparation requires a successful retained artifact set with passing validation and matching renderer/template identities. Actual text and report bytes are checked against available manifest/R2 digests and the complete passing validation report. Legacy manifests without per-file hashes can be read without rewriting history; scoring captures their actual text and report SHA-256 digests. Preparation saves the exact résumé and job strings, source keys, digests, document fingerprint and submission fingerprint in D1. Input never gets trimmed or shortened. Effective limits remain 6,000/4,000 UTF-16 code units.
 
 The HTTP adapter observes provider capabilities before submission and retains that observation separately from the actual result identity. Each attempt reserves its submission once; an uncertain network outcome requires an explicit new attempt instead of silent resubmission. Requests have bounded deadlines, redirects are refused, response streams are bounded, and rate limits retain Retry-After. Only a complete validated six-platform result is retained. Missing or incompatible identities suppress comparisons; they do not invent a zero score.
 
@@ -29,6 +29,18 @@ The domain comparison policy requires the same immutable job snapshot, adapter e
 ### Persistence verification
 
 Seven focused Workers persistence/runtime tests cover Owner restrictions, stale-revision rollback, identical concurrent commands, capacity races, exact text and artifact checks, saved-result recovery, cancellation, Retry-After, bounded retries and uncertain submission outcomes. Five HTTP adapter tests cover exact request bodies, complete validation, redirects, limits and cancellation. Four domain tests cover scoring input and identity compatibility. The complete Workers suite passes 115 tests across 21 files; workspace type checks, lint and the staging bundle build also pass. No live scoring provider request was made.
+
+## Atomic capture and Paper review — 2026-09-05
+
+Save & score uses the same checkpoint-capture transaction to commit the exact acknowledged draft, its review report, document Operation, scoring run, both dispatches, audit and permanent receipt. Stale draft revisions prevent every dependent write. A successful replay still resolves the original checkpoint when scoring configuration is later unavailable. Browser navigation opens that checkpoint's scoring inspector while both background stages can continue without the browser.
+
+Migration `0024_scoring_finding_decisions.sql` stores explicit Addressed, Accepted and Not applicable decisions with Owner/time, rationale, expected revision and exact run/result/suggestion identity. A suggestion digest includes the run ID, so even byte-identical provider results do not share decisions. Concurrent reviews use one atomic revision guard; audit history preserves earlier decisions. Changing wording does not modify a finding or a prior provider result.
+
+Paper boards 73–75 supply checkpoint preflight, six-platform results, five-dimensional details, full provider suggestions, identity inspection, retry/cancellation and finding review. Comparison selectors pin completed results from checkpoints on the selected draft, paginate older checkpoints/runs and suppress incompatible deltas. General branch navigation will extend checkpoint selection later. Complete raw response JSON crosses server functions as serialized text alongside typed validated fields. Large raw responses are excluded from history lists.
+
+The local browser reviewed the unavailable-provider and empty-history state in light and dark appearance, exact historical résumé/posting text, visible focus and preserved export access. The synthetic historical checkpoint reports 147/6,000 résumé and 80/4,000 job UTF-16 units after legacy report verification. No new provider call or Owner finding attestation was made. Success/failed-run/finding-review browser journeys and narrow viewport verification remain open.
+
+Ten scoring persistence/runtime tests now cover the above, including capture/replay, concurrent decisions and legacy artifact compatibility. The focused scoring/checkpoint set passes 15 tests. The complete Workers suite passes 118 tests across 21 files, and workspace types/lint plus the staging bundle build pass. Canonical synthetic ATS fixture qualification is still required before any ATS Screener tested designation. No scoring code has been deployed to staging; local migrations are through 0024, staging remains through 0018.
 
 ## Provider identity milestone — 2026-09-05
 

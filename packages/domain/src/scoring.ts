@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { ApplicationError, canonicalJson } from "./core";
+import { ApplicationError, canonicalJson, fingerprint } from "./core";
 
 export const scoringPlatforms = [
   "Workday",
@@ -93,6 +93,28 @@ export const AtsScoringResponse = Schema.Struct({
   _inputCoverage: Schema.optional(Schema.NullOr(ScoringCoverage)),
 });
 export type AtsScoringResponse = typeof AtsScoringResponse.Type;
+export const ScoringFindingOutcome = Schema.Literals(["Addressed", "Accepted", "Not applicable"]);
+export type ScoringFindingOutcome = typeof ScoringFindingOutcome.Type;
+
+/** Decisions address exact provider suggestions; dimensional facts remain unchanged report data. */
+export async function scoringFindings(
+  response: AtsScoringResponse,
+  resultDigest: string,
+  runId: string,
+) {
+  return Promise.all(
+    response.results.flatMap((result) =>
+      result.suggestions.map(async (suggestion, index) => ({
+        platform: result.system,
+        index,
+        suggestion,
+        digest: await fingerprint(
+          canonicalJson({ runId, resultDigest, platform: result.system, index, suggestion }),
+        ),
+      })),
+    ),
+  );
+}
 
 /** Measure exact saved strings. Trimming is used only to detect empty input, never to submit excerpts. */
 export function scoringPreflight(resumeText: string, jobDescription: string) {
