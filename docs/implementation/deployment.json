@@ -5,8 +5,8 @@
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
   "webVersion": "6c544922-2ada-4cdd-ad38-77c0574e812e",
-  "documentWorkerVersion": "6459e815-8f14-4772-827d-5aff881a30ca",
-  "containerImageDigest": "sha256:5ca4c176095b9f4663fee737eaa9a7ec30d7662b4eeb7af51273c6bdd4dc6905",
+  "documentWorkerVersion": "41b6ee79-64cf-4a54-919b-06add26319a9",
+  "containerImageDigest": "sha256:a35ce74287fdce2c7a7152e2afd107ac2d9b736bd31b8f9eb8b42bdf5cec3a2f",
   "database": "river-staging",
   "databaseId": "1b837147-de99-4aaa-a4ad-386b826412b0",
   "bucket": "river-staging-artifacts",
@@ -173,7 +173,7 @@
     "previewFingerprint": "ab9485a7cb387774fe2d93ae269fe54092172cf150b2e5f6575092dbd6feb451",
     "documentMs": 11408.33835
   },
-  "deployedDocumentCommit": "60f0205",
+  "deployedDocumentCommit": "fc2b6f0",
   "templateScoringRelease": {
     "commit": "570278e",
     "workflow": "river-staging-template-scoring",
@@ -221,5 +221,24 @@
     "duplicateTaskId": "01a0732f-f444-7563-994f-09bcdcb6b840",
     "duplicateProposalId": "01a07330-0ea1-7825-8f80-ef5c33143680",
     "duplicateDisposition": "Separate; attributed synthetic QA rationale; neither claim verified"
+  },
+  "renderCache": {
+    "commit": "f946af0",
+    "applicationVersion": 9,
+    "localImage": "sha256:b23a0c2482af42d845647a3a8a1889a3c1ea0c4e3697106803f71eaea1204dcc",
+    "maxSerializedBytes": 16777216,
+    "ttlMs": 120000,
+    "localMissMs": 2512.227791000005,
+    "localHitMs": 575.1142499999987,
+    "localPeakMemoryBytes": 463609856,
+    "hostedVerification": "Passed: authenticated synthetic PDF, exact four-artifact digests under separate Operation keys, and explicit cache hit in redacted response diagnostics. First/repeat end-to-end 12273/3514 ms; further confirmed hit 3213 ms. Original compiled duration remains 3875.363364 ms.",
+    "imageCommit": "f946af0",
+    "diagnosticsCommit": "fc2b6f0",
+    "hostedOperationIds": [
+      "01a0734d-3db1-7b84-96db-37bb014eec62",
+      "01a0734d-f254-7095-83d9-330a75b882f6",
+      "01a0734e-e11d-74de-a0b8-05d9edeb222a"
+    ],
+    "fingerprint": "12975f6a16a3b966022b3201259c142df5c3ac1350d38dcc758c38a2853ee4a9"
   }
 }
