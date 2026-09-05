@@ -76,6 +76,8 @@ it("polls one export, streams SQL into private R2, and recovers immutable upload
     sql = "INSERT INTO fixture VALUES ('Synthetic backup data');";
   let calls = 0;
   const transport: typeof fetch = async (input, init) => {
+    // Exercise Workers Request validation even though the remote response is synthetic.
+    new Request(input, init);
     calls++;
     if (String(input).startsWith("https://api.cloudflare.com/")) {
       expect(String(input)).toContain(
@@ -102,6 +104,7 @@ it("polls one export, streams SQL into private R2, and recovers immutable upload
     }
     expect(new Headers(init?.headers).has("Authorization")).toBe(false);
     expect(new Headers(init?.headers).get("Accept-Encoding")).toBe("identity");
+    expect(init?.redirect).toBe("manual");
     return new Response(sql, {
       headers: { "Content-Length": String(new TextEncoder().encode(sql).byteLength) },
     });
@@ -336,5 +339,26 @@ it("exposes only allowlisted transfer diagnostics and retains nothing when the d
       ),
     ),
   ).not.toContain("PRIVATE");
+  expect(await env.ARTIFACTS.get(key)).toBeNull();
+  let requests = 0;
+  await expect(
+    exportDatabase({
+      token: "synthetic-token",
+      tables: ["fixture"],
+      key,
+      bucket: env.ARTIFACTS,
+      transport: async (input, init) => {
+        requests++;
+        new Request(input, init);
+        if (String(input).startsWith("https://api.cloudflare.com/")) return transport(input, init);
+        expect(init?.redirect).toBe("manual");
+        return new Response(null, {
+          status: 302,
+          headers: { Location: "https://another.example.test/private" },
+        });
+      },
+    }),
+  ).rejects.toThrow("download-response-302");
+  expect(requests).toBe(2);
   expect(await env.ARTIFACTS.get(key)).toBeNull();
 });

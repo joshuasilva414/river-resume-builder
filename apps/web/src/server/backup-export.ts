@@ -117,7 +117,8 @@ export async function exportDatabase({
           throw new Error("Invalid download URL");
         stage = "download-request";
         const response = await transport(url, {
-          redirect: "error",
+          // Reject 3xx below without forwarding this signed request to another origin.
+          redirect: "manual",
           headers: { "Accept-Encoding": "identity" },
           signal: AbortSignal.timeout(30_000),
         });

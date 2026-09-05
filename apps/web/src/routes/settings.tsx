@@ -147,7 +147,10 @@ function Settings() {
         <div className="flex flex-col gap-4 border-b px-6 pt-7 md:px-8">
           <p className="eyebrow">Personal workspace</p>
           <h1 className="page-heading">Settings</h1>
-          <TabsList variant="line" className="max-w-full justify-start overflow-x-auto">
+          <TabsList
+            variant="line"
+            className="max-w-full justify-start overflow-x-auto overflow-y-hidden pb-2 group-data-[orientation=horizontal]/tabs:h-11"
+          >
             <TabsTrigger value="agents">Agent access</TabsTrigger>
             <TabsTrigger value="account">Account & sessions</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>

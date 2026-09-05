@@ -19,7 +19,6 @@ export function createBackupRepository(db: Database) {
         operationId: s.operations.id,
         state: s.operations.state,
         stage: s.operations.stage,
-        failure: s.operations.failure,
         createdAt: s.operations.createdAt,
         updatedAt: s.operations.updatedAt,
         completedAt: s.backups.completedAt,
