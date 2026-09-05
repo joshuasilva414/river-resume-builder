@@ -6,7 +6,15 @@ import {
   type EvidenceMetadata,
 } from "@river/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { cloneElement, type ReactElement, type ReactNode, useId, useRef, useState } from "react";
+import {
+  cloneElement,
+  type ReactElement,
+  type ReactNode,
+  type RefObject,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import {
@@ -109,6 +117,7 @@ export function EvidenceDialog({
   pending = false,
   wide = false,
   className,
+  returnFocusRef,
 }: {
   title: string;
   description: string;
@@ -118,6 +127,7 @@ export function EvidenceDialog({
   pending?: boolean;
   wide?: boolean;
   className?: string;
+  returnFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const [discard, setDiscard] = useState(false);
   const [returnFocus] = useState(() =>
@@ -136,9 +146,11 @@ export function EvidenceDialog({
           className,
         )}
         onCloseAutoFocus={(event) => {
-          if (returnFocus instanceof HTMLElement && returnFocus.isConnected) {
+          // Multi-step review can replace the clicked control; retain its persistent opener.
+          const target = returnFocusRef?.current ?? returnFocus;
+          if (target instanceof HTMLElement && target.isConnected) {
             event.preventDefault();
-            returnFocus.focus();
+            target.focus();
           }
         }}
       >

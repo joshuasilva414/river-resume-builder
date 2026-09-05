@@ -11,7 +11,7 @@ import {
   type WordingProposal,
 } from "@river/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useId, useRef, useState } from "react";
 import {
   EvidenceDialog,
   Failure,
@@ -94,6 +94,7 @@ export function useWordingAssistance(
   onManual: (path: WordingPath) => void,
   onApply: ApplyWording,
 ) {
+  const queueTrigger = useRef<HTMLButtonElement>(null);
   const [offset, setOffset] = useState(0),
     [view, setView] = useState<
       | { type: "queue" }
@@ -117,6 +118,7 @@ export function useWordingAssistance(
       busy={busy}
       inline={Boolean(view.path)}
       onApply={onApply}
+      returnFocusRef={queueTrigger}
       onClose={close}
       onBack={() => setView({ type: "queue" })}
       onManual={(path) => {
@@ -146,7 +148,7 @@ export function useWordingAssistance(
     queueButton: (
       <>
         {Boolean(list.data?.items.length || offset) && (
-          <Button variant="outline" onClick={() => setView({ type: "queue" })}>
+          <Button ref={queueTrigger} variant="outline" onClick={() => setView({ type: "queue" })}>
             Wording proposals
           </Button>
         )}
@@ -164,6 +166,7 @@ export function useWordingAssistance(
             title="Wording proposals"
             description="Review is separate from generation. Saved proposals remain available when AI is unavailable."
             onClose={close}
+            returnFocusRef={queueTrigger}
           >
             <div className="space-y-4">
               <Failure error={list.error} />
@@ -227,6 +230,7 @@ function WordingSurface({
   onClose,
   pending = false,
   children,
+  returnFocusRef,
 }: {
   inline?: boolean;
   title: string;
@@ -234,6 +238,7 @@ function WordingSurface({
   onClose: () => void;
   pending?: boolean;
   children: ReactNode;
+  returnFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const id = useId(),
     heading = useRef<HTMLHeadingElement>(null);
@@ -247,6 +252,7 @@ function WordingSurface({
         description={description}
         onClose={onClose}
         pending={pending}
+        returnFocusRef={returnFocusRef}
         wide
       >
         {children}
@@ -467,8 +473,10 @@ function Review({
   onGenerate,
   inline = false,
   onApply,
+  returnFocusRef,
 }: {
   inline?: boolean;
+  returnFocusRef?: RefObject<HTMLElement | null>;
   onApply: ApplyWording;
   id: string;
   busy: boolean;
@@ -512,6 +520,7 @@ function Review({
       description="Compare complete wording and support. Acceptance creates a local override for this placement."
       onClose={onClose}
       pending={action.isPending}
+      returnFocusRef={returnFocusRef}
     >
       <div className="space-y-5">
         <Button className="self-start" variant="ghost" disabled={action.isPending} onClick={onBack}>
