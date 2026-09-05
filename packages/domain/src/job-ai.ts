@@ -1,13 +1,19 @@
 import { Schema } from "effect";
 import { ApplicationError, newId, Revision } from "./core";
 import { ContextData, EvidenceMaterial, RecordId, ReviewState } from "./evidence";
-import { JobDetails, JobRequirement, JobWorkspace, RequirementFields } from "./jobs";
+import {
+  JobDetails,
+  JobRequirement,
+  JobWorkspace,
+  PostingPassage,
+  RequirementFields,
+} from "./jobs";
 
 export const JobAiTask = Schema.Literals(["extract-requirements", "rank-evidence"]);
 export type JobAiTask = typeof JobAiTask.Type;
 export const AiProfile = Schema.Struct({
   model: Schema.NonEmptyString.check(Schema.isMaxLength(100)),
-  contract: Schema.Literal("river-job-analysis-v1"),
+  contract: Schema.Literals(["river-job-analysis-v1", "river-job-analysis-v2"]),
   maxInputCharacters: Schema.Literal(160000),
   maxOutputTokens: Schema.Literal(12000),
   timeoutMs: Schema.Literal(60000),
@@ -32,6 +38,26 @@ export const AiEvidenceCandidate = Schema.Struct({
   ),
 });
 export type AiEvidenceCandidate = typeof AiEvidenceCandidate.Type;
+export const PostingAnchor = Schema.Struct({
+  index: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  ...PostingPassage.fields,
+});
+/** Address each nonempty line occurrence before generation; long lines use bounded UTF-16 spans. */
+export function indexPostingPassages(posting: string, snapshotId: string) {
+  const anchors: Array<typeof PostingAnchor.Type> = [];
+  for (const line of posting.matchAll(/[^\r\n]+/g)) {
+    const limit = line.index + line[0].length;
+    for (let start = line.index; start < limit; ) {
+      let end = Math.min(start + 4000, limit);
+      // Preserve a Unicode code point that crosses the passage-size boundary.
+      if (end < limit && /[\uD800-\uDBFF]/.test(posting[end - 1] ?? "")) end--;
+      const quote = posting.slice(start, end);
+      if (quote.trim()) anchors.push({ index: anchors.length, snapshotId, quote, start, end });
+      start = end;
+    }
+  }
+  return anchors;
+}
 export const JobAiInput = Schema.Struct({
   task: JobAiTask,
   jobId: RecordId,
@@ -40,6 +66,8 @@ export const JobAiInput = Schema.Struct({
   workspaceRevisionId: RecordId,
   details: JobDetails,
   posting: Schema.String,
+  // Missing only on the retained v1 contract and ranking inputs.
+  postingAnchors: Schema.optionalKey(Schema.Array(PostingAnchor)),
   workspace: JobWorkspace,
   requirementId: Schema.NullOr(RecordId),
   candidateQuery: Schema.String,
@@ -56,6 +84,20 @@ export const RequirementProposalOutput = Schema.Struct({
     }),
   ).check(Schema.isMaxLength(30)),
   explanation: Schema.NonEmptyString.check(Schema.isMaxLength(4000)),
+});
+const { passages: _passages, ...requirementAttributes } = RequirementFields.fields;
+export const AnchoredRequirementProposalOutput = Schema.Struct({
+  requirements: Schema.Array(
+    Schema.Struct({
+      existingId: Schema.NullOr(RecordId),
+      ...requirementAttributes,
+      passageIndexes: Schema.Array(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))).check(
+        Schema.isMinLength(1),
+        Schema.isMaxLength(5),
+      ),
+    }),
+  ).check(Schema.isMaxLength(30)),
+  explanation: RequirementProposalOutput.fields.explanation,
 });
 export const RankingProposalOutput = Schema.Struct({
   results: Schema.Array(
@@ -85,6 +127,32 @@ export const JobAiProposal = Schema.Union([
 ]);
 export type JobAiProposal = typeof JobAiProposal.Type;
 
+function decodeRequirementProposal(input: JobAiInput, output: unknown) {
+  const anchors = input.postingAnchors;
+  if (!anchors) return Schema.decodeUnknownSync(RequirementProposalOutput)(output);
+  const generated = Schema.decodeUnknownSync(AnchoredRequirementProposalOutput)(output);
+  return {
+    ...generated,
+    requirements: generated.requirements.map(({ passageIndexes, ...fields }) => {
+      const selected = new Set<number>();
+      return {
+        ...fields,
+        passages: passageIndexes.map((index) => {
+          const anchor = anchors[index];
+          if (!anchor || anchor.index !== index || selected.has(index))
+            throw new ApplicationError({
+              code: "InvalidInput",
+              message: "The proposal selected an unknown or repeated posting passage.",
+            });
+          selected.add(index);
+          const { index: _index, ...passage } = anchor;
+          return passage;
+        }),
+      };
+    }),
+  };
+}
+
 /** Validate references against the exact supplied input. Never repair model quotes, offsets, or identity correspondence. */
 export function validateJobProposal(input: JobAiInput, output: unknown): JobAiProposal {
   const invalid = (message: string): never => {
@@ -92,7 +160,7 @@ export function validateJobProposal(input: JobAiInput, output: unknown): JobAiPr
   };
   const ids = new Set(input.workspace.requirements.map((item) => item.id));
   if (input.task === "extract-requirements") {
-    const decoded = Schema.decodeUnknownSync(RequirementProposalOutput)(output);
+    const decoded = decodeRequirementProposal(input, output);
     const retained = new Set<string>();
     const requirements = decoded.requirements.map(({ existingId, ...fields }) => {
       if (existingId && (!ids.has(existingId) || retained.has(existingId)))

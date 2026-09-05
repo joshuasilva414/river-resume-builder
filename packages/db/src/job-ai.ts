@@ -4,6 +4,7 @@ import {
   type AiProfile,
   ApplicationError,
   canonicalJson,
+  indexPostingPassages,
   type JobAiInput,
   type JobAiProposal,
   JobWorkspace,
@@ -218,6 +219,10 @@ export function createJobAiRepository(db: Database) {
           workspaceRevisionId: detail.workspace.id,
           details: detail.job.details,
           posting: detail.snapshot.text,
+          ...(request.task === "extract-requirements" &&
+          profile.contract === "river-job-analysis-v2"
+            ? { postingAnchors: indexPostingPassages(detail.snapshot.text, detail.snapshot.id) }
+            : {}),
           workspace: detail.workspace.data,
           requirementId: request.requirementId,
           candidateQuery: request.task === "rank-evidence" ? candidateQuery : "",

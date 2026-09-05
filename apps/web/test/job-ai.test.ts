@@ -24,7 +24,7 @@ const profile: AiProfile = {
   maxOutputTokens: 12000,
   timeoutMs: 60000,
 };
-async function fixture() {
+async function fixture(postingText = "TypeScript required.\nTypeScript required.") {
   const store = createRepository(env.DB),
     ownerId = newId();
   const actor: Principal = { kind: "owner", id: ownerId, ownerId };
@@ -40,7 +40,7 @@ async function fixture() {
     type: "create",
     idempotencyKey: "create",
     details: { role: "Synthetic TypeScript engineer", company: "Fixture", location: "" },
-    posting: { text: "TypeScript required.\nTypeScript required.", url: null },
+    posting: { text: postingText, url: null },
   });
   const current = await store.inspectJob(ownerId, { id: created.id });
   const fields = {
@@ -67,6 +67,127 @@ async function fixture() {
   };
   return { store, actor, created, current, fields, request, output };
 }
+it("captures exact posting anchors and resolves a selected repeated occurrence without model offsets", async () => {
+  const { store, actor, request, fields, current } = await fixture();
+  const anchoredProfile = { ...profile, contract: "river-job-analysis-v2" as const };
+  const started = await store.startJobAi(actor, request, anchoredProfile);
+  const detail = await store.inspectJobAi(actor.id, started.id);
+  expect(detail.task.input.postingAnchors).toEqual([
+    { index: 0, snapshotId: current.snapshot.id, quote: "TypeScript required.", start: 0, end: 20 },
+    {
+      index: 1,
+      snapshotId: current.snapshot.id,
+      quote: "TypeScript required.",
+      start: 21,
+      end: 41,
+    },
+  ]);
+  const output = {
+    requirements: [
+      {
+        existingId: null,
+        text: fields.text,
+        category: fields.category,
+        priority: fields.priority,
+        keywords: fields.keywords,
+        confidence: fields.confidence,
+        passageIndexes: [1],
+      },
+    ],
+    explanation: "Selected the explicit second occurrence.",
+  };
+  const generated = await generateJobProposal(
+    "synthetic-test-key",
+    detail.task.input,
+    anchoredProfile,
+    async (_request, init) => {
+      const body = JSON.parse(String(init?.body));
+      expect(JSON.parse(body.input[0].content).postingAnchors).toEqual(
+        detail.task.input.postingAnchors,
+      );
+      expect(body.text.format.schema.properties.requirements.items.properties).toHaveProperty(
+        "passageIndexes",
+      );
+      expect(body.text.format.schema.properties.requirements.items.properties).not.toHaveProperty(
+        "passages",
+      );
+      return Response.json({
+        id: "resp_fixture",
+        object: "response",
+        created_at: 1,
+        model: profile.model,
+        status: "completed",
+        output: [
+          {
+            id: "msg_fixture",
+            type: "message",
+            role: "assistant",
+            status: "completed",
+            content: [{ type: "output_text", text: JSON.stringify(output), annotations: [] }],
+          },
+        ],
+      });
+    },
+  );
+  if (!started.revisionId) throw Error("Missing operation");
+  await store.publishJobAi(actor.id, started.id, started.revisionId, generated);
+  const saved = await store.inspectJobAi(actor.id, started.id);
+  expect(saved.proposal?.payload).toMatchObject({
+    type: "requirements",
+    requirements: [{ passages: fields.passages }],
+  });
+  for (const passageIndexes of [[2], [1, 1], []])
+    expect(() =>
+      validateJobProposal(detail.task.input, {
+        ...output,
+        requirements: [{ ...output.requirements[0], passageIndexes }],
+      }),
+    ).toThrow();
+  expect(
+    (await store.inspectJob(actor.id, { id: request.jobId })).workspace.data.requirements,
+  ).toHaveLength(0);
+  if (!saved.proposal) throw Error("Missing proposal");
+  await store.reviewJobAi(actor, {
+    id: saved.proposal.id,
+    revision: 0,
+    decision: "Accepted",
+    acknowledgeRemovedAssociations: false,
+    idempotencyKey: "accept-indexed",
+  });
+  expect(
+    (await store.inspectJob(actor.id, { id: request.jobId })).workspace.data.requirements[0]
+      ?.passages,
+  ).toEqual(fields.passages);
+});
+it("indexes long Unicode posting lines without splitting surrogate pairs and counts anchors in the input budget", async () => {
+  const text = `${"x".repeat(3999)}🚀 end\r\nRepeated passage.\nRepeated passage.`;
+  const { store, actor, request, current } = await fixture(text);
+  const anchoredProfile = { ...profile, contract: "river-job-analysis-v2" as const };
+  const started = await store.startJobAi(actor, request, anchoredProfile);
+  const { task } = await store.inspectJobAi(actor.id, started.id);
+  const anchors = task.input.postingAnchors;
+  expect(anchors).toHaveLength(4);
+  for (const [index, anchor] of (anchors ?? []).entries()) {
+    expect(anchor.index).toBe(index);
+    expect(anchor.snapshotId).toBe(current.snapshot.id);
+    expect(anchor.quote).toBe(text.slice(anchor.start, anchor.end));
+    expect(anchor.quote.length).toBeLessThanOrEqual(4000);
+    expect(anchor.quote).not.toMatch(/[\uD800-\uDFFF]/u);
+  }
+  expect(
+    anchors
+      ?.slice(0, 2)
+      .map((anchor) => anchor.quote)
+      .join(""),
+  ).toBe(text.split("\r\n")[0]);
+  const large = await fixture("TypeScript required.\n".repeat(2500));
+  await expect(
+    large.store.startJobAi(large.actor, large.request, anchoredProfile),
+  ).rejects.toMatchObject({ code: "InvalidInput" });
+  expect((await large.store.listJobAi(large.actor.id, large.request.jobId, 0)).items).toHaveLength(
+    0,
+  );
+});
 it("pins one task, persists a reviewed map with stable new IDs, and rejects stale acceptance without dependent writes", async () => {
   const { store, actor, created, request, output } = await fixture();
   const started = await store.startJobAi(actor, request, profile);
