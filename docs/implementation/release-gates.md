@@ -24,6 +24,7 @@ Local and hosted Playwright journeys cover source intake, evidence review, manua
 
 The following work still prevents V1 release:
 
+- Resolve [PDF-001: PDF viewer flicker](known-issues.md#pdf-001--pdf-previews-repeatedly-flicker-between-rendered-and-loading-states). The Owner's recording confirms repeated rendered/loading transitions and layout changes in all three template previews. Diagnosis is pending.
 - Required GitHub OAuth and hosted password recovery. The personal GitHub registration is prepared but unsubmitted pending approval; the Owner must enter a new password for the hosted recovery journey.
 - Authenticated hosted Agent Credential use. Local/service coverage does not establish the deployed REST/MCP credential path.
 - Explicit source-refinement acceptance, retained export, structured return and template promotion. Candidate rendering passed; acceptance remains pending the Owner review attestation.
