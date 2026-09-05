@@ -6,6 +6,7 @@ Application commands and reads emit one Effect JSON outcome event. The logger us
 | --- | --- |
 | `river.application` | `traceId`, authenticated `actorId` or `anonymous`, required `permission`, `outcome`; elapsed milliseconds in the named log span |
 | `river.workflow-dispatch` | `operationId`, the identical stable `workflowId`, `ownerId`, `outcome`; elapsed milliseconds in the named log span |
+| `river.source-upload-recovery` | `sourceId`, `ownerId`, check `outcome`; elapsed milliseconds in the named log span. A successful check can still find no uploaded object. |
 | `river.document.response` | bounded `operationId`, validated `jobType`, HTTP `status`, allowlisted `cache` outcome |
 
 An application failure's `traceId` matches its public Problem Details response. A dispatch event links the persisted Operation to its Workflow; the document response reuses that Operation identity. These are separate request and Operation correlations, not a claim that a distributed tracing exporter is configured. Authentication infrastructure errors that occur before shared command execution remain outside this application event.

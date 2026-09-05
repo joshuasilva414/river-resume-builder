@@ -12,6 +12,11 @@ type DiagnosticContext =
       scope: "workflow-dispatch";
       operationId: string;
       ownerId: string;
+    }
+  | {
+      scope: "source-upload-recovery";
+      sourceId: string;
+      ownerId: string;
     };
 
 /** Record only explicit identifiers and an exit category, never results, causes or input objects. */
@@ -23,11 +28,13 @@ export function withDiagnostics(context: DiagnosticContext) {
           actorId: context.actorId ?? "anonymous",
           permission: context.permission,
         }
-      : {
-          operationId: context.operationId,
-          workflowId: context.operationId,
-          ownerId: context.ownerId,
-        };
+      : context.scope === "workflow-dispatch"
+        ? {
+            operationId: context.operationId,
+            workflowId: context.operationId,
+            ownerId: context.ownerId,
+          }
+        : { sourceId: context.sourceId, ownerId: context.ownerId };
   return <A, E, R>(program: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
     program.pipe(
       Effect.onExit((exit) =>

@@ -1,6 +1,6 @@
 import type { CreateSourceRequest, ExtractionResult, RetrySourceRequest } from "@river/contracts";
 import { ApplicationError, canonicalJson, fingerprint, newId, type Principal } from "@river/domain";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import type { Database } from "./index";
 import * as schema from "./schema";
 
@@ -45,11 +45,24 @@ export function createSourceRepository(db: Database) {
         .limit(200);
     },
     async uploadingSources() {
-      return db
-        .select()
+      const rows = await db
+        .select({ source: schema.sources })
         .from(schema.sources)
+        .leftJoin(
+          schema.sourceUploadChecks,
+          eq(schema.sourceUploadChecks.sourceId, schema.sources.id),
+        )
         .where(eq(schema.sources.state, "Uploading"))
+        .orderBy(sql`coalesce(${schema.sourceUploadChecks.checkedAt}, 0)`, asc(schema.sources.id))
         .limit(50);
+      return rows.map(({ source }) => source);
+    },
+    async recordSourceUploadCheck(id: string) {
+      const checkedAt = Date.now();
+      await db
+        .insert(schema.sourceUploadChecks)
+        .values({ sourceId: id, checkedAt })
+        .onConflictDoUpdate({ target: schema.sourceUploadChecks.sourceId, set: { checkedAt } });
     },
     async getProcessingResult(ownerId: string, sourceId: string, id: string) {
       return (

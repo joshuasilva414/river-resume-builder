@@ -5,7 +5,7 @@ import { createRepository, schema } from "@river/db";
 import { fingerprint, newId, type Principal } from "@river/domain";
 import { eq } from "drizzle-orm";
 import { Effect, Layer } from "effect";
-import { beforeAll, expect, it } from "vitest";
+import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import { Actor, recoverSourceUploads, Store } from "../src/server/services";
 import {
   createSource,
@@ -15,6 +15,7 @@ import {
 } from "../src/server/sources";
 
 beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
+afterEach(() => vi.restoreAllMocks());
 async function fixture() {
   const repository = createRepository(env.DB);
   const id = newId();
@@ -101,6 +102,89 @@ it("recovers an uploaded original after interrupted finalization and keeps missi
   expect(await repository.pendingDispatches()).toEqual(
     expect.arrayContaining([expect.objectContaining({ operationId: source.operationId })]),
   );
+});
+
+it("reaches uploaded originals beyond 50 abandoned reservations without changing retry history", async () => {
+  vi.spyOn(console, "log").mockImplementation(() => {});
+  const { repository, actor } = await fixture();
+  const { contentBase64, ...metadata } = input;
+  const bytes = new TextEncoder().encode(atob(contentBase64));
+  const digest = await fingerprint(bytes);
+  const reservation = { ...metadata, digest, byteLength: bytes.length };
+  const ids: string[] = [];
+  for (let index = 0; index < 51; index++)
+    ids.push(
+      await repository.beginSource(actor, { ...reservation, idempotencyKey: `reserve-${index}` }),
+    );
+  const ordered = ids.toSorted();
+  const firstId = ordered[0],
+    lastId = ordered.at(-1);
+  if (!firstId || !lastId) throw Error("Missing reservation identities");
+  const first = await repository.getSource(actor.id, firstId);
+  const last = await repository.getSource(actor.id, lastId);
+  if (!first || !last) throw Error("Missing reservations");
+  await env.ARTIFACTS.put(last.objectKey, bytes, { customMetadata: { sha256: digest } });
+  // A same-size object with different provenance must not finalize or be overwritten.
+  await env.ARTIFACTS.put(first.objectKey, bytes, { customMetadata: { sha256: "wrong" } });
+  const head = vi.spyOn(env.ARTIFACTS, "head");
+  await recoverSourceUploads(env);
+  expect(head).toHaveBeenCalledTimes(50);
+  expect((await repository.getSource(actor.id, last.id))?.state).toBe("Uploading");
+  await recoverSourceUploads(env);
+  expect(head).toHaveBeenCalledTimes(100);
+  expect((await repository.getSource(actor.id, last.id))?.state).toBe("Processing");
+  expect(await repository.getSource(actor.id, first.id)).toEqual(first);
+  expect((await env.ARTIFACTS.head(first.objectKey))?.customMetadata?.sha256).toBe("wrong");
+  expect(
+    await repository.beginSource(actor, {
+      ...reservation,
+      idempotencyKey: `reserve-${ids.indexOf(first.id)}`,
+    }),
+  ).toBe(first.id);
+  expect(await repository.pendingDispatches()).toEqual(
+    expect.arrayContaining([expect.objectContaining({ operationId: last.operationId })]),
+  );
+  expect(await repository.pendingDispatches()).not.toEqual(
+    expect.arrayContaining([expect.objectContaining({ operationId: first.operationId })]),
+  );
+});
+
+it("continues upload recovery after an R2 failure without logging its private cause", async () => {
+  const { repository, actor } = await fixture();
+  const { contentBase64, ...metadata } = input;
+  const bytes = new TextEncoder().encode(atob(contentBase64));
+  const digest = await fingerprint(bytes);
+  const ids = [];
+  for (const idempotencyKey of ["failing-head", "available-head"])
+    ids.push(
+      await repository.beginSource(actor, {
+        ...metadata,
+        digest,
+        byteLength: bytes.length,
+        idempotencyKey,
+      }),
+    );
+  const [firstId, secondId] = ids;
+  if (!firstId || !secondId) throw Error("Missing reservation identities");
+  const first = await repository.getSource(actor.id, firstId);
+  const second = await repository.getSource(actor.id, secondId);
+  if (!first || !second) throw Error("Missing reservations");
+  await env.ARTIFACTS.put(second.objectKey, bytes, { customMetadata: { sha256: digest } });
+  const originalHead = env.ARTIFACTS.head.bind(env.ARTIFACTS);
+  const privateCause = "PRIVATE_STORAGE_ERROR_AND_SIGNED_URL";
+  const head = vi.spyOn(env.ARTIFACTS, "head").mockImplementation((key) => {
+    if (key === first.objectKey) return Promise.reject(new Error(privateCause));
+    return originalHead(key);
+  });
+  const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  await recoverSourceUploads(env);
+  expect(head).toHaveBeenCalledWith(first.objectKey);
+  expect(head).toHaveBeenCalledWith(second.objectKey);
+  expect((await repository.getSource(actor.id, first.id))?.state).toBe("Uploading");
+  expect((await repository.getSource(actor.id, second.id))?.state).toBe("Processing");
+  expect(JSON.stringify(log.mock.calls)).not.toContain(privateCause);
+  expect(JSON.stringify(log.mock.calls)).toContain("river.source-upload-recovery");
+  expect(JSON.stringify(log.mock.calls)).toContain("failed");
 });
 
 it("preserves exact historical extraction text and blocks stale retries and late publication", async () => {

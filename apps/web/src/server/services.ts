@@ -130,13 +130,26 @@ export async function execute<A>(
   );
 }
 
-/** Recover a committed upload after the request disconnects before D1 finalization. */
+/** Rotate bounded checks so abandoned uploads or one R2 failure cannot starve later originals. */
 export async function recoverSourceUploads(env: Pick<Env, "DB" | "ARTIFACTS">) {
   const repository = createRepository(env.DB);
   for (const source of await repository.uploadingSources()) {
-    const object = await env.ARTIFACTS.head(source.objectKey);
-    if (object?.size === source.byteLength && object.customMetadata?.sha256 === source.digest)
-      await repository.finalizeSourceUpload(source.ownerId, source.id);
+    await Effect.runPromise(
+      attempt(async () => {
+        // Advance maintenance progress before I/O; source metadata and retry receipts stay unchanged.
+        await repository.recordSourceUploadCheck(source.id);
+        const object = await env.ARTIFACTS.head(source.objectKey);
+        if (object?.size === source.byteLength && object.customMetadata?.sha256 === source.digest)
+          await repository.finalizeSourceUpload(source.ownerId, source.id);
+      }).pipe(
+        withDiagnostics({
+          scope: "source-upload-recovery",
+          sourceId: source.id,
+          ownerId: source.ownerId,
+        }),
+        Effect.exit,
+      ),
+    );
   }
 }
 

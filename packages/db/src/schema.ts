@@ -339,6 +339,14 @@ export const sources = sqliteTable(
   ],
 );
 
+/** Maintenance progress is separate from the immutable source and its Owner-visible revision. */
+export const sourceUploadChecks = sqliteTable("source_upload_checks", {
+  sourceId: text("source_id")
+    .primaryKey()
+    .references(() => sources.id),
+  checkedAt: integer("checked_at").notNull(),
+});
+
 export const processingResults = sqliteTable(
   "source_processing_results",
   {
