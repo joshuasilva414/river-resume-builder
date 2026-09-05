@@ -2,6 +2,7 @@ import { WorkerEntrypoint } from "cloudflare:workers";
 import { Container } from "@cloudflare/containers";
 import { DocumentJob, DocumentResult } from "@river/contracts";
 import { Schema } from "effect";
+import runtimeContract from "../runtime-contract.json";
 
 interface Env {
   CONTAINER: DurableObjectNamespace<DocumentContainer>;
@@ -28,7 +29,21 @@ export class DocumentContainer extends Container<Env> {
         signal: AbortSignal.timeout(100_000),
       }),
     );
-    if (!response.ok) throw new Error(`Document runtime failed with status ${response.status}`);
+    if (!response.ok) {
+      const reportedStage = response.headers.get("X-River-Document-Stage");
+      const stage =
+        reportedStage && Object.hasOwn(runtimeContract.stages, reportedStage)
+          ? reportedStage
+          : "unknown";
+      const protocol =
+        response.headers.get("X-River-Document-Protocol") === runtimeContract.protocol
+          ? runtimeContract.protocol
+          : "unidentified";
+      await response.body?.cancel();
+      throw new Error(
+        `Document runtime failed with status ${response.status}; protocol=${protocol}; stage=${stage}`,
+      );
+    }
     return Schema.decodeUnknownSync(DocumentResult)(await response.json());
   }
 }

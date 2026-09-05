@@ -1,0 +1,17 @@
+{
+  "protocol": "river-document-runtime-v2",
+  "stages": {
+    "input-validation": true,
+    "prepare-input": true,
+    "extract-source": true,
+    "compile-latex": true,
+    "extract-pdf": true,
+    "validate-output": true,
+    "capture-resources": true,
+    "write-output": true,
+    "request-body": true,
+    "document-process": true,
+    "process-timeout": true,
+    "response-body": true
+  }
+}

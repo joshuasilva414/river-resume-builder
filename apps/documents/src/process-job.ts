@@ -24,10 +24,17 @@ import {
 } from "@river/templates";
 import { Schema } from "effect";
 import mammoth from "mammoth";
+import type runtimeContract from "../runtime-contract.json";
 
 const exec = promisify(execFile);
 const MAX_SOURCE_BYTES = 10 * 1024 * 1024;
 const MAX_TEXT_CHARS = 500_000;
+
+/** Only fixed stage names cross the process boundary; exceptions and compiler logs stay private. */
+async function recordStage(stage: keyof typeof runtimeContract.stages) {
+  const path = process.argv[4];
+  if (path) await writeFile(path, stage, { mode: 0o600 });
+}
 
 async function extractPdf(bytes: Uint8Array): Promise<ExtractionResult> {
   const { getDocument, version } = await import("pdfjs-dist/legacy/build/pdf.mjs");
@@ -69,6 +76,7 @@ async function extractPdf(bytes: Uint8Array): Promise<ExtractionResult> {
 
 export async function processJob(job: DocumentJob): Promise<DocumentResult> {
   if (job.type === "extract-source") {
+    await recordStage("extract-source");
     if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(job.contentBase64))
       throw new Error("Invalid base64 source.");
     const bytes = Buffer.from(job.contentBase64, "base64");
@@ -93,6 +101,7 @@ export async function processJob(job: DocumentJob): Promise<DocumentResult> {
     };
   }
   const started = performance.now();
+  await recordStage("prepare-input");
   const prepared = await prepareCompile(job);
   const { tex, identity, templateIdentity } = prepared;
   await writeFile("resume.tex", tex, { flag: "wx" });
@@ -108,6 +117,7 @@ export async function processJob(job: DocumentJob): Promise<DocumentResult> {
     "resume.tex",
   ];
   if (process.env.RIVER_BUILD_WARMUP !== "1") flags.splice(3, 0, "--only-cached");
+  await recordStage("compile-latex");
   await exec(process.env.TECTONIC_PATH ?? "tectonic", flags, {
     timeout: process.env.RIVER_BUILD_WARMUP === "1" ? 600_000 : 60_000,
     maxBuffer: 1024 * 1024,
@@ -120,7 +130,9 @@ export async function processJob(job: DocumentJob): Promise<DocumentResult> {
   });
   const pdf = await readFile("resume.pdf");
   if (pdf.length > 20 * 1024 * 1024) throw new Error("Rendered PDF exceeds 20 MiB.");
+  await recordStage("extract-pdf");
   const extracted = await extractPdf(pdf);
+  await recordStage("validate-output");
   const logSize = await stat("resume.log");
   const log = logSize.size <= 4 * 1024 * 1024 ? await readFile("resume.log", "utf8") : "";
   const overfull = [...log.matchAll(/Overfull \\[hv]box/g)].length;
@@ -143,6 +155,7 @@ export async function processJob(job: DocumentJob): Promise<DocumentResult> {
         : []),
     ],
   };
+  await recordStage("capture-resources");
   const resources =
     process.env.RIVER_BUILD_WARMUP === "1"
       ? {
@@ -215,7 +228,9 @@ async function prepareCompile(job: Exclude<DocumentJob, { type: "extract-source"
 const inputPath = process.argv[2];
 const outputPath = process.argv[3];
 if (inputPath && outputPath) {
+  await recordStage("input-validation");
   const job = Schema.decodeUnknownSync(DocumentJob)(JSON.parse(await readFile(inputPath, "utf8")));
   const result = await processJob(job);
+  await recordStage("write-output");
   await writeFile(outputPath, JSON.stringify(result), { flag: "wx" });
 }

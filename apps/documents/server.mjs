@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import runtimeContract from "./runtime-contract.json" with { type: "json" };
 
 const MAX_BODY = 15 * 1024 * 1024;
 let busy = false;
@@ -10,9 +11,10 @@ let busy = false;
 createServer(
   { requestTimeout: 10_000, headersTimeout: 5_000, keepAliveTimeout: 5_000 },
   async (request, response) => {
+    response.setHeader("X-River-Document-Protocol", runtimeContract.protocol);
     if (request.method === "GET" && request.url === "/healthz") {
       response.writeHead(200, { "Content-Type": "application/json" });
-      return response.end(JSON.stringify({ status: "ok" }));
+      return response.end(JSON.stringify({ status: "ok", protocol: runtimeContract.protocol }));
     }
     if (request.method !== "POST" || request.url !== "/jobs") {
       response.writeHead(404);
@@ -24,6 +26,7 @@ createServer(
     }
     busy = true;
     let directory;
+    let stagePath;
     let stage = "request-body";
     try {
       const chunks = [];
@@ -40,12 +43,13 @@ createServer(
       directory = await mkdtemp(join(tmpdir(), "river-document-"));
       const input = join(directory, "input.json");
       const output = join(directory, "output.json");
+      stagePath = join(directory, "stage.txt");
       await writeFile(input, Buffer.concat(chunks), { mode: 0o600 });
       stage = "document-process";
       await new Promise((resolve, reject) => {
         const child = spawn(
           process.execPath,
-          ["--max-old-space-size=256", "/app/process-job.mjs", input, output],
+          ["--max-old-space-size=256", "/app/process-job.mjs", input, output, stagePath],
           {
             cwd: directory,
             stdio: ["ignore", "ignore", "ignore"],
@@ -66,7 +70,10 @@ createServer(
             if (error.code !== "ESRCH") throw error;
           }
         };
-        const timer = setTimeout(stopGroup, 90_000);
+        const timer = setTimeout(() => {
+          stage = "process-timeout";
+          stopGroup();
+        }, 90_000);
         child.once("error", (error) => {
           clearTimeout(timer);
           reject(error);
@@ -83,7 +90,12 @@ createServer(
       response.writeHead(200, { "Content-Type": "application/json" });
       response.end(result);
     } catch {
+      if (stage === "document-process" && stagePath) {
+        const recorded = await readFile(stagePath, "utf8").catch(() => null);
+        if (recorded && Object.hasOwn(runtimeContract.stages, recorded)) stage = recorded;
+      }
       console.error(JSON.stringify({ event: "document-job-failed", stage }));
+      response.setHeader("X-River-Document-Stage", stage);
       response.writeHead(422, { "Content-Type": "application/json" });
       response.end(JSON.stringify({ error: "Document processing failed." }));
     } finally {

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import runtimeContract from "../runtime-contract.json" with { type: "json" };
 
 const docker = process.env.DOCKER_PATH ?? "/Applications/Docker.app/Contents/Resources/bin/docker";
 const container = process.env.RIVER_TEST_CONTAINER ?? "river-phase0-runtime";
@@ -16,7 +17,7 @@ async function run(job) {
   const start = performance.now();
   const result = await new Promise((resolve, reject) => {
     const code =
-      'let chunks=[]; for await (const c of process.stdin) chunks.push(c); const r=await fetch("http://127.0.0.1:8080/jobs", {method:"POST",body:Buffer.concat(chunks),headers:{"content-type":"application/json"}}); console.log(JSON.stringify({status:r.status,body:await r.json()}));';
+      'let chunks=[]; for await (const c of process.stdin) chunks.push(c); const r=await fetch("http://127.0.0.1:8080/jobs", {method:"POST",body:Buffer.concat(chunks),headers:{"content-type":"application/json"}}); console.log(JSON.stringify({status:r.status,protocol:r.headers.get("X-River-Document-Protocol"),stage:r.headers.get("X-River-Document-Stage"),body:await r.json()}));';
     const child = spawn(
       docker,
       ["exec", "-i", container, "node", "--input-type=module", "-e", code],
@@ -32,8 +33,13 @@ async function run(job) {
     );
     child.stdin.end(JSON.stringify(job));
   });
+  assert.equal(result.protocol, runtimeContract.protocol);
   return { ...result, elapsedMs: performance.now() - start };
 }
+const invalidInput = await run({ type: "unsupported-synthetic-job", secretMarker: "PRIVATE" });
+assert.equal(invalidInput.status, 422);
+assert.equal(invalidInput.stage, "input-validation");
+assert.deepEqual(invalidInput.body, { error: "Document processing failed." });
 const measurements = [];
 let classicFingerprint;
 for (const theme of ["classic", "classic", "minimal", "technical"]) {
@@ -106,18 +112,13 @@ const incorrectManifest = await run({
 assert.equal(incorrectManifest.status, 200);
 assert.equal(incorrectManifest.body.validation.passed, false);
 assert.equal(incorrectManifest.body.validation.checks.completeness, false);
-assert.equal(
-  (
-    await run({
-      ...sourceJob,
-      source: sourceJob.source.replace(
-        "\\begin{document}",
-        "\\begin{document}\\input{/etc/passwd}",
-      ),
-    })
-  ).status,
-  422,
-);
+const prohibitedSource = await run({
+  ...sourceJob,
+  source: sourceJob.source.replace("\\begin{document}", "\\begin{document}\\input{/etc/passwd}"),
+});
+assert.equal(prohibitedSource.status, 422);
+assert.equal(prohibitedSource.stage, "prepare-input");
+assert.deepEqual(prohibitedSource.body, { error: "Document processing failed." });
 assert.equal(
   (
     await run({

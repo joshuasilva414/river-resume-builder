@@ -4,6 +4,8 @@
 **/.env*
 **/dist
 **/.turbo
+**/test-results
+**/coverage
 .git
 docs
 *.md

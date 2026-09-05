@@ -21,7 +21,7 @@ COPY packages ./packages
 COPY apps/documents ./apps/documents
 RUN pnpm install --frozen-lockfile --filter @river/documents... && pnpm --filter @river/documents exec node build.mjs
 WORKDIR /app
-RUN cp /workspace/apps/documents/dist/*.mjs /app/ && cp /workspace/apps/documents/server.mjs /app/server.mjs && cp /workspace/apps/documents/check-resources.mjs /app/check-resources.mjs \
+RUN cp /workspace/apps/documents/dist/*.mjs /app/ && cp /workspace/apps/documents/server.mjs /app/server.mjs && cp /workspace/apps/documents/runtime-contract.json /app/runtime-contract.json && cp /workspace/apps/documents/check-resources.mjs /app/check-resources.mjs \
  && ln -s /workspace/apps/documents/node_modules /app/node_modules
 RUN rm -f /app/fixture.mjs /app/check-resources.mjs && chmod -R a+rX /opt/tectonic-cache
 USER node

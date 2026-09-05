@@ -1,6 +1,6 @@
 # Final-document refinement
 
-Implementation in progress. Product behavior is defined in SPEC.md's Final-document refinement section. Paper boards 65/67/68 and the complete review contract in `template-ai-design.md` are the interface handoff. No refinement controls are exposed until the complete review and acceptance workflow works.
+Implemented and deployed; hosted preview diagnosis and acceptance verification remain open. Product behavior is defined in SPEC.md's Final-document refinement section. Paper boards 65/67/68 and the complete review contract in `template-ai-design.md` are the interface handoff. The interface preserves separate generation, review and guarded acceptance.
 
 ## Document boundary
 
@@ -20,7 +20,7 @@ River assigns source-only addition locators. Existing required fields retain the
 
 Migration 0019 adds captured refinement tasks, proposals and immutable checkpoint source overrides. Commands capture the exact source/artifact identities and mutable evidence/context revisions, preserve an Operation and dispatch record, and bound generation, preview and publication attempts separately. Acceptance records exact review coverage before publication. Finalization atomically saves the new checkpoint, its source override and fresh issue report, the accepted proposal, audit history and permanent receipt. It preserves the preceding source checkpoint, original structured base, newer working drafts and prior acknowledgments. Export uses the source renderer identity and requires the new checkpoint's own acknowledgments.
 
-The D1 foundation passed focused race tests: changed evidence during final publication rolls back every dependent write; expired previews cannot enqueue acceptance; cancellation prevents finalization; retries preserve the saved candidate; rejection removes its D1 payload and comparison. Migration 0019 is applied locally and exercised in isolated tests; staging remains on 0018.
+The D1 foundation passed focused race tests: changed evidence during final publication rolls back every dependent write; expired previews cannot enqueue acceptance; cancellation prevents finalization; retries preserve the saved candidate; rejection removes its D1 payload and comparison. Migration 0019 is applied locally, in isolated tests and on staging.
 
 ## Workflow and artifact recovery
 
@@ -30,7 +30,7 @@ Generation and preview share a three-attempt budget. Retrying a saved candidate 
 
 Preview manifests pin SHA-256 digests for all four files. Publication verifies those bytes, the complete manifest, extracted text and review identity before conditionally writing immutable checkpoint keys. An interrupted copy can resume after verifying existing bytes. Only complete publication can finalize the checkpoint in D1. Artifact routes enforce exact current proposal/operation ownership; candidate artifacts cannot be downloaded as an export.
 
-Migration 0020 adds a rejection cleanup outbox in the same atomic decision as payload removal. Cleanup deletes the task's transient preview prefix and any reserved partial checkpoint prefix. It repeats after in-flight writes settle, and cannot complete while a task operation remains active. A failed R2 request leaves the cleanup record pending. Accepted checkpoints and unrelated retained objects are preserved. The migration is applied locally. The staging bucket's `river-source-preview-seven-days` rule is configured and read-back verified for `transient/source-proposals/` with a 604,800-second lifetime. The other four lifecycle rules remain preserved. The source-refinement Worker and migrations are not deployed yet.
+Migration 0020 adds a rejection cleanup outbox in the same atomic decision as payload removal. Cleanup deletes the task's transient preview prefix and any reserved partial checkpoint prefix. It repeats after in-flight writes settle, and cannot complete while a task operation remains active. A failed R2 request leaves the cleanup record pending. Accepted checkpoints and unrelated retained objects are preserved. The migration is applied locally. The staging bucket's `river-source-preview-seven-days` rule is configured and read-back verified for `transient/source-proposals/` with a 604,800-second lifetime. The other four lifecycle rules remain preserved. The source-refinement Worker and migrations are deployed to staging.
 
 ## Remaining workflow
 
@@ -38,7 +38,7 @@ Capture the exact checkpoint source/artifact/report digests, structured base, ev
 
 Review must include before/after source, complete manifest and extracted text changes, exact PDF previews and validation reports. Acceptance requires current passing artifacts and explicit coverage acknowledgment. Preserve retained artifacts through recoverable D1/R2 publication, then atomically create a new immutable source-override checkpoint and accept the proposal. Old checkpoint acknowledgments do not transfer. Returning to structured editing creates a new named draft from the original structured base after explaining which source-only changes regeneration excludes. Source-to-template promotion passes only an allowlisted generic layout delta and synthetic fixtures.
 
-The comparison, database, R2 adapter, Workflow and Paper-based review interface are implemented locally. Migration 0021 records checkpoint-to-draft branch provenance. Return-to-editor commands copy the original structured base with independent placement identities, preserve exact content/evidence/template bindings and newer work, and enforce new-binding template lifecycle rules. Branch creation and preview requests remain separate so a preview retry cannot create another branch. Generic template promotion is implemented locally through migration 0022; browser verification awaits acceptance of the synthetic checkpoint. No source-refinement controls or database migration have been deployed.
+The comparison, database, R2 adapter, Workflow and Paper-based review interface are implemented locally. Migration 0021 records checkpoint-to-draft branch provenance. Return-to-editor commands copy the original structured base with independent placement identities, preserve exact content/evidence/template bindings and newer work, and enforce new-binding template lifecycle rules. Branch creation and preview requests remain separate so a preview retry cannot create another branch. Generic template promotion is implemented locally through migration 0022; browser verification awaits acceptance of the synthetic checkpoint. Source-refinement controls and migrations through 0025 are deployed; successful hosted preview and acceptance remain to be verified.
 
 ## Generic template promotion
 
@@ -63,3 +63,9 @@ Browser inspection covered both complete source files, all five intended fields,
 `pnpm --filter @river/templates test` passed all 20 tests. Workspace type and lint checks passed. `pnpm test:documents` built image `sha256:a888699a0c4e2e97a732acae6cae0fec28312ae2568cb19414b9f16bf099a1c2` and passed the complete offline fixture suite. The source candidate compiled twice with the same artifact fingerprint; a missing required manifest field failed text integrity. File access and external font options were rejected before compilation. Source compilation took about 1.05 seconds; peak container memory across the full suite was 416,231,424 bytes. Existing fixed/custom templates, all body sizes, extraction/citation and resource-limit fixtures also passed.
 
 The Workflow/artifact milestone passed all 101 Workers tests, 26 template/compiler/review tests, workspace type/lint checks and the staging bundle build. The full offline Container suite passed again with image `sha256:09e11122c94b22b5d98a9e98e48e603c6585d33462b370162b88421132300560`, source processing about 1.11 seconds and peak memory 410,406,912 bytes. Complete diff code is exported through `@river/templates/source-refinement`, so the document compiler does not import its separate `diff` runtime dependency.
+
+## Hosted runtime diagnosis — 2026-09-05
+
+Task `01a072c6-30b9-7502-9f32-f18fa186963a` uses the previously exported synthetic checkpoint `01a07091-d743-76c2-a7ee-51294410467a`. Real generation succeeded once and changed only paragraph spacing from 3pt to 2pt. The candidate remains Pending with digest `4ebb009588c2eb46318a8b74230f2093a72f2dd700ba60b641dbeb6fcc74dcb6`. Two preview Operations failed at the document boundary with HTTP 422. No acceptance was submitted and the third preview attempt is reserved until diagnosis.
+
+The exact candidate/input was reproduced offline in the deployed image `6f62349d`, both directly and through its HTTP server with 0.25 CPU/1 GiB. Compilation and all text checks passed; HTTP document processing took about 9.81 seconds. This does not establish the hosted cause. Runtime diagnostics are being extended with fixed protocol/stage identifiers, without exposing source, compiler stderr or provider payloads. The original checkpoint/export and successful structured previews remain available.

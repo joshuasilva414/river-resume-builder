@@ -4,14 +4,14 @@
   "applicationUrl": "https://river-staging.jilva.workers.dev",
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
-  "webVersion": "32a705e5-1963-44c9-8ff0-abc46d36b7fc",
-  "documentWorkerVersion": "8444c62b-5879-461a-bbcc-40cc5aec00e4",
-  "containerImageDigest": "sha256:8296667d59c1c63dab4f107035419aa1488d465b05a23211f71f2944408b27ca",
+  "webVersion": "f307e560-c38e-4256-822f-ef73e4e0c830",
+  "documentWorkerVersion": "6f62349d-f34d-4ea1-9f51-2a38a642bb8f",
+  "containerImageDigest": "sha256:3a359d98e8c981d8def76a1bd0e55c82ac82301c747ede52e0981c5f272b14c4",
   "database": "river-staging",
   "databaseId": "1b837147-de99-4aaa-a4ad-386b826412b0",
   "bucket": "river-staging-artifacts",
   "workflow": "river-staging-documents",
-  "migrationsThrough": "0018_backup_attempts.sql",
+  "migrationsThrough": "0025_checkpoint_labels.sql",
   "checks": {
     "signIn": 200,
     "unauthenticatedSettings": 307,
@@ -57,7 +57,10 @@
     "dailyBackupRestore": "Passed: live token-driven v2 backup, 58 base tables, FTS equality, foreign keys, exact citation offsets, 30 retained objects, one exported checkpoint. Fresh unpublished local SQLite; no remote cutover.",
     "templateBodySizes": "Offline container suite passes all supported body sizes 9/10/11/12; runtime image warms each article size. Peak fixture container memory 411049984 bytes.",
     "backupSettings": "Paper-based desktop light/dark, status, bounded explicit retry, safe failure inspection, successful retention and preserved three-attempt history verified against staging. Narrow viewport check remains open.",
-    "templateConversation": "Hosted accepted turn, complete original brief, same-scope prior-instruction default and pinned accepted base verified in the conversation. Concurrent and pagination behavior covered in Workers tests."
+    "templateConversation": "Hosted accepted turn, complete original brief, same-scope prior-instruction default and pinned accepted base verified in the conversation. Concurrent and pagination behavior covered in Workers tests.",
+    "hostedHistory": "Passed: restored an independent synthetic Classic branch, rendered r0, captured a labeled checkpoint, inspected lineage and pinned complete content/PDF comparison. Both actual PDFs render with independent zoom. No new export attestation.",
+    "hostedScoring": "Workflow and Owner UI deployed; provider origin unset, new submissions unavailable. ATS deployment approval remains pending.",
+    "hostedSourceRefinement": "Real generation succeeded once and preserved its spacing-only candidate. Two hosted preview attempts failed with document status 422; exact deployed image passes the same input offline through HTTP at staging CPU/memory limits. Diagnosis continues; no acceptance or publication."
   },
   "hostedRuntimeSamples": [
     {
@@ -91,6 +94,13 @@
       "report": "test-results/recovery/drill-5c9c1ca1-e8b9-43d5-a8db-569121966589/report.json",
       "tables": 58,
       "objects": 30
+    },
+    "preHistoryMigration": {
+      "key": "backups/database/staging/2026-09-05T18-01-33.234Z-ea097568-625b-43c4-a5fe-4aa034b3ce54/snapshot.json.gz",
+      "sha256": "daa60ab21419df041a10a43a65fc53c666e984946555928100c19a67a8a1b8e0",
+      "receipt": "test-results/recovery/2026-09-05T18-01-33.234Z-ea097568-625b-43c4-a5fe-4aa034b3ce54/receipt.json",
+      "tables": 58,
+      "verification": "Exact migration/data restore validated before private retention; not a new complete artifact drill."
     }
   },
   "jobAnalysisWorkflow": "river-staging-job-analysis",
@@ -110,5 +120,28 @@
     "validationId": "01a071ea-7ef6-77ab-9430-db189dac8e5b",
     "validation": "All four fixtures rendered twice and passed; Validated, awaiting separate Owner visual approval.",
     "conversationId": "01a071e6-f217-7952-93c0-b97743159fc3"
+  },
+  "deployedWebCommit": "cc5370e",
+  "scoringWorkflow": "river-staging-scoring",
+  "sourceRefinementWorkflow": "river-staging-source-refinement",
+  "hostedHistory": {
+    "baseCheckpointId": "01a07091-d743-76c2-a7ee-51294410467a",
+    "branchId": "01a072c5-ae2a-7b48-b1a3-900b94ff1b7c",
+    "previewOperationId": "01a072c5-f2fd-7d20-9da2-70d7dfc61b8b",
+    "checkpointId": "01a072c6-9255-7d8f-bc16-f44d904b5c6b",
+    "checkpointOperationId": "01a072c6-9255-7ba4-a78f-227d70cf9209",
+    "checkpointLabel": "Synthetic hosted restoration baseline",
+    "exported": false
+  },
+  "hostedSourceRefinement": {
+    "taskId": "01a072c6-30b9-7502-9f32-f18fa186963a",
+    "candidateDigest": "4ebb009588c2eb46318a8b74230f2093a72f2dd700ba60b641dbeb6fcc74dcb6",
+    "operationIds": [
+      "01a072c6-30b9-7186-8d61-8a29c33f9c0d",
+      "01a072c9-ea86-7086-85aa-34a941267b9a"
+    ],
+    "generationAttempts": 1,
+    "previewAttempts": 2,
+    "state": "Pending; preview failure under diagnosis; acceptance not started"
   }
 }
