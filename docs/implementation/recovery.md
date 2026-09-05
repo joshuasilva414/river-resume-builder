@@ -68,3 +68,11 @@ Before deploying commit `570278e`, the 67-table migration-0025 staging database 
 The new 71-table snapshot is `backups/database/staging/2026-09-05T19-12-36.488Z-22730f37-6741-481b-a4d8-c3c9e69ea8e8/snapshot.json.gz` (SHA-256 `c298bdec91b98172f953e4699e9d698c495301ad706a347a1efed8df94991666`). The isolated local drill passed FTS equality, foreign keys, one exact citation, 50 retained objects and one exported checkpoint. Receipt: `test-results/recovery/2026-09-05T19-12-36.488Z-22730f37-6741-481b-a4d8-c3c9e69ea8e8/receipt.json`; report: `test-results/recovery/drill-695926dd-7ddc-4094-82d6-28fd700b0051/report.json`. Private artifacts remain ignored by Git. No remote cutover or restored operation dispatch occurred.
 
 Restore discovery includes every hashed PDF, LaTeX, text and validation file referenced by `template_scoring_fixtures.document`. Staging has no qualification records while the provider remains unconfigured; a drill with a populated live qualification remains part of provider verification. Logs: `/tmp/river-template-score-predeploy-backup.log`, `/tmp/river-template-score-postdeploy-backup.log`, `/tmp/river-template-score-restore.log`.
+
+## Hosted AI review recovery — 2026-09-05
+
+After completing source, job and duplicate AI review and archiving their fictional fixtures, a fresh backup retained all 71 base tables. The first attempt failed at its initial Wrangler query before export; a read-only `SELECT 1` succeeded and one retry completed. No cause was recovered from the deliberately withheld first error.
+
+Snapshot: `backups/database/staging/2026-09-05T20-19-12.806Z-8e33bcfd-ab53-4731-a09a-5b0bb3589f57/snapshot.json.gz`; SHA-256: `479046cc41f6de480a5d648bec2201ac06d3f64cfa624c9e209189f2e6194130`. The separate unpublished restore passed schema/data integrity, FTS equality, foreign keys, four exact citations, 52 retained objects and one exported checkpoint. Report: `test-results/recovery/drill-c0e5929b-afb8-44f8-9b6f-a8a09318e47d/report.json`.
+
+Read-only inspection of that restored database also confirmed both archived fictional Claims, the rejected source candidate and rejected ranking with null payloads, and populated source/job/duplicate task and proposal tables. This snapshot still has no live scoring records. No remote database was replaced and no restored Operation was dispatched.

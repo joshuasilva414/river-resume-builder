@@ -172,7 +172,7 @@ Exit: copy a section between two resumes, edit the copy, and prove the original 
 
 Depends on M4 and the document pipeline proof.
 
-- [ ] Implement typed manifests and LaTeX fragments, typed scalar escaping, explicit child slots, inherited tokens, and validated overrides.
+- [x] Implement typed manifests and LaTeX fragments, typed scalar escaping, explicit child slots, inherited tokens, and validated overrides.
 - [x] Ship Classic, Minimal, and Technical packs with fixed compatible compositions.
 - [x] Compile only typed document jobs using bounded input/output, fresh job environments, offline resources, and explicit process limits.
 - [x] Debounce/coalesce previews, retain the last successful PDF with stale/compiling status, and ignore obsolete results when updating the current preview.
@@ -190,9 +190,9 @@ Depends on M1–M5.
 
 - [ ] Verify critical journeys with Playwright: sign in, add sources/evidence, review a job, compose, resolve a conflict, inspect warnings, and export.
 - [ ] Verify authorization, stale proposal rejection, idempotent retry, partial background failure, and immutable historical outputs with focused integration tests.
-- [ ] Configure D1 Time Travel and daily D1 exports to a private R2 backup location; preserve immutable source objects.
+- [x] Configure D1 Time Travel and daily D1 exports to a private R2 backup location; preserve immutable source objects.
 - [x] Perform a restore drill into isolated resources and verify source/provenance links and retained exports.
-- [ ] Document deployment, migrations, secrets, rollback constraints, background-job diagnosis, backup and restore procedures.
+- [x] Document deployment, migrations, secrets, rollback constraints, background-job diagnosis, backup and restore procedures.
 - [ ] Complete one real job-tailoring session within 15 minutes and record delays that need correction before MVP release.
 
 Exit: the Owner can complete the core loop; failures are diagnosable; data can be restored; AI and scoring availability do not determine whether manual export works.
@@ -219,7 +219,7 @@ Exit: every generated change is reviewable and attributable; content changes can
 
 ## Phase 3: scoring and history
 
-- [ ] Add explicit checkpoint creation, chronological history, branching, non-destructive restoration, and side-by-side comparisons.
+- [x] Add explicit checkpoint creation, chronological history, branching, non-destructive restoration, and side-by-side comparisons. Hosted synthetic restoration and both actual PDFs pass; narrow mobile comparison remains a release check.
 - [ ] Integrate ATS Screener behind a replaceable provider adapter using the exact checkpoint text and job snapshot.
 - [ ] Persist provider/deploy/rubric identity, submission fingerprint, raw six-platform simulations, fallback information, suggestions, and failures.
 - [ ] Compare scores only within the same provider/rubric identity. Label simulations separately from local document validation.

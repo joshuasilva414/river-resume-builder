@@ -113,6 +113,17 @@
       "tables": 67,
       "objects": 50,
       "migrationsThrough": "0025_checkpoint_labels.sql"
+    },
+    "hostedAiReviewDrill": {
+      "key": "backups/database/staging/2026-09-05T20-19-12.806Z-8e33bcfd-ab53-4731-a09a-5b0bb3589f57/snapshot.json.gz",
+      "sha256": "479046cc41f6de480a5d648bec2201ac06d3f64cfa624c9e209189f2e6194130",
+      "report": "test-results/recovery/drill-c0e5929b-afb8-44f8-9b6f-a8a09318e47d/report.json",
+      "tables": 71,
+      "objects": 52,
+      "citations": 4,
+      "exportedCheckpoints": 1,
+      "published": false,
+      "populatedScoring": false
     }
   },
   "jobAnalysisWorkflow": "river-staging-job-analysis",
