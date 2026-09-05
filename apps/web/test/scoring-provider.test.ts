@@ -5,10 +5,77 @@ import {
   scoreCheckpointText,
   scoringProfile,
 } from "../src/server/scoring-provider";
+import liveFixture from "./fixtures/ats-live-response.json";
 import { syntheticScoringResponse, syntheticScoringVersion } from "./fixtures/scoring";
 
 const profile = scoringProfile("https://score.example.test");
 const input = { resumeText: "  Synthetic résumé 😀\n", jobDescription: "Exact synthetic job\n" };
+it("accepts the deployed provider's full product name while preserving its original JSON and identity", async () => {
+  const transport = vi
+    .fn<typeof fetch>()
+    .mockResolvedValueOnce(Response.json(liveFixture.version))
+    .mockResolvedValueOnce(Response.json(liveFixture.response));
+  const version = await inspectScoringProvider(profile, transport);
+  const result = await scoreCheckpointText(profile, liveFixture.input, version, transport);
+  expect(result.response.results.map((item) => item.system)).toEqual(
+    syntheticScoringVersion.scoring?.simulations,
+  );
+  expect(result.raw).toEqual(liveFixture.response);
+  expect(result.response._scoringIdentity).toEqual(liveFixture.response._scoringIdentity);
+});
+it("normalizes known suggestion aliases and rejects unknown or duplicate simulation identities", async () => {
+  const canonical = syntheticScoringResponse(input);
+  const raw = {
+    ...canonical,
+    results: canonical.results.map((result) => ({
+      ...result,
+      system: result.system === "SuccessFactors" ? "SAP SuccessFactors" : result.system,
+      suggestions: [
+        {
+          summary: "Synthetic alias finding",
+          details: [],
+          impact: "low",
+          platforms: ["SAP SuccessFactors"],
+        },
+      ],
+    })),
+  };
+  const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json(raw));
+  const result = await scoreCheckpointText(profile, input, syntheticScoringVersion, transport);
+  expect(result.raw).toEqual(raw);
+  expect(result.response.results[5]?.suggestions[0]).toMatchObject({
+    platforms: ["SuccessFactors"],
+  });
+  for (const invalid of [
+    {
+      ...raw,
+      results: raw.results.map((item, index) =>
+        index === 0 ? { ...item, system: "Unknown ATS" } : item,
+      ),
+    },
+    {
+      ...raw,
+      results: raw.results.map((item, index) =>
+        index === 0 ? { ...item, system: "SuccessFactors" } : item,
+      ),
+    },
+    {
+      ...raw,
+      results: raw.results.map((item) => ({
+        ...item,
+        suggestions: item.suggestions.map((suggestion) => ({
+          ...suggestion,
+          platforms: ["SuccessFactors", "SAP SuccessFactors"],
+        })),
+      })),
+    },
+  ]) {
+    transport.mockResolvedValueOnce(Response.json(invalid));
+    await expect(
+      scoreCheckpointText(profile, input, syntheticScoringVersion, transport),
+    ).rejects.toMatchObject({ code: "InvalidResponse" });
+  }
+});
 it("captures provider capabilities and submits exact strings once without attaching browser credentials", async () => {
   const raw = { ...syntheticScoringResponse(input), extraDiagnostic: "Preserved raw metadata" };
   const transport = vi

@@ -1,6 +1,6 @@
 # ATS scoring implementation
 
-Phase 3 is in progress. River's scoring domain and bounded HTTP adapter are implemented and deployed to staging. Durable scoring persistence and its bounded Workflow are also implemented locally. Authenticated application services, atomic Save & score, exact finding decisions and the Paper-based scoring interface are implemented and deployed to staging. Provider configuration and hosted verification remain open. New submissions stay unavailable without a configured provider. The design contract is `history-scoring-design.md`.
+Phase 3 is in progress. Scoring persistence, bounded Workflows, atomic Save & score, finding decisions, comparisons and the Paper-based interface are deployed to staging. The approved ATS identity deployment and synthetic provider acceptance passed. The River staging adapter correction and provider configuration are ready for deployment; hosted River scoring remains to be verified. The design contract is `history-scoring-design.md`.
 
 ## River adapter foundation
 
@@ -54,13 +54,17 @@ The effective full-score limits remain 6,000 résumé and 4,000 job-description 
 
 Verification passed: 57 focused API/provider/cache tests, Svelte and TypeScript checks with zero errors/warnings, lint on all changed source files, and the complete application/documentation build. Tests cover actual fallback metadata, server identity overriding generated JSON, cache invalidation, preserved cached identity, per-request coverage and missing model metadata. No new hosted scoring request has been made.
 
-## Deployment approval pending
+## Approved provider deployment — 2026-09-05
 
-The existing personal-account Worker is `ats-screener`, with `ats.jilva.dev` attached. Its current version remains `b6253198-0716-4cdf-81c2-9a0bb7d4fde1`. The account is `a91c30d69981b341efe3b656a263f6da`; ACM UTSA was not accessed. A read-only secret listing confirms a Gemini binding; no values were read or changed.
+The Owner explicitly approved deployment with the four existing Cloudflare setup files (`package.json`, `pnpm-lock.yaml`, `svelte.config.js`, `wrangler.jsonc`). Those files remain unchanged and uncommitted in the ATS checkout. The full application/documentation build and 57 focused identity/provider/cache tests passed again. Deployment preserved the existing Worker variables and secrets on personal account `a91c30d69981b341efe3b656a263f6da`; ACM UTSA was not accessed.
 
-Automatic approval review rejected deployment because the ATS checkout also contains four pre-existing, uncommitted Cloudflare migration files: `package.json`, `pnpm-lock.yaml`, `svelte.config.js` and `wrangler.jsonc`. They replace the Vercel adapter with the Cloudflare adapter and add Wrangler/deployment scripts. Read-only inspection found their compatibility date, flags, assets and production variable consistent with the running Worker, but it does not establish byte-for-byte build equivalence. Those files remain unchanged and uncommitted. Explicit user approval to deploy the tested build with that existing setup is pending. Do not bypass the rejected deployment through another tool or artifact path.
+Worker `ats-screener` now runs version `a92d53b4-3159-4757-b2a3-0a85dfceb847` at `https://ats.jilva.dev`. Its scoring deployment identity has build ID `4035124d-7dab-48bb-ab4e-831cfc46d442`, version `0.5.1`, environment `production`, and commit `null` because no source commit variable is configured. The build UUID identifies this deployment; the dirty setup is not claimed to equal a committed tree.
 
-The latest build is available locally. After approval, deploy with the explicit personal account and preserve existing variables, inspect `/api/version`, then run one synthetic full-score request and its cache retry. Record real returned model/identity/coverage before connecting hosted River scoring. No source-refinement attestation is authorized by this separate deployment approval.
+Two real fictional full-score requests returned HTTP 200, six simulations, complete 538/240 UTF-16 input coverage and identical scoring identities. The winning provider and reported model are `gemini-3.5-flash-lite` (Google). Both reported `_cached: false`; hosted cache reuse is not established. Local cache tests pass. Private responses are retained under `test-results/ats-approved/`.
+
+The first live response named one simulation `SAP SuccessFactors`, while the advertised capability and River use `SuccessFactors`. River's adapter now canonicalizes this exact alias in system names and suggestion references before strict domain validation. Unknown names, duplicate simulations and duplicate suggestion references still fail. Full raw JSON and returned scoring identity remain unchanged. The captured fictional input/version/response is a committed contract fixture. Seven focused Workers adapter tests, all 151 Workers tests across 26 files, workspace types/lint and the clean staging build pass. Staging deployment is next.
+
+River staging configuration now names `https://ats.jilva.dev`; the provider is not enabled on the deployed River Worker until that tested build is deployed. Production configuration remains unset. This deployment approval does not authorize a source-refinement review attestation.
 
 ## Canonical qualification foundation
 

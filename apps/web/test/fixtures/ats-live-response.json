@@ -1,0 +1,405 @@
+{
+  "input": {
+    "mode": "full-score",
+    "resumeText": "Avery Example\navery@example.test\nSynthetic QA resume, not a real candidate.\nSummary\nFrontend engineer building accessible web interfaces.\nExperience\nExample Company, Software Engineer, 2024-2026\nImplemented React and TypeScript forms with keyboard navigation.\nAdded 18 unit tests with Vitest for form validation and error recovery.\nReduced a synthetic test page load time by 20 percent.\nEducation\nBachelor of Science in Computer Science, Example University, 2024\nSkills\nReact, TypeScript, JavaScript, HTML, CSS, Git, Vitest, accessibility",
+    "jobDescription": "Synthetic QA opening for Frontend Engineer. Build React and TypeScript interfaces, implement keyboard accessibility, write unit tests, and collaborate using Git. Bachelor degree in Computer Science preferred. This is not a real job posting."
+  },
+  "version": {
+    "version": "0.5.1",
+    "commit": "dev",
+    "branch": null,
+    "env": "production",
+    "deployment": {
+      "buildId": "4035124d-7dab-48bb-ab4e-831cfc46d442",
+      "version": "0.5.1",
+      "commit": null,
+      "environment": "production"
+    },
+    "scoring": {
+      "version": "ats-analyze-text-v1",
+      "units": "utf16-code-units",
+      "accepted": {
+        "resumeText": 50000,
+        "jobDescription": 20000
+      },
+      "effective": {
+        "resumeText": 6000,
+        "jobDescription": 4000
+      },
+      "truncatesOversizedInput": true,
+      "simulations": ["Workday", "Taleo", "iCIMS", "Greenhouse", "Lever", "SuccessFactors"],
+      "identitySchema": "ats-scoring-identity-v1",
+      "rubric": {
+        "version": "ats-full-score-v1",
+        "digest": "6c2fa17efa35efb1f906e838207e6f3cd2803e43ad27e158d4f8b6d959cb5924"
+      }
+    }
+  },
+  "response": {
+    "results": [
+      {
+        "system": "Workday",
+        "vendor": "Workday Inc.",
+        "overallScore": 68,
+        "passesFilter": false,
+        "breakdown": {
+          "formatting": {
+            "score": 85,
+            "issues": [
+              "Skills section is isolated at the bottom rather than integrated into experience bullets"
+            ],
+            "details": [
+              "Proprietary Workday parser successfully reads single-column text layout without tables or multi-column issues, but standalone skill lists are notoriously underweighted by Workday's parsing logic."
+            ]
+          },
+          "keywordMatch": {
+            "score": 75,
+            "matched": [
+              "React",
+              "TypeScript",
+              "keyboard accessibility",
+              "unit tests",
+              "Git",
+              "Bachelor of Science in Computer Science"
+            ],
+            "missing": ["collaborate", "prefer"],
+            "synonymMatched": ["accessibility"]
+          },
+          "sections": {
+            "score": 90,
+            "present": ["Summary", "Experience", "Education", "Skills"],
+            "missing": []
+          },
+          "experience": {
+            "score": 60,
+            "quantifiedBullets": 2,
+            "totalBullets": 3,
+            "actionVerbCount": 3,
+            "highlights": ["Included Vitest unit testing and 20 percent metric on form load time."]
+          },
+          "education": {
+            "score": 90,
+            "notes": [
+              "Bachelor of Science in Computer Science from Example University with 2024 graduation year parses cleanly."
+            ]
+          }
+        },
+        "suggestions": [
+          {
+            "summary": "Integrate missing keywords from the job description into your experience bullet points",
+            "details": [
+              "Change your experience bullet 'Implemented React and TypeScript forms with keyboard navigation' to 'Collaborated with team members to implement React and TypeScript interfaces and forms with keyboard navigation'",
+              "Workday's HiredScore AI prioritizes skills appearing directly within experience text rather than isolated skills sections."
+            ],
+            "impact": "critical",
+            "platforms": ["Workday", "SuccessFactors"]
+          }
+        ]
+      },
+      {
+        "system": "Taleo",
+        "vendor": "Oracle",
+        "overallScore": 54,
+        "passesFilter": false,
+        "breakdown": {
+          "formatting": {
+            "score": 80,
+            "issues": [
+              "Clean standard layout but prone to exact-string mismatch if OCR encounters formatting quirks"
+            ],
+            "details": [
+              "Taleo's strict OCR-based parser requires exact chronological placement and standard section headers to prevent dropping text segments."
+            ]
+          },
+          "keywordMatch": {
+            "score": 50,
+            "matched": ["React", "TypeScript", "Git", "Bachelor of Science in Computer Science"],
+            "missing": ["collaborate", "interfaces"],
+            "synonymMatched": []
+          },
+          "sections": {
+            "score": 85,
+            "present": ["Summary", "Experience", "Education", "Skills"],
+            "missing": []
+          },
+          "experience": {
+            "score": 55,
+            "quantifiedBullets": 2,
+            "totalBullets": 3,
+            "actionVerbCount": 3,
+            "highlights": ["Experience roles and dates are clearly structured."]
+          },
+          "education": {
+            "score": 90,
+            "notes": [
+              "Degree title 'Bachelor of Science in Computer Science' matches the preferred qualification literal text."
+            ]
+          }
+        },
+        "suggestions": [
+          {
+            "summary": "Adjust your bullet text to match Taleo's literal keyword matching engine",
+            "details": [
+              "Change your summary 'Frontend engineer building accessible web interfaces' to match the JD exact phrase 'Frontend Engineer building React and TypeScript interfaces'",
+              "Taleo uses literal exact keyword matching and will fail to score points if terms like 'interfaces' and 'Engineer' do not match the JD case and word form exactly."
+            ],
+            "impact": "critical",
+            "platforms": ["Taleo"]
+          }
+        ]
+      },
+      {
+        "system": "iCIMS",
+        "vendor": "iCIMS",
+        "overallScore": 72,
+        "passesFilter": true,
+        "breakdown": {
+          "formatting": {
+            "score": 90,
+            "issues": [],
+            "details": [
+              "HireAbility ALEX parser processes the resume contextually and extracts metadata cleanly."
+            ]
+          },
+          "keywordMatch": {
+            "score": 75,
+            "matched": [
+              "React",
+              "TypeScript",
+              "keyboard navigation",
+              "Vitest",
+              "Git",
+              "Computer Science"
+            ],
+            "missing": ["collaborate"],
+            "synonymMatched": ["accessible web interfaces"]
+          },
+          "sections": {
+            "score": 90,
+            "present": ["Summary", "Experience", "Education", "Skills"],
+            "missing": []
+          },
+          "experience": {
+            "score": 65,
+            "quantifiedBullets": 2,
+            "totalBullets": 3,
+            "actionVerbCount": 3,
+            "highlights": ["Vitest unit test volume and page load time metric add semantic depth."]
+          },
+          "education": {
+            "score": 90,
+            "notes": ["Degree meets the preferred education criteria completely."]
+          }
+        },
+        "suggestions": [
+          {
+            "summary": "Add collaboration context to satisfy the job requirement for team cooperation",
+            "details": [
+              "Change your experience bullet 'Added 18 unit tests with Vitest for form validation and error recovery' to 'Collaborated with cross-functional peers, adding 18 unit tests with Vitest for form validation and error recovery'",
+              "iCIMS's semantic ensemble ML engine searches for collaboration indicators alongside technical skills."
+            ],
+            "impact": "high",
+            "platforms": ["iCIMS", "Greenhouse"]
+          }
+        ]
+      },
+      {
+        "system": "Greenhouse",
+        "vendor": "Greenhouse Software",
+        "overallScore": 74,
+        "passesFilter": true,
+        "breakdown": {
+          "formatting": {
+            "score": 95,
+            "issues": [],
+            "details": [
+              "Modern LLM-based parser handles simple text layouts with near-perfect skill and date extraction."
+            ]
+          },
+          "keywordMatch": {
+            "score": 80,
+            "matched": [
+              "React",
+              "TypeScript",
+              "keyboard accessibility",
+              "unit tests",
+              "Git",
+              "Computer Science"
+            ],
+            "missing": ["collaborate"],
+            "synonymMatched": ["web interfaces"]
+          },
+          "sections": {
+            "score": 90,
+            "present": ["Summary", "Experience", "Education", "Skills"],
+            "missing": []
+          },
+          "experience": {
+            "score": 65,
+            "quantifiedBullets": 2,
+            "totalBullets": 3,
+            "actionVerbCount": 3,
+            "highlights": ["Clear technical descriptions map smoothly via semantic embeddings."]
+          },
+          "education": {
+            "score": 90,
+            "notes": [
+              "Clean education block parses directly into Greenhouse candidate profile fields."
+            ]
+          }
+        },
+        "suggestions": [
+          {
+            "summary": "Expand your experience section to cover the missing collaboration requirement",
+            "details": [
+              "Change your experience bullet 'Implemented React and TypeScript forms with keyboard navigation' to 'Collaborated with engineering teams to build and implement React and TypeScript interfaces with keyboard navigation'",
+              "Greenhouse recruiters rely on semantic searches combining React, TypeScript, and collaboration; adding the missing term ensures you surface in recruiter boolean filters."
+            ],
+            "impact": "high",
+            "platforms": ["Greenhouse", "Lever"]
+          }
+        ]
+      },
+      {
+        "system": "Lever",
+        "vendor": "Lever",
+        "overallScore": 65,
+        "passesFilter": true,
+        "breakdown": {
+          "formatting": {
+            "score": 90,
+            "issues": [],
+            "details": [
+              "Parser extracts standard text cleanly but relies entirely on recruiter search terms since no scoring algorithm exists."
+            ]
+          },
+          "keywordMatch": {
+            "score": 70,
+            "matched": ["React", "TypeScript", "Git", "Vitest"],
+            "missing": ["collaborate"],
+            "synonymMatched": ["accessibility"]
+          },
+          "sections": {
+            "score": 90,
+            "present": ["Summary", "Experience", "Education", "Skills"],
+            "missing": []
+          },
+          "experience": {
+            "score": 60,
+            "quantifiedBullets": 2,
+            "totalBullets": 3,
+            "actionVerbCount": 3,
+            "highlights": [
+              "Word stemming helps variations like 'implemented' match recruiter queries for 'implement'."
+            ]
+          },
+          "education": {
+            "score": 90,
+            "notes": ["Education data parses without issue."]
+          }
+        },
+        "suggestions": [
+          {
+            "summary": "Include explicit mention of team collaboration to match standard recruiter search queries",
+            "details": [
+              "Change your summary 'Frontend engineer building accessible web interfaces' to 'Frontend Engineer collaborating on React and TypeScript web interfaces'",
+              "Lever does not score or rank candidates, making keyword discoverability through recruiter search paramount."
+            ],
+            "impact": "medium",
+            "platforms": ["Lever"]
+          }
+        ]
+      },
+      {
+        "system": "SAP SuccessFactors",
+        "vendor": "SAP",
+        "overallScore": 70,
+        "passesFilter": true,
+        "breakdown": {
+          "formatting": {
+            "score": 90,
+            "issues": [],
+            "details": [
+              "Textkernel parser accurately normalizes job titles and extracts technical skills into the SAP skills framework taxonomy."
+            ]
+          },
+          "keywordMatch": {
+            "score": 75,
+            "matched": ["React", "TypeScript", "unit tests", "Git", "Computer Science"],
+            "missing": ["collaborate"],
+            "synonymMatched": ["frontend engineer"]
+          },
+          "sections": {
+            "score": 90,
+            "present": ["Summary", "Experience", "Education", "Skills"],
+            "missing": []
+          },
+          "experience": {
+            "score": 65,
+            "quantifiedBullets": 2,
+            "totalBullets": 3,
+            "actionVerbCount": 3,
+            "highlights": [
+              "Taxonomy mapping recognizes React and TypeScript as core framework competencies."
+            ]
+          },
+          "education": {
+            "score": 90,
+            "notes": [
+              "Degree and graduation year extracted cleanly into structured education fields."
+            ]
+          }
+        },
+        "suggestions": [
+          {
+            "summary": "Incorporate the missing collaboration skill into your experience section",
+            "details": [
+              "Change your experience bullet 'Reduced a synthetic test page load time by 20 percent' to 'Collaborated with team members to optimize code, reducing a synthetic test page load time by 20 percent'",
+              "SuccessFactors stack ranking with AI Units evaluates skills alignment against the organization's enterprise skills taxonomy."
+            ],
+            "impact": "high",
+            "platforms": ["SuccessFactors", "Workday"]
+          }
+        ]
+      }
+    ],
+    "_provider": "gemini-3.5-flash-lite",
+    "_fallback": false,
+    "_cached": false,
+    "_scoringIdentity": {
+      "schemaVersion": "ats-scoring-identity-v1",
+      "mode": "full-score",
+      "rubric": {
+        "version": "ats-full-score-v1",
+        "digest": "6c2fa17efa35efb1f906e838207e6f3cd2803e43ad27e158d4f8b6d959cb5924"
+      },
+      "deployment": {
+        "buildId": "4035124d-7dab-48bb-ab4e-831cfc46d442",
+        "version": "0.5.1",
+        "commit": null,
+        "environment": "production"
+      },
+      "capabilityVersion": "ats-analyze-text-v1",
+      "provider": "gemini-3.5-flash-lite",
+      "vendor": "google",
+      "model": {
+        "requested": "gemini-3.5-flash-lite",
+        "reported": "gemini-3.5-flash-lite",
+        "fingerprint": null
+      },
+      "requestConfigurationDigest": "7e759598cf4d8d9abb207a1bcd281f29a89654ca5bda331b6bb29d2d8e6cb9ca"
+    },
+    "_inputCoverage": {
+      "units": "utf16-code-units",
+      "resumeText": {
+        "submitted": 538,
+        "analyzed": 538
+      },
+      "jobDescription": {
+        "submitted": 240,
+        "analyzed": 240
+      },
+      "complete": true
+    }
+  }
+}

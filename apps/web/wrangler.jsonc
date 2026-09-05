@@ -111,6 +111,7 @@
         "BACKUP_DATABASE_ID": "1b837147-de99-4aaa-a4ad-386b826412b0",
         "BACKUP_BUCKET_NAME": "river-staging-artifacts",
         "APP_URL": "https://river-staging.jilva.workers.dev",
+        "ATS_SCREENER_ORIGIN": "https://ats.jilva.dev",
         "OWNER_EMAIL": "joshuasilva414@gmail.com",
         "EMAIL_FROM": "River <hello@river.jilva.dev>",
         "OPENAI_REQUIREMENTS_MODEL": "gpt-5.4-mini-2026-03-17",
