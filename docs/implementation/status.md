@@ -48,19 +48,21 @@ Staging is through migration `0025_checkpoint_labels.sql`. Web commit `cc5370e` 
 
 Explicit labeled checkpoints, chronology, independent restoration branches and pinned full content/PDF comparisons are deployed. The hosted synthetic fixture restored and rendered a new branch, captured a labeled checkpoint and displayed both actual PDFs with independent zoom. The original exported checkpoint remains unchanged. Local concurrent-tab checks keep the selected older revision until explicit refresh. Exact cross-checkpoint score selectors and reviewed template replacement during source regeneration are implemented. See `history.md`.
 
-Final-document refinement includes full source/field/text/PDF/report comparison, immutable checkpoint publication, artifact recovery, independent structured-return branches and generic-only template promotion. One real local candidate passed the complete document review. Its Owner attestation remains pending explicit approval after automatic review rejected agent submission. Hosted generation preserved a spacing-only candidate, but two preview attempts failed with status 422. The exact deployed image passes the same input offline through HTTP at staging resource limits. Safe runtime diagnosis is in progress; hosted source preview is not yet accepted. See `source-refinement.md`.
+Final-document refinement includes full source/field/text/PDF/report comparison, immutable checkpoint publication, artifact recovery, independent structured-return branches and generic-only template promotion. One real local candidate passed the complete document review. Its Owner attestation remains pending explicit approval after automatic review rejected agent submission. Hosted generation preserved a spacing-only candidate. After two unclassified 422 failures, its third bounded preview passed. Both actual PDFs, complete source/field/text comparisons and passing reports were inspected. Safe protocol/stage diagnostics are now deployed; the earlier cause is not confirmed. The candidate remains Pending and unaccepted. See `source-refinement.md`.
 
 Scoring includes atomic Save & score, bounded attempts, exact retained input, six-platform validation, finding review, raw result retention and conservative compatible comparisons. The Worker and interface are deployed; `ATS_SCREENER_ORIGIN` is unset and new submissions remain unavailable. The narrow ATS identity change is committed as `fdd17c3` in its separate repository and passes 57 focused tests, Svelte/type checks, lint and the full app/docs build. Automatic approval review rejected deployment with four pre-existing Cloudflare setup files outside that commit; explicit approval remains pending. See `scoring.md`.
 
 Both approved staging secrets are installed. Hosted template generation/conversation, complete synthetic validation, retained daily backup and a fresh isolated 58-table/30-object restore drill passed at migration 0018. The generated template stays Validated pending separate Owner visual approval. See `template-generation.md` and `recovery.md`.
 
+The current-schema restore drill also passed: 67 base tables, exact FTS equality, foreign keys, one citation, 50 retained objects and the original exported checkpoint. The restored database is local and unpublished. Hosted history was checked in both themes and preserves the labeled r0 checkpoint after the independent draft advances to r1.
+
 ## Remaining V1 work
 
-- Resolve and verify hosted source preview, then complete explicitly approved source acceptance/publication, export, structured return and template promotion journeys.
+- Complete explicitly approved source acceptance/publication, export, structured return and template promotion journeys.
 - Deploy and verify ATS identity after approval, enable River scoring, and prove successful/failed runs, cache identity and exact finding review.
 - Implement canonical synthetic template scoring qualification; award `ATS Screener tested` only for a complete compatible passing report.
 - Complete the Paper-designed inline wording integration and narrow mobile history/comparison/scoring/recovery checks.
 - Finish remaining hosted job, wording, source-claim and duplicate AI journeys; password recovery and optional GitHub configuration remain unverified.
-- Complete the real Owner tailoring session, current-schema restore validation, production resources/domain and release gates. No MVP or V1 release is claimed.
+- Complete the real Owner tailoring session, production resources/domain and release gates. No MVP or V1 release is claimed.
 
 Synthetic documents and acceptance fixtures are not candidate evidence. Pending approvals do not authorize recording an Owner attestation or deploying the ATS checkout through an alternative path.

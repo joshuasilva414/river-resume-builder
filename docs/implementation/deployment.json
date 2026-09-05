@@ -5,8 +5,8 @@
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
   "webVersion": "f307e560-c38e-4256-822f-ef73e4e0c830",
-  "documentWorkerVersion": "6f62349d-f34d-4ea1-9f51-2a38a642bb8f",
-  "containerImageDigest": "sha256:3a359d98e8c981d8def76a1bd0e55c82ac82301c747ede52e0981c5f272b14c4",
+  "documentWorkerVersion": "6459e815-8f14-4772-827d-5aff881a30ca",
+  "containerImageDigest": "sha256:5ca4c176095b9f4663fee737eaa9a7ec30d7662b4eeb7af51273c6bdd4dc6905",
   "database": "river-staging",
   "databaseId": "1b837147-de99-4aaa-a4ad-386b826412b0",
   "bucket": "river-staging-artifacts",
@@ -60,7 +60,9 @@
     "templateConversation": "Hosted accepted turn, complete original brief, same-scope prior-instruction default and pinned accepted base verified in the conversation. Concurrent and pagination behavior covered in Workers tests.",
     "hostedHistory": "Passed: restored an independent synthetic Classic branch, rendered r0, captured a labeled checkpoint, inspected lineage and pinned complete content/PDF comparison. Both actual PDFs render with independent zoom. No new export attestation.",
     "hostedScoring": "Workflow and Owner UI deployed; provider origin unset, new submissions unavailable. ATS deployment approval remains pending.",
-    "hostedSourceRefinement": "Real generation succeeded once and preserved its spacing-only candidate. Two hosted preview attempts failed with document status 422; exact deployed image passes the same input offline through HTTP at staging CPU/memory limits. Diagnosis continues; no acceptance or publication."
+    "hostedSourceRefinement": "Passed on third bounded preview after one real generation: complete source, intended field, unchanged extracted text, both real PDFs and complete passing reports inspected. Anonymous preview returns 401. Candidate remains Pending; no acceptance. Earlier two 422 failures remain unattributed.",
+    "currentSchemaRestore": "Passed: fresh isolated local SQLite from migration 0025 backup, 67 base tables, exact FTS equality, foreign keys, one citation, 50 retained objects and one exported checkpoint. No remote cutover.",
+    "documentDiagnostics": "Offline full fixture suite passed; fixed protocol/stage headers identify malformed input and prohibited source without exposing exception contents. Peak memory 421687296 bytes."
   },
   "hostedRuntimeSamples": [
     {
@@ -101,6 +103,15 @@
       "receipt": "test-results/recovery/2026-09-05T18-01-33.234Z-ea097568-625b-43c4-a5fe-4aa034b3ce54/receipt.json",
       "tables": 58,
       "verification": "Exact migration/data restore validated before private retention; not a new complete artifact drill."
+    },
+    "postHistoryMigration": {
+      "key": "backups/database/staging/2026-09-05T18-25-28.476Z-f3dd7261-ab8f-4c28-9435-9c8fdb45bcd5/snapshot.json.gz",
+      "sha256": "6effb22143e001f3a86ebb4331b043e867586b4199addc1ae752917de3511f2b",
+      "receipt": "test-results/recovery/2026-09-05T18-25-28.476Z-f3dd7261-ab8f-4c28-9435-9c8fdb45bcd5/receipt.json",
+      "report": "test-results/recovery/drill-c08c37e9-a550-410c-bbed-bc1b126aa1d5/report.json",
+      "tables": 67,
+      "objects": 50,
+      "migrationsThrough": "0025_checkpoint_labels.sql"
     }
   },
   "jobAnalysisWorkflow": "river-staging-job-analysis",
@@ -131,17 +142,24 @@
     "checkpointId": "01a072c6-9255-7d8f-bc16-f44d904b5c6b",
     "checkpointOperationId": "01a072c6-9255-7ba4-a78f-227d70cf9209",
     "checkpointLabel": "Synthetic hosted restoration baseline",
-    "exported": false
+    "exported": false,
+    "newerDraftRevision": 1,
+    "newerPreviewOperationId": "01a072d1-d12c-7a6d-ae28-7ba3351c8c00"
   },
   "hostedSourceRefinement": {
     "taskId": "01a072c6-30b9-7502-9f32-f18fa186963a",
     "candidateDigest": "4ebb009588c2eb46318a8b74230f2093a72f2dd700ba60b641dbeb6fcc74dcb6",
     "operationIds": [
       "01a072c6-30b9-7186-8d61-8a29c33f9c0d",
-      "01a072c9-ea86-7086-85aa-34a941267b9a"
+      "01a072c9-ea86-7086-85aa-34a941267b9a",
+      "01a072d2-63a1-7eaf-8c1d-20c2156424bd"
     ],
     "generationAttempts": 1,
-    "previewAttempts": 2,
-    "state": "Pending; preview failure under diagnosis; acceptance not started"
-  }
+    "previewAttempts": 3,
+    "state": "Pending; complete preview passed; no acceptance or publication",
+    "reviewDigest": "6eaae525ce9a587410ce56a23a40048f5521d7666ee5d7cf5267b3913b95e720",
+    "previewFingerprint": "ab9485a7cb387774fe2d93ae269fe54092172cf150b2e5f6575092dbd6feb451",
+    "documentMs": 11408.33835
+  },
+  "deployedDocumentCommit": "60f0205"
 }
