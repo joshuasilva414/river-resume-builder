@@ -38,7 +38,7 @@ export class DocumentContainer extends Container<Env> {
           status: response.status,
           cache: cache === "hit" || cache === "miss" || cache === "bypass" ? cache : "unidentified",
         }),
-        Effect.withLogger(Logger.consoleJson),
+        Effect.provide(Logger.layer([Logger.consoleJson, Logger.tracerLogger])),
       ),
     );
     if (!response.ok) {

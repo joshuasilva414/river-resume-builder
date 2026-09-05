@@ -9,6 +9,7 @@ import { type AgentScope, ApplicationError, newId, type Principal } from "@river
 import { syntheticResume } from "@river/templates";
 import { Context, Effect, Layer } from "effect";
 import { authenticatePrincipal } from "./auth";
+import { withDiagnostics } from "./diagnostics";
 import type { Env } from "./env";
 
 export class Store extends Context.Service<Store, Repository>()("river/Store") {}
@@ -96,41 +97,35 @@ export async function execute<A>(
 ): Promise<{ ok: true; value: A } | { ok: false; error: ProblemDetails }> {
   const traceId = newId();
   const actor = await authenticatePrincipal(env, headers);
-  if (!actor)
-    return {
-      ok: false,
-      error: problem(
+  const authorized = Effect.gen(function* () {
+    if (!actor)
+      return yield* Effect.fail(
         new ApplicationError({ code: "Unauthorized", message: "Sign in to your workspace." }),
-        traceId,
-      ),
-    };
-  if (
-    actor.kind === "agent" &&
-    permission !== "identity" &&
-    (permission === "owner" || !actor.scopes.includes(permission))
-  )
-    return {
-      ok: false,
-      error: problem(
+      );
+    if (
+      actor.kind === "agent" &&
+      permission !== "identity" &&
+      (permission === "owner" || !actor.scopes.includes(permission))
+    )
+      return yield* Effect.fail(
         new ApplicationError({
           code: "Forbidden",
           message: "This credential does not allow that action.",
         }),
-        traceId,
+      );
+    return yield* program.pipe(
+      Effect.provide(
+        Layer.merge(Layer.succeed(Store, createRepository(env.DB)), Layer.succeed(Actor, actor)),
       ),
-    };
-  const services = Layer.merge(
-    Layer.succeed(Store, createRepository(env.DB)),
-    Layer.succeed(Actor, actor),
-  );
+    );
+  });
   return Effect.runPromise(
-    program.pipe(
+    authorized.pipe(
+      withDiagnostics({ scope: "application", traceId, actorId: actor?.id ?? null, permission }),
       Effect.map((value) => ({ ok: true as const, value })),
       Effect.catchTag("ApplicationError", (error) =>
         Effect.succeed({ ok: false as const, error: problem(error, traceId) }),
       ),
-      Effect.withSpan("river.application", { attributes: { traceId, actorId: actor.id } }),
-      Effect.provide(services),
     ),
   );
 }
@@ -163,16 +158,26 @@ export async function dispatchPending(env: Env) {
     }
     const workflow = workflowFor(env, operation.input);
     if (!workflow) continue;
-    await workflow.createBatch([
-      { id: dispatch.operationId, params: { operationId: dispatch.operationId } },
-    ]);
-    if (operation.state === "Cancelled") {
-      const instance = await workflow.get(operation.id);
-      const status = await instance.status();
-      if (!["complete", "errored", "terminated"].includes(status.status))
-        await instance.terminate();
-    }
-    await repository.markDispatched(dispatch.operationId, operation.state);
+    await Effect.runPromise(
+      attempt(async () => {
+        await workflow.createBatch([
+          { id: dispatch.operationId, params: { operationId: dispatch.operationId } },
+        ]);
+        if (operation.state === "Cancelled") {
+          const instance = await workflow.get(operation.id);
+          const status = await instance.status();
+          if (!["complete", "errored", "terminated"].includes(status.status))
+            await instance.terminate();
+        }
+        await repository.markDispatched(dispatch.operationId, operation.state);
+      }).pipe(
+        withDiagnostics({
+          scope: "workflow-dispatch",
+          operationId: dispatch.operationId,
+          ownerId: operation.ownerId,
+        }),
+      ),
+    );
   }
 }
 
