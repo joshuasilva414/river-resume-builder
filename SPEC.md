@@ -128,7 +128,7 @@ Keyword optimization uses a review queue. Each suggestion shows:
 - Why the change improves alignment.
 - Whether the change affects meaning.
 
-Users accept or reject suggestions individually. A wording task targets one saved Content placement and its exact selected evidence, review decisions, pinned context values, and bound posting snapshot. Its target digest excludes unrelated draft names and sibling placements. Acceptance verifies that target and support against current state, then atomically applies a local override against the currently observed draft revision. Unrelated edits survive; changed target or support requires a new reviewed proposal. Each decision identifies the exact proposal digest. Rejection removes the generated payload from live storage without retaining copies in permanent receipts or audit entries. Inline assistance follows later.
+Users accept or reject suggestions individually. A wording task targets one saved Content placement and its exact selected evidence, review decisions, pinned context values, and bound posting snapshot. Its target digest excludes unrelated draft names and sibling placements. Acceptance verifies that target and support against current state, then atomically applies a local override against the currently observed draft revision. Unrelated edits survive; changed target or support requires a new reviewed proposal. Each decision identifies the exact proposal digest. Rejection removes the generated payload from live storage without retaining copies in permanent receipts or audit entries. Phase 3 places launch and full proposal review inside the composition editor after the persistent review queue is proven. Session undo saves a new draft revision and retains the proposal's acceptance history.
 
 ## Template system
 
@@ -333,4 +333,4 @@ The build is ready when:
 - Restored checkpoints do not destroy later work.
 - ATS failures do not block export or corrupt scoring history.
 
-Deferred work includes multi-user collaboration, public template sharing or a marketplace, DOCX export, automatic Notion synchronization, mobile composition, Electron packaging, inline AI writing, explicit page-count targets, a sandboxed general-purpose template engine, and an optional HTML preview approximation.
+Deferred work includes multi-user collaboration, public template sharing or a marketplace, DOCX export, automatic Notion synchronization, mobile composition, Electron packaging, explicit page-count targets, a sandboxed general-purpose template engine, and an optional HTML preview approximation.

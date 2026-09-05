@@ -44,7 +44,7 @@ GitHub OAuth remains unconfigured. The Owner-approved OpenAI and daily backup cr
 
 ## Latest deployed milestone
 
-Staging is through migration `0025_checkpoint_labels.sql`. Web commit `cc5370e` is deployed as `f307e560-c38e-4256-822f-ef73e4e0c830`; exact document/image identities are in `deployment.json`. A retained and locally restore-validated 58-table backup preceded the seven additive migrations. All 123 Workers tests across 23 files, workspace type/lint checks, the staging build and the complete offline document fixtures passed. Source refinement and scoring Workflows are bound.
+Staging is through migration `0026_template_scoring.sql`. Web commit `570278e` is deployed as `5239f176-6901-48b4-997e-ca4d62a0fb23`; exact document/image identities are in `deployment.json`. A retained and locally validated 67-table backup preceded the additive template scoring migration. All 132 Workers tests across 24 files, workspace type/lint checks and the staging build passed. The complete offline document fixtures passed before this web-only milestone. Source refinement, checkpoint scoring and template scoring Workflows are bound.
 
 Explicit labeled checkpoints, chronology, independent restoration branches and pinned full content/PDF comparisons are deployed. The hosted synthetic fixture restored and rendered a new branch, captured a labeled checkpoint and displayed both actual PDFs with independent zoom. The original exported checkpoint remains unchanged. Local concurrent-tab checks keep the selected older revision until explicit refresh. Exact cross-checkpoint score selectors and reviewed template replacement during source regeneration are implemented. See `history.md`.
 
@@ -54,14 +54,16 @@ Scoring includes atomic Save & score, bounded attempts, exact retained input, si
 
 Both approved staging secrets are installed. Hosted template generation/conversation, complete synthetic validation, retained daily backup and a fresh isolated 58-table/30-object restore drill passed at migration 0018. The generated template stays Validated pending separate Owner visual approval. See `template-generation.md` and `recovery.md`.
 
-The current-schema restore drill also passed: 67 base tables, exact FTS equality, foreign keys, one citation, 50 retained objects and the original exported checkpoint. The restored database is local and unpublished. Hosted history was checked in both themes and preserves the labeled r0 checkpoint after the independent draft advances to r1.
+The current-schema restore drill also passed: 71 base tables, exact FTS equality, foreign keys, one citation, 50 retained objects and the original exported checkpoint. The restored database is local and unpublished. Its scoring tables are empty, so it does not prove populated scoring recovery. Hosted history was checked in both themes and preserves the labeled r0 checkpoint after the independent draft advances to r1.
+
+Paper board 77's inline wording launch/review and session undo are implemented locally. A real configured model request on a synthetic draft passed generation, complete review, acceptance, undo/redo and real PDF refresh while preserving an unrelated name edit. Fourteen focused wording/composition tests, workspace types/lint and the staging build pass. The model retained the original wording and changed its rationale; no candidate evidence was created. See `wording.md` for the exact task and remaining hosted gate.
 
 ## Remaining V1 work
 
 - Complete explicitly approved source acceptance/publication, export, structured return and template promotion journeys.
 - Deploy and verify ATS identity after approval, enable River scoring, and prove successful/failed runs, cache identity and exact finding review.
 - Complete live-provider verification of template scoring qualification and Paper’s fixture review. The canonical set, qualification gate, four-table persistence, bounded Workflow, Owner services and review UI are deployed to personal staging through migration 0026. All 132 Workers tests, workspace types/lint and the staging build pass; local unavailable/empty states are reviewed in both themes, and hosted authenticated Classic inspection and anonymous artifact denial pass. The new 71-table staging snapshot passed an isolated restore with 50 retained objects. Actual hosted provider runs and populated/mobile browser review remain open. Award `ATS Screener tested` only after a complete retained compatible passing report. See `template-scoring.md`.
-- Complete the Paper-designed inline wording integration and narrow mobile history/comparison/scoring/recovery checks.
+- Complete hosted inline wording verification and narrow mobile history/comparison/scoring/recovery checks.
 - Finish remaining hosted job, wording, source-claim and duplicate AI journeys; password recovery and optional GitHub configuration remain unverified.
 - Complete the real Owner tailoring session, production resources/domain and release gates. No MVP or V1 release is claimed.
 

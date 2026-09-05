@@ -107,6 +107,45 @@ export function useDraft(initial: ResumeDetail) {
     future.current = [];
     setError(null);
   };
+  /** Serialize an explicit server edit with autosave and retain its exact local undo step. */
+  const applyExternalEdit = async (
+    perform: () => Promise<{ id: string; detail: ResumeDetail; undo: Composition | null }>,
+  ) => {
+    if (
+      sending.current ||
+      inflight.current ||
+      error ||
+      canonicalJson(local.current) !== canonicalJson(saved.current.data)
+    )
+      throw new Error("Finish saving or recovering this draft before applying wording.");
+    const before = local.current;
+    sending.current = true;
+    setPending(true);
+    try {
+      const result = await perform();
+      if (canonicalJson(local.current) !== canonicalJson(before)) {
+        setError(
+          new Error(
+            "Local edits arrived while wording was being applied. Compare the local and saved drafts before continuing.",
+          ),
+        );
+        return result.id;
+      }
+      // Remote sibling edits are preserved, but older full-draft undo snapshots would erase them.
+      if (!result.undo || canonicalJson(result.undo) !== canonicalJson(before)) past.current = [];
+      if (result.undo) past.current = [...past.current.slice(-99), result.undo];
+      future.current = [];
+      local.current = result.detail.draft.data;
+      saved.current = { data: local.current, revision: result.detail.draft.revision };
+      setData(local.current);
+      setAck(saved.current);
+      client.setQueryData(["resumes", "detail", initial.draft.id], result.detail);
+      return result.id;
+    } finally {
+      sending.current = false;
+      setPending(false);
+    }
+  };
   return {
     data,
     ack,
@@ -116,6 +155,7 @@ export function useDraft(initial: ResumeDetail) {
     change,
     send,
     reload,
+    applyExternalEdit,
     canUndo: past.current.length > 0,
     canRedo: future.current.length > 0,
     undo: () => {

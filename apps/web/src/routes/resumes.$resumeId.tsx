@@ -9,6 +9,7 @@ import {
   placeContent,
   placeSection,
   type SectionPlacement,
+  undoAcceptedWording,
 } from "@river/domain";
 import type { TemplateBase } from "@river/templates";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -39,7 +40,7 @@ import { BasePicker, useTemplateBase } from "~/components/templates/shared";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { WorkspaceShell } from "~/components/workspace-shell";
-import { forkResume } from "~/server/composition-functions";
+import { forkResume, getResume } from "~/server/composition-functions";
 import { getSession } from "~/server/functions";
 import { getLibraryDetail } from "~/server/library-functions";
 export const Route = createFileRoute("/resumes/$resumeId")({
@@ -256,6 +257,17 @@ function Editor({ detail }: { detail: ResumeDetail }) {
         .find((content) => content.id === path.contentId);
       if (content) setWording({ sectionId: path.sectionId, blockId: path.blockId, content });
     },
+    (input, proposal, perform) =>
+      session.applyExternalEdit(async () => {
+        const id = await perform();
+        const current = unwrap(await getResume({ data: { id: detail.draft.id } }));
+        setGraph(current.graph);
+        return {
+          id,
+          detail: current,
+          undo: undoAcceptedWording(current.draft.data, current.graph, input.target, proposal),
+        };
+      }),
   );
   return (
     <>
@@ -312,11 +324,19 @@ function Editor({ detail }: { detail: ResumeDetail }) {
         <section className="hidden min-w-0 border-r lg:block xl:overflow-y-auto">
           <div className="flex flex-wrap items-center gap-3 border-b p-6">
             <h2 className="font-sans font-semibold">Content</h2>
-            <Button variant="outline" disabled={!session.canUndo} onClick={session.undo}>
+            <Button
+              variant="outline"
+              disabled={!session.canUndo || session.pending}
+              onClick={session.undo}
+            >
               <Undo2 />
               Undo
             </Button>
-            <Button variant="outline" disabled={!session.canRedo} onClick={session.redo}>
+            <Button
+              variant="outline"
+              disabled={!session.canRedo || session.pending}
+              onClick={session.redo}
+            >
               <Redo2 />
               Redo
             </Button>
@@ -506,7 +526,13 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                           {contents.map((content, contentIndex) => {
                             const value = contentValue(content, mergedGraph);
                             return (
-                              <div key={content.id} className="space-y-3 border-l-2 pl-3">
+                              <div
+                                key={content.id}
+                                className={`space-y-3 border-l-2 pl-3 ${assistance.path?.contentId === content.id ? "border-primary" : ""}`}
+                              >
+                                {assistance.path?.contentId === content.id && (
+                                  <p className="eyebrow text-primary">Selected wording placement</p>
+                                )}
                                 <p className="whitespace-pre-wrap text-[15px] leading-6 break-words">
                                   {value.wording}
                                 </p>
@@ -636,6 +662,11 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                                     </Button>
                                   )}
                                 </div>
+                                {assistance.inlineFor({
+                                  sectionId: section.id,
+                                  blockId: block.id,
+                                  contentId: content.id,
+                                })}
                               </div>
                             );
                           })}
@@ -698,11 +729,18 @@ function Editor({ detail }: { detail: ResumeDetail }) {
         <div className="space-y-6 p-5 lg:hidden">
           <CompositionView data={detail.draft.data} graph={detail.graph} provenance />
         </div>
-        <DraftPreview
-          detail={detail}
-          revision={session.ack.revision}
-          dirty={session.dirty || session.pending}
-        />
+        <div className={assistance.panel ? "hidden" : "contents"}>
+          <DraftPreview
+            detail={detail}
+            revision={session.ack.revision}
+            dirty={session.dirty || session.pending}
+          />
+        </div>
+        {assistance.panel && (
+          <aside className="min-w-0 space-y-5 bg-muted/60 p-6 xl:overflow-y-auto">
+            {assistance.panel}
+          </aside>
+        )}
       </div>
       {copy && <CopyDialog detail={detail} path={copy} onClose={() => setCopy(null)} />}
       {reuse && (

@@ -5,6 +5,7 @@ import {
   applyWordingProposal,
   canonicalJson,
   newId,
+  undoAcceptedWording,
   validateWordingProposal,
   type WordingProfile,
   type WordingProposal,
@@ -389,4 +390,66 @@ it("sends only captured input through a strict bounded provider request and requ
       Response.json({ model: "wrong-model", status: "completed", output: [] }),
     ),
   ).rejects.toMatchObject({ code: "Unavailable" });
+});
+
+it("undoes an accepted placement as a new saved edit while preserving unrelated work and review history", async () => {
+  const { repository, actor, draft, data, generate } = await fixture();
+  const proposal = await generate();
+  await repository.saveResume(actor, {
+    id: draft.id,
+    revision: 0,
+    data: { ...data, name: "Independent name update" },
+    idempotencyKey: "rename-before-accept",
+  });
+  await repository.reviewWording(actor, proposal.review);
+  const accepted = await repository.inspectResume(actor.id, draft.id);
+  const undone = undoAcceptedWording(
+    accepted.draft.data,
+    accepted.graph,
+    proposal.detail.task.input.target,
+    output,
+  );
+  expect(undone).toEqual({ ...data, name: "Independent name update" });
+  if (!undone) throw new Error("Undo step missing");
+  await repository.saveResume(actor, {
+    id: draft.id,
+    revision: accepted.draft.revision,
+    data: undone,
+    idempotencyKey: "undo-wording",
+  });
+  expect((await repository.inspectWording(actor.id, proposal.task.id)).proposal).toMatchObject({
+    state: "Accepted",
+    appliedRevision: 2,
+  });
+  await repository.saveResume(actor, {
+    id: draft.id,
+    revision: 3,
+    data: accepted.draft.data,
+    idempotencyKey: "redo-wording",
+  });
+  expect((await repository.getResume(actor.id, draft.id))?.data).toEqual(accepted.draft.data);
+});
+it("refuses to build an undo step after the accepted target changes or disappears", async () => {
+  const { repository, actor, draft, data, path, generate } = await fixture();
+  const proposal = await generate();
+  await repository.reviewWording(actor, proposal.review);
+  const accepted = await repository.inspectResume(actor.id, draft.id);
+  const changed = applyWordingProposal(accepted.draft.data, path, {
+    ...output,
+    wording: "Later independent wording",
+  });
+  expect(
+    undoAcceptedWording(changed, accepted.graph, proposal.detail.task.input.target, output),
+  ).toBeNull();
+  expect(
+    undoAcceptedWording(
+      { ...data, sections: [] },
+      accepted.graph,
+      proposal.detail.task.input.target,
+      output,
+    ),
+  ).toBeNull();
+  expect((await repository.inspectWording(actor.id, proposal.task.id)).proposal?.state).toBe(
+    "Accepted",
+  );
 });

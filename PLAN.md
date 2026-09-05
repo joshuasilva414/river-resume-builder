@@ -150,7 +150,7 @@ Depends on M2.
 - [x] Pin proposal inputs and targets. At acceptance, atomically reject changes to relevant revisions and require review of an updated proposal.
 - [x] Keep Operation completion separate from proposal review. Preserve manual use when AI generation fails.
 
-The adapter and review UI are implemented and tested with synthetic responses. Live requirement extraction and ranking remain unverified until the Owner supplies `OPENAI_API_KEY`; see `docs/implementation/job-analysis.md` for profile pins and bounds.
+The adapter and review UI are implemented and tested with synthetic responses. The Owner-approved `OPENAI_API_KEY` is installed on staging; live requirement extraction and ranking remain unverified. See `docs/implementation/job-analysis.md` for profile pins and bounds.
 
 Exit: a posting can be analyzed and evidence selected with or without AI. Reloads preserve pending proposals, and accepting a stale proposal cannot change current data.
 
@@ -202,11 +202,11 @@ Exit: the Owner can complete the core loop; failures are diagnosable; data can b
 - [x] Extract candidate evidence into reviewable drafts with exact citations; never auto-verify generated claims.
 - [x] Preserve clarification questions and record source-backed answers against new Evidence Revisions without automatic verification.
 - [x] Add bounded AI duplicate comparisons to the existing manual comparison and disposition workflow.
-Duplicate comparison services, Paper review/history UI, and atomic optional disposition attribution are implemented and locally verified. Live provider generation remains credential-dependent. See `docs/implementation/duplicate-comparison.md`.
+Duplicate comparison services, Paper review/history UI, and atomic optional disposition attribution are implemented and locally verified. The staging credential is installed; live provider generation remains unverified. See `docs/implementation/duplicate-comparison.md`.
 
-Source proposal services, Paper UI, and clarification tracking are deployed with synthetic acceptance checks; live generation remains credential-dependent. See `docs/implementation/source-proposals.md`.
+Source proposal services, Paper UI, and clarification tracking are deployed with synthetic acceptance checks. The staging credential is installed; live generation remains unverified. See `docs/implementation/source-proposals.md`.
 - [x] Add the keyword rewrite queue with original/proposed wording, supporting evidence, meaning-change explanation, individual acceptance, and stale-input checks.
-Wording assistance is implemented and deployed with synthetic service/browser checks; live generation remains a separate credential-dependent acceptance gate. See `docs/implementation/wording.md`.
+Wording assistance is implemented and deployed with synthetic service/browser checks. A live local provider request, placement acceptance, session undo/redo and retained PDF state now pass. Hosted generation remains a separate acceptance gate. See `docs/implementation/wording.md`.
 
 - [x] Implement guided template briefs and iterative generation using synthetic fixtures exclusively.
 - [x] Implement Draft → Validated → Approved → Retired lifecycle behavior; editing approved payloads creates new revisions.
@@ -225,7 +225,7 @@ Exit: every generated change is reviewable and attributable; content changes can
 - [ ] Compare scores only within the same provider/rubric identity. Label simulations separately from local document validation.
 - [ ] Implement retryable scoring failures and provider limits without blocking export.
 - [ ] Score canonical template fixtures and assign the separate ATS Screener tested designation only when its stated criteria pass.
-- [ ] Add inline writing assistance after review-queue behavior is proven.
+- [x] Add inline writing assistance after review-queue behavior is proven. Paper board 77 is implemented with exact target comparison and session undo; local live-provider and persisted browser checks pass. Hosted and narrow review checks remain release gates.
 
 Exit: restoring history never destroys newer work, score comparisons preserve their meaning, and scoring outages leave export usable.
 

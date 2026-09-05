@@ -8,9 +8,10 @@ import {
   captureWordingTarget,
   type WordingInput,
   type WordingPath,
+  type WordingProposal,
 } from "@river/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import {
   EvidenceDialog,
   Failure,
@@ -39,7 +40,15 @@ type Action =
   | { type: "review"; data: Omit<ReviewWordingRequest, "idempotencyKey"> }
   | { type: "cancel"; data: { operationId: string } };
 const active = (state?: string) => state === "Pending" || state === "Running";
-function useAction(onSaved?: (id: string) => void) {
+type ApplyWording = (
+  input: WordingInput,
+  proposal: WordingProposal,
+  perform: () => Promise<string>,
+) => Promise<string>;
+function useAction(
+  onSaved?: (id: string) => void,
+  onAccept?: (perform: () => Promise<string>) => Promise<string>,
+) {
   const client = useQueryClient(),
     command = useRef<{ payload: string; key: string } | null>(null);
   return useMutation({
@@ -52,8 +61,11 @@ function useAction(onSaved?: (id: string) => void) {
         return unwrap(await generateWordingTask({ data: { ...action.data, idempotencyKey } })).id;
       if (action.type === "retry")
         return unwrap(await retryWordingTask({ data: { ...action.data, idempotencyKey } })).id;
-      if (action.type === "review")
-        return unwrap(await decideWording({ data: { ...action.data, idempotencyKey } })).id;
+      if (action.type === "review") {
+        const perform = async () =>
+          unwrap(await decideWording({ data: { ...action.data, idempotencyKey } })).id;
+        return action.data.decision === "Accepted" && onAccept ? onAccept(perform) : perform();
+      }
       unwrap(await cancelDocumentOperation({ data: { ...action.data, idempotencyKey } }));
       return action.data.operationId;
     },
@@ -80,12 +92,13 @@ export function useWordingAssistance(
   detail: ResumeDetail,
   busy: boolean,
   onManual: (path: WordingPath) => void,
+  onApply: ApplyWording,
 ) {
   const [offset, setOffset] = useState(0),
     [view, setView] = useState<
       | { type: "queue" }
-      | { type: "task"; id: string }
-      | { type: "launch"; path: WordingPath; detail: ResumeDetail }
+      | { type: "task"; id: string; path?: WordingPath }
+      | { type: "launch"; path: WordingPath }
       | null
     >(null);
   const list = useQuery({
@@ -96,9 +109,40 @@ export function useWordingAssistance(
       query.state.data?.items.some((item) => active(item.operationState)) ? 1500 : false,
   });
   const close = () => setView(null);
+  const taskReview = view?.type === "task" && (
+    <Review
+      key={view.id}
+      id={view.id}
+      current={detail}
+      busy={busy}
+      inline={Boolean(view.path)}
+      onApply={onApply}
+      onClose={close}
+      onBack={() => setView({ type: "queue" })}
+      onManual={(path) => {
+        close();
+        onManual(path);
+      }}
+      onGenerate={(path) => setView({ type: "launch", path })}
+    />
+  );
   return {
     configured: Boolean(list.data?.configured),
-    launch: (path: WordingPath) => setView({ type: "launch", path, detail }),
+    launch: (path: WordingPath) => setView({ type: "launch", path }),
+    path: view && "path" in view ? view.path : undefined,
+    panel: view?.type === "task" && view.path ? taskReview : null,
+    inlineFor: (path: WordingPath) =>
+      view?.type === "launch" && canonicalJson(view.path) === canonicalJson(path) ? (
+        <Launch
+          key={canonicalJson(path)}
+          detail={detail}
+          path={path}
+          busy={busy}
+          inline
+          onClose={close}
+          onSaved={(id) => setView({ type: "task", id, path })}
+        />
+      ) : null,
     queueButton: (
       <>
         {Boolean(list.data?.items.length || offset) && (
@@ -115,15 +159,6 @@ export function useWordingAssistance(
     ),
     dialogs: (
       <>
-        {view?.type === "launch" && (
-          <Launch
-            detail={view.detail}
-            path={view.path}
-            busy={busy}
-            onClose={close}
-            onSaved={(id) => setView({ type: "task", id })}
-          />
-        )}
         {view?.type === "queue" && (
           <EvidenceDialog
             title="Wording proposals"
@@ -180,24 +215,57 @@ export function useWordingAssistance(
             </div>
           </EvidenceDialog>
         )}
-        {view?.type === "task" && (
-          <Review
-            key={view.id}
-            id={view.id}
-            current={detail}
-            busy={busy}
-            onClose={close}
-            onBack={() => setView({ type: "queue" })}
-            onManual={(path) => {
-              close();
-              onManual(path);
-            }}
-            onGenerate={(path) => setView({ type: "launch", path, detail })}
-          />
-        )}
+        {view?.type === "task" && !view.path && taskReview}
       </>
     ),
   };
+}
+function WordingSurface({
+  inline = false,
+  title,
+  description,
+  onClose,
+  pending = false,
+  children,
+}: {
+  inline?: boolean;
+  title: string;
+  description: string;
+  onClose: () => void;
+  pending?: boolean;
+  children: ReactNode;
+}) {
+  const id = useId(),
+    heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (inline) heading.current?.focus();
+  }, [inline]);
+  if (!inline)
+    return (
+      <EvidenceDialog
+        title={title}
+        description={description}
+        onClose={onClose}
+        pending={pending}
+        wide
+      >
+        {children}
+      </EvidenceDialog>
+    );
+  return (
+    <section aria-labelledby={id} className="min-w-0 space-y-5 rounded-md border bg-card p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h2 id={id} ref={heading} tabIndex={-1} className="font-editorial text-2xl outline-none">
+          {title}
+        </h2>
+        <Button variant="outline" disabled={pending} onClick={onClose}>
+          Keep editing
+        </Button>
+      </div>
+      <p className="text-sm leading-5 text-muted-foreground">{description}</p>
+      {children}
+    </section>
+  );
 }
 function Launch({
   detail,
@@ -205,7 +273,9 @@ function Launch({
   busy,
   onClose,
   onSaved,
+  inline = false,
 }: {
+  inline?: boolean;
   detail: ResumeDetail;
   path: WordingPath;
   busy: boolean;
@@ -218,7 +288,8 @@ function Launch({
     action = useAction(onSaved);
   const target = captureWordingTarget(detail.draft.data, detail.graph, path);
   return (
-    <EvidenceDialog
+    <WordingSurface
+      inline={inline}
       title="Suggest wording for this placement"
       description="One Content placement · exact job snapshot · selected support"
       onClose={onClose}
@@ -276,14 +347,14 @@ function Launch({
         )}
         <div className="flex flex-wrap justify-end gap-3">
           <Button type="button" variant="outline" disabled={action.isPending} onClick={onClose}>
-            Keep editing
+            Cancel
           </Button>
           <Button disabled={busy || action.isPending || !goal.trim()}>
             {action.isPending ? "Starting…" : "Generate proposal"}
           </Button>
         </div>
       </form>
-    </EvidenceDialog>
+    </WordingSurface>
   );
 }
 function CapturedSupport({
@@ -394,7 +465,11 @@ function Review({
   onBack,
   onManual,
   onGenerate,
+  inline = false,
+  onApply,
 }: {
+  inline?: boolean;
+  onApply: ApplyWording;
   id: string;
   busy: boolean;
   current: ResumeDetail;
@@ -404,15 +479,18 @@ function Review({
   onGenerate: (path: WordingPath) => void;
 }) {
   const result = useQuery({
-      queryKey: ["wording-ai", "detail", id],
-      queryFn: async () => unwrap(await getWordingTask({ data: { id } })),
-      refetchInterval: (query) => (active(query.state.data?.operation?.state) ? 1500 : false),
-    }),
-    action = useAction();
+    queryKey: ["wording-ai", "detail", id],
+    queryFn: async () => unwrap(await getWordingTask({ data: { id } })),
+    refetchInterval: (query) => (active(query.state.data?.operation?.state) ? 1500 : false),
+  });
   const detail = result.data,
     proposal = detail?.proposal,
     input = detail?.task.input,
     payload = proposal?.payload;
+  const action = useAction(undefined, async (perform) => {
+    if (!input || !payload) throw new Error("The exact proposal is no longer available.");
+    return onApply(input, payload, perform);
+  });
   const targetPresent =
     input &&
     current.draft.data.sections
@@ -421,13 +499,19 @@ function Review({
       ?.fields.some((field) =>
         field.contents.some((content) => content.id === input.target.path.contentId),
       );
+  let currentTarget: ReturnType<typeof captureWordingTarget> | null = null;
+  if (input && targetPresent)
+    currentTarget = captureWordingTarget(current.draft.data, current.graph, input.target.path);
+  const targetChanged = Boolean(
+    input && (!currentTarget || canonicalJson(currentTarget) !== canonicalJson(input.target)),
+  );
   return (
-    <EvidenceDialog
+    <WordingSurface
+      inline={inline}
       title="Review suggested wording"
       description="Compare complete wording and support. Acceptance creates a local override for this placement."
       onClose={onClose}
       pending={action.isPending}
-      wide
     >
       <div className="space-y-5">
         <Button className="self-start" variant="ghost" disabled={action.isPending} onClick={onBack}>
@@ -451,6 +535,9 @@ function Review({
             <p className="text-sm" role="status">
               {detail.operation?.stage} · attempt {detail.task.attempts} of 3
             </p>
+            <p className="eyebrow">
+              {input.target.sectionType} / {input.target.field} · one Content placement
+            </p>
             <p className="text-sm whitespace-pre-wrap break-words">Goal: {input.goal}</p>
             {active(detail.operation?.state) && (
               <Button
@@ -472,13 +559,28 @@ function Review({
                 {detail.operation.failure}
               </p>
             )}
-            {detail.staleReasons.length > 0 && (
+            {(detail.staleReasons.length > 0 || targetChanged) && (
               <div className="space-y-2 rounded-sm border border-warning bg-warning/5 p-4 text-sm">
                 <p className="font-semibold">
                   {proposal?.state === "Pending"
                     ? "Proposal inputs changed"
                     : "Inputs differ from the current draft"}
                 </p>
+                {targetChanged && (
+                  <details>
+                    <summary className="min-h-11 cursor-pointer py-3 font-semibold">
+                      Compare target
+                    </summary>
+                    <div className="space-y-4">
+                      <p className="whitespace-pre-wrap break-words">
+                        At generation: {input.target.content.wording}
+                      </p>
+                      <p className="whitespace-pre-wrap break-words">
+                        Current: {currentTarget?.content.wording ?? "Placement removed"}
+                      </p>
+                    </div>
+                  </details>
+                )}
                 {detail.staleReasons.map((reason) => (
                   <p key={reason}>{reason}</p>
                 ))}
@@ -592,7 +694,9 @@ function Review({
                 ["Failed", "Cancelled"].includes(detail.operation?.state ?? "") && (
                   <Button
                     variant="outline"
-                    disabled={busy || action.isPending || detail.staleReasons.length > 0}
+                    disabled={
+                      busy || action.isPending || detail.staleReasons.length > 0 || targetChanged
+                    }
                     onClick={() =>
                       action.mutate({
                         type: "retry",
@@ -632,7 +736,9 @@ function Review({
                 </Button>
                 {proposal?.state === "Pending" && (
                   <Button
-                    disabled={busy || action.isPending || detail.staleReasons.length > 0}
+                    disabled={
+                      busy || action.isPending || detail.staleReasons.length > 0 || targetChanged
+                    }
                     onClick={() =>
                       action.mutate({
                         type: "review",
@@ -645,10 +751,10 @@ function Review({
                       })
                     }
                   >
-                    Accept for this placement
+                    {inline ? "Apply to this placement" : "Accept for this placement"}
                   </Button>
                 )}
-                {detail.configured && detail.staleReasons.length > 0 && (
+                {detail.configured && (detail.staleReasons.length > 0 || targetChanged) && (
                   <Button
                     variant="outline"
                     disabled={busy || action.isPending || !targetPresent}
@@ -665,6 +771,6 @@ function Review({
           </>
         )}
       </div>
-    </EvidenceDialog>
+    </WordingSurface>
   );
 }

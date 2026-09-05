@@ -1,6 +1,6 @@
 # Reviewed wording assistance
 
-Implemented 2026-09-05 from Paper's Phase 2 wording launch and review designs. See `template-ai-design.md` for the design contract.
+Implemented 2026-09-05 from Paper's Phase 2 wording launch/review and Phase 3 inline assistance board 77 (`7M3-0`). See `template-ai-design.md` and `history-scoring-design.md` for the design contracts.
 
 ## Behavior and boundaries
 
@@ -34,4 +34,25 @@ Local browser checks used explicitly synthetic persisted proposals, not provider
 - Proposal `01a070e2-bb24-785f-8b0b-ce6afcae8f0a` became stale. Acceptance was disabled with its cause. Rejection removed the generated payload from both visible review and D1 (`payload IS NULL`).
 - Desktop 1280px light comparison and 621px dark stacked review were screenshot-inspected. The narrow dialog/document had matching 621px widths without horizontal overflow. Narrow review does not expose composition mutation controls.
 
-The Workflow is deployed on staging. Live OpenAI generation and the configured launch journey remain unverified because `OPENAI_API_KEY` is absent. Manual composition remains available. This milestone does not establish MVP or V1 release readiness.
+The Workflow and Owner-approved `OPENAI_API_KEY` are installed on staging. Manual composition remains available. This milestone does not establish MVP or V1 release readiness.
+
+## Phase 3 inline assistance
+
+Launch appears inside the selected placement. Generation and full proposal review occupy the editor's right pane. The existing PDF viewer remains mounted while review is open, preserving its page and zoom. The persistent queue still opens historical records independently. Explicit launch/review moves keyboard focus to its labeled heading; Keep editing returns to composition without cancelling a saved task.
+
+Acceptance serializes with autosave. The browser acknowledges the fresh saved draft and constructs an undo step only while the exact accepted target is still present. Undo restores that placement's prior binding and keeps unrelated current edits. If the server contains unrelated edits, older full-draft undo snapshots are cleared to avoid erasing them. A concurrent local edit during acceptance enters the existing compare/reload/new-branch recovery flow. Session history is not durable across reloads.
+
+Undo and redo are ordinary saved edits. They do not erase the accepted proposal or change its recorded applied revision. A changed or missing target exposes Compare target and prevents applying the stale proposal; exact support and revision checks also remain atomic on the server.
+
+Two added service tests cover persisted undo/redo with an unrelated name change, unchanged acceptance history, and refusal to reconstruct undo after target changes/removal. All 14 focused wording/composition tests, six workspace type/lint checks and the staging build pass.
+
+Local configured browser journey on 2026-09-05:
+
+- Draft `01a0705e-b911-77a7-9aff-b9c273ebf338`; request captured revision 6, then an unrelated name edit saved revision 7 while generation ran.
+- Real task `01a0730d-19d3-71b8-a26f-5d804e04a8a2`, model `gpt-5.4-mini-2026-03-17`, one attempt. Exact synthetic posting, selected Draft/unsupported evidence and full input were inspected.
+- Proposal `01a0730d-2679-7ae1-a52a-7dd4e0139240`, digest `96ef62a531f690bd23e2a478aad0c53c9f955f841637d2a79842dfb7c37f69d2`, retained the wording and evidence references, changing the rationale. Its claim of a clearer rephrase did not correspond to a wording change; this is not evidence of model authoring quality.
+- Acceptance saved revision 8. Undo saved revision 9 and redo saved revision 10. The unrelated name remained; the persisted proposal still records Accepted at revision 8.
+- Actual PDF operation `01a0730e-2c7c-78e1-860e-1953cbb30d17` reached revision 10. Its 75% zoom survived inline review. The saved review queue retained the accepted record.
+- Desktop 1280px light inline review and dark inline launch/stale comparison were screenshot-inspected. An existing synthetic stale proposal displayed original/current wording and disabled acceptance.
+
+Hosted inline generation/acceptance and narrow-screen review remain unverified for this milestone. Synthetic fixture data does not establish candidate qualifications or the real Owner tailoring release gate.

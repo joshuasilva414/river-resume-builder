@@ -167,3 +167,50 @@ export function applyWordingProposal(
     ),
   };
 }
+
+/** Build a session undo step only while this exact accepted target is still present. */
+export function undoAcceptedWording(
+  data: Composition,
+  graph: readonly LibraryGraphNode[],
+  original: WordingTarget,
+  proposal: WordingProposal,
+): Composition | null {
+  let current: WordingTarget;
+  try {
+    current = captureWordingTarget(data, graph, original.path);
+  } catch {
+    return null;
+  }
+  const expected = {
+    ...original,
+    placement: {
+      ...original.placement,
+      override: { wording: proposal.wording, evidence: proposal.evidence, reason: proposal.reason },
+    },
+    content: { ...original.content, wording: proposal.wording, evidence: proposal.evidence },
+  };
+  if (canonicalJson(current) !== canonicalJson(expected)) return null;
+  return {
+    ...data,
+    sections: data.sections.map((section) =>
+      section.id !== original.path.sectionId
+        ? section
+        : {
+            ...section,
+            blocks: section.blocks.map((block) =>
+              block.id !== original.path.blockId
+                ? block
+                : {
+                    ...block,
+                    fields: block.fields.map((field) => ({
+                      ...field,
+                      contents: field.contents.map((content) =>
+                        content.id === original.path.contentId ? original.placement : content,
+                      ),
+                    })),
+                  },
+            ),
+          },
+    ),
+  };
+}
