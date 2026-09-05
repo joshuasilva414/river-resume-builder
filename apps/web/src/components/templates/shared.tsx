@@ -153,9 +153,10 @@ export function BasePicker({
       <Failure error={list.error} />
       {list.hasNextPage && (
         <Button
+          type="button"
           variant="link"
           size="sm"
-          disabled={list.isFetchingNextPage}
+          disabled={disabled || list.isFetchingNextPage}
           onClick={() => void list.fetchNextPage()}
         >
           Load more template revisions
@@ -264,7 +265,13 @@ export function GraphView({ graph, original }: { graph: TemplateGraph; original?
               </span>
             </summary>
             <div className="mt-4 space-y-4">
-              <ComponentPayload template={template} label="Exact component" />
+              {before && canonicalJson(before) !== canonicalJson(template) && (
+                <ComponentPayload template={before} label="Complete original component" />
+              )}
+              <ComponentPayload
+                template={template}
+                label={original ? "Complete selected component" : "Exact component"}
+              />
               <CodePayload
                 label="Resolved styles"
                 value={
