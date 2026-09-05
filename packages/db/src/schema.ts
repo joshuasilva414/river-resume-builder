@@ -713,6 +713,7 @@ export const checkpoints = sqliteTable(
   "resume_checkpoints",
   {
     id: text("id").primaryKey(),
+    label: text("label"),
     ownerId: text("owner_id")
       .notNull()
       .references(() => user.id),

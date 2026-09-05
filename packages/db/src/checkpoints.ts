@@ -184,6 +184,7 @@ export function createCheckpointRepository(db: Database) {
             now = Date.now();
           const snapshot = {
             id,
+            label: input.label?.trim() || null,
             ownerId: actor.ownerId,
             draftId: draft.id,
             draftRevision: draft.revision,
@@ -314,11 +315,14 @@ export function createCheckpointRepository(db: Database) {
       const rows = await db
         .select({
           id: s.checkpoints.id,
+          label: s.checkpoints.label,
           createdAt: s.checkpoints.createdAt,
           draftRevision: s.checkpoints.draftRevision,
           state: s.operations.state,
           stage: s.operations.stage,
           exportedAt: s.checkpointExports.createdAt,
+          sourceRefined: sql<boolean>`EXISTS (SELECT 1 FROM checkpoint_source_overrides WHERE checkpoint_id=${s.checkpoints.id})`,
+          scored: sql<boolean>`EXISTS (SELECT 1 FROM scoring_runs WHERE checkpoint_id=${s.checkpoints.id} AND completed_at IS NOT NULL)`,
         })
         .from(s.checkpoints)
         .innerJoin(s.checkpointState, eq(s.checkpointState.checkpointId, s.checkpoints.id))

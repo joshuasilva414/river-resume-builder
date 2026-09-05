@@ -3,6 +3,7 @@ import type {
   CaptureCheckpointRequest,
   CheckpointHistoryRequest,
   ExportCheckpointRequest,
+  RestoreCheckpointRequest,
   ReviewCheckpointRequest,
 } from "@river/contracts";
 import { Effect } from "effect";
@@ -48,4 +49,16 @@ export const retryCheckpoint = (input: ReviewCheckpointRequest) =>
     const actor = yield* Actor,
       store = yield* Store;
     return yield* attempt(() => store.retryCheckpoint(actor, input));
+  });
+export const inspectCheckpointBranch = (id: string) =>
+  Effect.gen(function* () {
+    const actor = yield* Actor,
+      store = yield* Store;
+    return yield* attempt(() => store.inspectCheckpointBranch(actor, id));
+  });
+export const restoreCheckpoint = (input: RestoreCheckpointRequest) =>
+  Effect.gen(function* () {
+    const actor = yield* Actor,
+      store = yield* Store;
+    return yield* attempt(() => store.restoreCheckpoint(actor, input));
   });

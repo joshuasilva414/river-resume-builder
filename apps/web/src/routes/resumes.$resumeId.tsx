@@ -273,7 +273,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
             Review draft
           </Button>
           <Button variant="outline" onClick={() => setHistory(true)}>
-            Export history
+            History
           </Button>
           {assistance.queueButton}
         </div>

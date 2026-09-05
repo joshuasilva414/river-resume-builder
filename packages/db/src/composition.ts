@@ -4,6 +4,7 @@ import type {
   CopyPlacementRequest,
   CreateResumeRequest,
   PreviewResumeRequest,
+  RestoreCheckpointRequest,
   ResumeSearch,
   ReturnToStructuredRequest,
   SaveResumeRequest,
@@ -11,6 +12,7 @@ import type {
 import {
   ApplicationError,
   type Composition,
+  canonicalJson,
   compositionEvidence,
   compositionReferences,
   copyBlock,
@@ -198,12 +200,129 @@ export function createCompositionRepository(db: Database) {
       });
     return { ...source, ...original };
   };
+  const checkpointBranchPlan = async (
+    actor: Principal,
+    base: typeof s.checkpoints.$inferSelect,
+    jobId: string,
+    fromCheckpointId: string,
+    name: string,
+    replacement?: RestoreCheckpointRequest["replacement"],
+  ) => {
+    if (!name.trim())
+      throw new ApplicationError({ code: "InvalidInput", message: "Name the new branch." });
+    if (replacement && !replacement.confirmed)
+      throw new ApplicationError({
+        code: "InvalidInput",
+        message: "Review and confirm the replacement template before creating this branch.",
+      });
+    const data: Composition = {
+      ...base.data,
+      name: name.trim(),
+      sections: base.data.sections.map(copySection),
+      ...(replacement
+        ? { theme: replacement.theme, template: replacement.template ?? undefined }
+        : {}),
+    };
+    const template = await templates.compositionTemplate(actor.ownerId, data),
+      validated = await validate(actor, data),
+      id = newId(),
+      now = Date.now();
+    return {
+      result: { id, revision: 0, revisionId: null },
+      guards: template.guards,
+      writes: [
+        db.insert(s.resumeDrafts).values({
+          id,
+          ownerId: actor.ownerId,
+          jobId,
+          snapshotId: base.snapshotId,
+          data,
+          branchOf: base.draftId,
+          branchRevision: base.draftRevision,
+          createdAt: now,
+          updatedAt: now,
+        }),
+        ...referenceWrites(id, validated),
+        db
+          .insert(s.resumeCheckpointBranches)
+          .values({ draftId: id, fromCheckpointId, structuredBaseId: base.id }),
+      ],
+      history: [
+        {
+          entityId: id,
+          after: {
+            fromCheckpointId,
+            structuredBaseId: base.id,
+            templateChanged:
+              canonicalJson({ theme: base.data.theme, template: base.data.template }) !==
+              canonicalJson({ theme: data.theme, template: data.template }),
+            data,
+          },
+        },
+      ],
+    };
+  };
+  const checkpointBranchSource = async (actor: Principal, checkpointId: string) => {
+    owner(actor);
+    const row = (
+      await db
+        .select({
+          checkpoint: s.checkpoints,
+          source: s.checkpointSources,
+          jobId: s.jobSnapshots.jobId,
+        })
+        .from(s.checkpoints)
+        .innerJoin(s.jobSnapshots, eq(s.jobSnapshots.id, s.checkpoints.snapshotId))
+        .leftJoin(s.checkpointSources, eq(s.checkpointSources.checkpointId, s.checkpoints.id))
+        .where(and(eq(s.checkpoints.id, checkpointId), eq(s.checkpoints.ownerId, actor.ownerId)))
+        .limit(1)
+    )[0];
+    if (!row) throw new ApplicationError({ code: "NotFound", message: "Checkpoint not found." });
+    return row;
+  };
   return {
     getResume,
     observeResume: observe,
     resumeGuard: guard,
     resumeUpdateWrites: updateWrites,
     inspectStructuredReturn: structuredReturnBase,
+    async inspectCheckpointBranch(actor: Principal, checkpointId: string) {
+      const row = await checkpointBranchSource(actor, checkpointId);
+      let templateIssue: string | null = null;
+      try {
+        await templates.compositionTemplate(actor.ownerId, row.checkpoint.data);
+      } catch (error) {
+        if (!(error instanceof ApplicationError)) throw error;
+        templateIssue = error.message;
+      }
+      return { ...row, templateIssue, requiresRegeneration: Boolean(row.source) };
+    },
+    async restoreCheckpoint(actor: Principal, input: RestoreCheckpointRequest) {
+      owner(actor);
+      return commands.commit(
+        actor,
+        "restore-checkpoint-branch",
+        input.idempotencyKey,
+        input,
+        async () => {
+          const row = await checkpointBranchSource(actor, input.checkpointId);
+          if (row.source)
+            throw new ApplicationError({
+              code: "InvalidInput",
+              message:
+                "This checkpoint has accepted source changes. Use the complete structured-return review before creating its branch.",
+            });
+          return checkpointBranchPlan(
+            actor,
+            row.checkpoint,
+            row.jobId,
+            row.checkpoint.id,
+            input.name,
+            input.replacement,
+          );
+        },
+      );
+    },
     /** Recreate the original structured checkpoint as a new draft; source-only edits never enter its tree. */
     async returnToStructured(actor: Principal, input: ReturnToStructuredRequest) {
       owner(actor);
@@ -231,56 +350,31 @@ export function createCompositionRepository(db: Database) {
               code: "Conflict",
               message: "Review the exact accepted source checkpoint and original structured base.",
             });
-          const data = {
-              ...base.data,
-              name: input.name.trim(),
-              sections: base.data.sections.map(copySection),
-            },
-            template = await templates.compositionTemplate(actor.ownerId, data),
-            validated = await validate(actor, data),
-            id = newId(),
-            now = Date.now();
+          const plan = await checkpointBranchPlan(
+            actor,
+            base,
+            jobId,
+            input.checkpointId,
+            input.name,
+          );
           return {
-            result: { id, revision: 0, revisionId: null },
+            ...plan,
             guards: [
-              ...template.guards,
+              ...plan.guards,
               conditionGuard(
                 db,
                 sql`EXISTS (SELECT 1 FROM checkpoint_source_overrides WHERE checkpoint_id=${input.checkpointId} AND structured_base_id=${base.id} AND candidate_digest=${input.candidateDigest})`,
                 "The accepted source checkpoint identity changed.",
               ),
             ],
-            writes: [
-              db.insert(s.resumeDrafts).values({
-                id,
-                ownerId: actor.ownerId,
-                jobId,
-                snapshotId: base.snapshotId,
-                data,
-                branchOf: base.draftId,
-                branchRevision: base.draftRevision,
-                createdAt: now,
-                updatedAt: now,
-              }),
-              ...referenceWrites(id, validated),
-              db.insert(s.resumeCheckpointBranches).values({
-                draftId: id,
-                fromCheckpointId: input.checkpointId,
-                structuredBaseId: base.id,
-              }),
-            ],
-            history: [
-              {
-                entityId: id,
-                after: {
-                  fromCheckpointId: input.checkpointId,
-                  structuredBaseId: base.id,
-                  candidateDigest: input.candidateDigest,
-                  regenerationConfirmed: true,
-                  data,
-                },
+            history: plan.history.map((entry) => ({
+              ...entry,
+              after: {
+                ...entry.after,
+                candidateDigest: input.candidateDigest,
+                regenerationConfirmed: true,
               },
-            ],
+            })),
           };
         },
       );
@@ -294,6 +388,7 @@ export function createCompositionRepository(db: Database) {
           snapshotId: s.resumeDrafts.snapshotId,
           updatedAt: s.resumeDrafts.updatedAt,
           branchOf: s.resumeDrafts.branchOf,
+          fromCheckpointId: s.resumeCheckpointBranches.fromCheckpointId,
           branchName: sql<
             string | null
           >`(SELECT json_extract(parent.data, '$.name') FROM resume_drafts parent WHERE parent.id = ${s.resumeDrafts.branchOf})`,
@@ -303,6 +398,10 @@ export function createCompositionRepository(db: Database) {
         })
         .from(s.resumeDrafts)
         .innerJoin(s.jobSnapshots, eq(s.jobSnapshots.id, s.resumeDrafts.snapshotId))
+        .leftJoin(
+          s.resumeCheckpointBranches,
+          eq(s.resumeCheckpointBranches.draftId, s.resumeDrafts.id),
+        )
         .where(
           and(
             eq(s.resumeDrafts.ownerId, ownerId),

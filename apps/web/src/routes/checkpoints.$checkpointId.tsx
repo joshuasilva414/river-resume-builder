@@ -166,7 +166,7 @@ function Review({ detail }: { detail: Detail }) {
             Back to draft
           </Link>
           <Button variant="outline" onClick={() => setHistory(true)}>
-            Export history
+            History
           </Button>
           <Button variant="outline" onClick={() => setRefinements(true)}>
             Source refinements
@@ -186,6 +186,7 @@ function Review({ detail }: { detail: Detail }) {
           )}
         </div>
         <p className="text-sm text-muted-foreground">
+          {checkpoint.label ? `${checkpoint.label} · ` : ""}
           {checkpoint.data.name} · Captured from draft revision {checkpoint.draftRevision} ·{" "}
           {new Date(checkpoint.createdAt).toLocaleString()}
         </p>

@@ -156,8 +156,10 @@ function ReturnForm({
               className="inline-flex min-h-11 items-center rounded-sm bg-primary px-4 py-3 font-semibold text-primary-foreground"
               to="/resumes/$resumeId"
               params={{ resumeId: branchId }}
+              target="_blank"
+              rel="noreferrer"
             >
-              Open new branch
+              Open new branch in a new tab
             </Link>
             {(preview.error ||
               branch.data?.request?.state === "Failed" ||

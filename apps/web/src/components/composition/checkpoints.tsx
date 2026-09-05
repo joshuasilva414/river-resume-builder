@@ -1,11 +1,17 @@
+import type { CaptureCheckpointRequest } from "@river/contracts";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { EvidenceDialog, Failure, unwrap } from "~/components/evidence/shared";
+import { useRef, useState } from "react";
+import { Failure, FormField, unwrap } from "~/components/evidence/shared";
+import { RestoreCheckpoint } from "~/components/history/restore";
 import { Button } from "~/components/ui/button";
-import { captureResumeCheckpoint, getCheckpoints } from "~/server/checkpoint-functions";
+import { Input } from "~/components/ui/input";
+import { captureResumeCheckpoint } from "~/server/checkpoint-functions";
 import { captureAndScoreCheckpoint, getScoringSettings } from "~/server/scoring-functions";
 
+export { CheckpointHistory } from "~/components/history/chronology";
+
+type CaptureMode = "export" | "score" | "save" | "branch";
 export function CaptureCheckpoint({
   id,
   revision,
@@ -20,120 +26,123 @@ export function CaptureCheckpoint({
     queryKey: ["scoring-settings"],
     queryFn: async () => unwrap(await getScoringSettings()),
   });
-  const [mode, setMode] = useState<"export" | "score" | null>(null);
-  const [request] = useState(() => ({ id, revision, idempotencyKey: crypto.randomUUID() }));
+  const [mode, setMode] = useState<CaptureMode | null>(null),
+    [label, setLabel] = useState("");
+  const [captured, setCaptured] = useState<string | null>(null),
+    [branch, setBranch] = useState(false);
+  const request = useRef<CaptureCheckpointRequest | null>(null);
   const capture = useMutation({
-    mutationFn: async (chosen: "export" | "score") => {
+    mutationFn: async (chosen: CaptureMode) => {
       const selected = mode ?? chosen;
       setMode(selected);
+      request.current ??= {
+        id,
+        revision,
+        idempotencyKey: crypto.randomUUID(),
+        ...(label.trim() ? { label: label.trim() } : {}),
+      };
       const result = unwrap(
         selected === "score"
-          ? await captureAndScoreCheckpoint({ data: request })
-          : await captureResumeCheckpoint({ data: request }),
+          ? await captureAndScoreCheckpoint({ data: request.current })
+          : await captureResumeCheckpoint({ data: request.current }),
       );
       return { ...result, mode: selected };
     },
-    onSuccess: (result) =>
-      void navigate({
-        to: "/checkpoints/$checkpointId",
-        params: { checkpointId: result.id },
-        search: result.mode === "score" ? { scores: true } : {},
-      }),
+    onSuccess: (result) => {
+      setCaptured(result.id);
+      if (result.mode === "branch") setBranch(true);
+      if (result.mode === "export" || result.mode === "score")
+        void navigate({
+          to: "/checkpoints/$checkpointId",
+          params: { checkpointId: result.id },
+          search: result.mode === "score" ? { scores: true } : {},
+        });
+    },
   });
   return (
-    <div className="mt-6 space-y-3 border-t pt-5">
+    <section className="mt-6 space-y-4 border-t pt-5">
+      <h3 className="font-editorial text-2xl">Save checkpoint</h3>
       <p className="text-sm text-muted-foreground">
-        Capture the exact saved revision before reviewing evidence and exporting. Later draft edits
-        will not change this checkpoint.
+        Capture the exact saved composition, evidence, contact, context and template references.
+        Document preparation continues after the checkpoint is saved.
       </p>
+      <p className="eyebrow">
+        Draft revision {revision} ·{" "}
+        {waiting ? "Waiting for save or conflict recovery" : "All changes saved"}
+      </p>
+      <FormField label="Checkpoint label (optional)">
+        <Input
+          maxLength={80}
+          value={label}
+          disabled={!!mode}
+          placeholder="Review before submission"
+          onChange={(event) => setLabel(event.target.value)}
+        />
+      </FormField>
       <Failure error={capture.error} />
-      <Button
-        disabled={waiting || capture.isPending || mode === "score"}
-        onClick={() => capture.mutate("export")}
-      >
-        {waiting
-          ? "Waiting for save"
-          : capture.isPending
-            ? "Capturing checkpoint…"
-            : capture.error
-              ? "Retry checkpoint capture"
-              : "Capture & review export"}
-      </Button>
-      {settings.data?.configured && (
-        <Button
-          className="ml-0 sm:ml-3"
-          variant="outline"
-          disabled={waiting || capture.isPending || mode === "export"}
-          onClick={() => capture.mutate("score")}
-        >
-          {capture.isPending && mode === "score"
-            ? "Capturing and queuing scoring…"
-            : capture.error && mode === "score"
-              ? "Retry Save & score"
-              : "Save & score"}
+      {captured ? (
+        <div className="space-y-3 rounded-md border bg-primary/5 p-4">
+          <p role="status">
+            Checkpoint {captured.slice(-8)} saved. Its document can finish or be retried
+            independently.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              className="inline-flex min-h-11 items-center text-sm text-primary underline"
+              target="_blank"
+              rel="noreferrer"
+              to="/checkpoints/$checkpointId"
+              params={{ checkpointId: captured }}
+            >
+              Open checkpoint
+            </Link>
+            <Button variant="outline" onClick={() => setBranch(true)}>
+              Create a branch from this checkpoint
+            </Button>
+          </div>
+        </div>
+      ) : mode && capture.error ? (
+        <Button disabled={waiting || capture.isPending} onClick={() => capture.mutate(mode)}>
+          Retry checkpoint command
         </Button>
+      ) : (
+        <div className="flex flex-wrap gap-3">
+          <Button disabled={waiting || !!mode} onClick={() => capture.mutate("save")}>
+            {capture.isPending ? "Saving checkpoint…" : "Save checkpoint"}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={waiting || !!mode}
+            onClick={() => capture.mutate("export")}
+          >
+            Capture & review export
+          </Button>
+          <Button
+            variant="outline"
+            disabled={waiting || !!mode}
+            onClick={() => capture.mutate("branch")}
+          >
+            Save checkpoint & branch
+          </Button>
+          {settings.data?.configured && (
+            <Button
+              variant="outline"
+              disabled={waiting || !!mode}
+              onClick={() => capture.mutate("score")}
+            >
+              Save & score
+            </Button>
+          )}
+        </div>
       )}
       {settings.error && (
         <p className="text-xs text-muted-foreground">
-          Scoring availability could not be checked. Export capture remains available.
+          Scoring availability could not be checked. Checkpoint capture and export remain available.
         </p>
       )}
-    </div>
-  );
-}
-export function CheckpointHistory({ draftId, onClose }: { draftId: string; onClose: () => void }) {
-  const [offset, setOffset] = useState(0);
-  const result = useQuery({
-    queryKey: ["checkpoints", "history", draftId, offset],
-    queryFn: async () => unwrap(await getCheckpoints({ data: { draftId, offset } })),
-  });
-  return (
-    <EvidenceDialog
-      title="Export history"
-      description="Newest checkpoint first. Opening history does not change your working draft."
-      onClose={onClose}
-    >
-      <Failure error={result.error} />
-      {result.isPending && <p role="status">Loading checkpoint history…</p>}
-      {result.error && <Button onClick={() => void result.refetch()}>Retry history</Button>}
-      {result.data?.items.map((item) => (
-        <article key={item.id} className="space-y-2 border-b py-5">
-          <p className="eyebrow">
-            Checkpoint {item.id.slice(-8)} ·{" "}
-            {item.exportedAt
-              ? "Exported"
-              : item.state === "Succeeded"
-                ? "Needs review"
-                : item.state}
-          </p>
-          <p className="text-sm">
-            {new Date(item.createdAt).toLocaleString()} · Draft revision {item.draftRevision}
-          </p>
-          <Link
-            className="text-sm text-primary underline"
-            to="/checkpoints/$checkpointId"
-            params={{ checkpointId: item.id }}
-            onClick={onClose}
-          >
-            {item.exportedAt ? "Open saved files" : "Resume export review"}
-          </Link>
-        </article>
-      ))}
-      {result.data?.items.length === 0 && (
-        <p>No checkpoints yet. Capture a saved draft to begin export review.</p>
+      {branch && captured && (
+        <RestoreCheckpoint checkpointId={captured} onClose={() => setBranch(false)} />
       )}
-      <div className="mt-5 flex gap-3">
-        {offset > 0 && (
-          <Button variant="outline" onClick={() => setOffset(Math.max(0, offset - 50))}>
-            Newer checkpoints
-          </Button>
-        )}
-        {result.data?.hasMore && (
-          <Button variant="outline" onClick={() => setOffset(offset + 50)}>
-            Show earlier checkpoints
-          </Button>
-        )}
-      </div>
-    </EvidenceDialog>
+    </section>
   );
 }

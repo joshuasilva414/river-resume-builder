@@ -4,6 +4,7 @@ import {
   CheckpointHistoryRequest,
   CheckpointIdentity,
   ExportCheckpointRequest,
+  RestoreCheckpointRequest,
   ReviewCheckpointRequest,
 } from "@river/contracts";
 import { createServerFn } from "@tanstack/react-start";
@@ -14,7 +15,9 @@ import {
   captureCheckpoint,
   exportCheckpoint,
   inspectCheckpoint,
+  inspectCheckpointBranch,
   listCheckpoints,
+  restoreCheckpoint,
   retryCheckpoint,
   reviewCheckpoint,
 } from "./checkpoints";
@@ -34,6 +37,14 @@ export const getCheckpoint = createServerFn({ method: "GET" })
 export const getCheckpoints = createServerFn({ method: "GET" })
   .validator(Schema.decodeUnknownSync(CheckpointHistoryRequest))
   .handler(({ data }) => execute(bindings(), getRequestHeaders(), listCheckpoints(data)));
+export const getCheckpointBranchSource = createServerFn({ method: "GET" })
+  .validator(Schema.decodeUnknownSync(CheckpointIdentity))
+  .handler(({ data }) =>
+    execute(bindings(), getRequestHeaders(), inspectCheckpointBranch(data.id)),
+  );
+export const createCheckpointBranch = createServerFn({ method: "POST" })
+  .validator(Schema.decodeUnknownSync(RestoreCheckpointRequest))
+  .handler(({ data }) => execute(bindings(), getRequestHeaders(), restoreCheckpoint(data)));
 export const refreshCheckpointReview = createServerFn({ method: "POST" })
   .validator(Schema.decodeUnknownSync(ReviewCheckpointRequest))
   .handler(({ data }) => execute(bindings(), getRequestHeaders(), reviewCheckpoint(data)));
