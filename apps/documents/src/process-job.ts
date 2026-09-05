@@ -16,8 +16,11 @@ import {
   expectedText,
   graphInventory,
   RENDERER_VERSION,
+  refinedSourceIdentity,
+  SOURCE_RENDERER_VERSION,
   templateInventory,
   validateText,
+  validateTextManifest,
 } from "@river/templates";
 import { Schema } from "effect";
 import mammoth from "mammoth";
@@ -89,19 +92,9 @@ export async function processJob(job: DocumentJob): Promise<DocumentResult> {
       parserVersion: job.mime.includes("wordprocessingml") ? "1.12.2" : "1",
     };
   }
-  if (expectedText(job.document).length > 100_000)
-    throw new Error("Resume exceeds the 100,000-character limit.");
-  if (job.templateGraph && job.templateGraph.theme !== job.theme)
-    throw new Error("The graph and selected theme disagree.");
-  const templateIdentity = canonicalJson(
-    job.templateGraph ? graphInventory(job.templateGraph) : templateInventory(job.theme),
-  );
-  if (job.templateIdentity && job.templateIdentity !== templateIdentity)
-    throw new Error("The pinned template resources are unavailable in this runtime.");
   const started = performance.now();
-  const { tex, identity } = job.templateGraph
-    ? composeGraph(job.document, job.templateGraph)
-    : compose(job.document, job.theme);
+  const prepared = await prepareCompile(job);
+  const { tex, identity, templateIdentity } = prepared;
   await writeFile("resume.tex", tex, { flag: "wx" });
   const flags = [
     "-X",
@@ -132,7 +125,7 @@ export async function processJob(job: DocumentJob): Promise<DocumentResult> {
   const log = logSize.size <= 4 * 1024 * 1024 ? await readFile("resume.log", "utf8") : "";
   const overfull = [...log.matchAll(/Overfull \\[hv]box/g)].length;
   const validation = {
-    ...validateText(job.document, extracted.text),
+    ...prepared.validate(extracted.text),
     pageCount: extracted.segments.length,
     warnings: [
       ...(extracted.segments.length > 2
@@ -178,8 +171,44 @@ export async function processJob(job: DocumentJob): Promise<DocumentResult> {
       }),
     ),
     durationMs: performance.now() - started,
-    rendererVersion: job.templateGraph ? CUSTOM_RENDERER_VERSION : RENDERER_VERSION,
+    rendererVersion: prepared.rendererVersion,
     resources,
+  };
+}
+
+async function prepareCompile(job: Exclude<DocumentJob, { type: "extract-source" }>) {
+  if (job.type === "compile-source") {
+    const identity = await refinedSourceIdentity(
+      job.source,
+      job.intendedText,
+      job.baseTemplateIdentity,
+    );
+    return {
+      tex: job.source,
+      identity,
+      templateIdentity: identity,
+      rendererVersion: SOURCE_RENDERER_VERSION,
+      validate: (text: string) => validateTextManifest(job.intendedText, text),
+    };
+  }
+  if (expectedText(job.document).length > 100_000)
+    throw new Error("Resume exceeds the 100,000-character limit.");
+  if (job.templateGraph && job.templateGraph.theme !== job.theme)
+    throw new Error("The graph and selected theme disagree.");
+  const templateIdentity = canonicalJson(
+    job.templateGraph ? graphInventory(job.templateGraph) : templateInventory(job.theme),
+  );
+  if (job.templateIdentity && job.templateIdentity !== templateIdentity)
+    throw new Error("The pinned template resources are unavailable in this runtime.");
+  const { tex, identity } = job.templateGraph
+    ? composeGraph(job.document, job.templateGraph)
+    : compose(job.document, job.theme);
+  return {
+    tex,
+    identity,
+    templateIdentity,
+    rendererVersion: job.templateGraph ? CUSTOM_RENDERER_VERSION : RENDERER_VERSION,
+    validate: (text: string) => validateText(job.document, text),
   };
 }
 

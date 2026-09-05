@@ -208,10 +208,10 @@ Source proposal services, Paper UI, and clarification tracking are deployed with
 - [x] Add the keyword rewrite queue with original/proposed wording, supporting evidence, meaning-change explanation, individual acceptance, and stale-input checks.
 Wording assistance is implemented and deployed with synthetic service/browser checks; live generation remains a separate credential-dependent acceptance gate. See `docs/implementation/wording.md`.
 
-- [ ] Implement guided template briefs and iterative generation using synthetic fixtures exclusively.
+- [x] Implement guided template briefs and iterative generation using synthetic fixtures exclusively.
 - [x] Implement Draft → Validated → Approved → Retired lifecycle behavior; editing approved payloads creates new revisions.
 - [x] Validate cross-pack style contracts before enabling component mixing.
-Manual template editing, full-graph validation, explicit donor combinations, and exact custom résumé bindings are deployed through migration 0015. Synthetic-only AI generation remains in progress. See `docs/implementation/template-studio.md`.
+Manual template editing, full-graph validation, explicit donor combinations, and exact custom résumé bindings are deployed. Synthetic-only AI generation and scoped conversations are deployed through migration 0017. A hosted model candidate was reviewed, accepted into a Draft, and passed all four fixtures twice; visual approval remains a separate Owner action. See `docs/implementation/template-studio.md` and `docs/implementation/template-generation.md`.
 - [ ] Support final-document source proposals with full diffs, extracted-text changes, rendered preview, validation, and explicit acceptance into a new checkpoint.
 - [ ] Support promotion of final-document changes into new template drafts subject to normal validation and approval.
 

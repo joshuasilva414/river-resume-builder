@@ -1,9 +1,16 @@
 import type { ValidationReport } from "./validation-report";
 
 export * from "./graph";
+export * from "./refinement";
 export { ValidationReport } from "./validation-report";
 
-import { canonicalJson, type ResumeDocument, type Theme } from "@river/domain";
+import {
+  canonicalJson,
+  type IntendedTextManifest,
+  type ResumeDocument,
+  type Theme,
+  validateIntendedText,
+} from "@river/domain";
 
 export {
   fixedPack,
@@ -74,10 +81,7 @@ export function normalizeText(text: string): string {
 }
 
 export const NORMALIZATION_VERSION = "river-text-nfkc-v2";
-export function validateText(document: ResumeDocument, extractedText: string): ValidationReport {
-  const expected = expectedText(document),
-    left = normalizeText(expected),
-    right = normalizeText(extractedText);
+export function textLocations(document: ResumeDocument) {
   const fallback = [
     { locator: "contact/name", text: document.name },
     ...document.contact.map((text, index) => ({ locator: `contact/lines/${index}`, text })),
@@ -104,8 +108,32 @@ export function validateText(document: ResumeDocument, extractedText: string): V
     ]),
   ].filter((location) => location.text.length > 0);
   const locations = document.textLocators ?? fallback;
-  if (normalizeText(locations.map((location) => location.text).join("\n")) !== left)
+  if (
+    normalizeText(locations.map((location) => location.text).join("\n")) !==
+    normalizeText(expectedText(document))
+  )
     throw new Error("Text locators must match the complete render input in reading order.");
+  return locations;
+}
+
+export function validateText(document: ResumeDocument, extractedText: string): ValidationReport {
+  return validateRequiredText(expectedText(document), textLocations(document), extractedText);
+}
+
+export function validateTextManifest(
+  manifest: IntendedTextManifest,
+  extractedText: string,
+): ValidationReport {
+  return validateRequiredText(validateIntendedText(manifest), manifest, extractedText);
+}
+
+function validateRequiredText(
+  expected: string,
+  locations: readonly { locator: string; text: string }[],
+  extractedText: string,
+): ValidationReport {
+  const left = normalizeText(expected),
+    right = normalizeText(extractedText);
   const count = (text: string) => {
     const words = new Map<string, number>();
     for (const word of text.split(" ").filter(Boolean)) words.set(word, (words.get(word) ?? 0) + 1);

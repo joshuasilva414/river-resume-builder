@@ -77,6 +77,67 @@ for (const theme of ["classic", "classic", "minimal", "technical"]) {
   for (const segment of extraction.body.segments)
     assert.equal(extraction.body.text.slice(segment.start, segment.end), segment.text);
 }
+const sourceBase = JSON.parse(await readFile(new URL("classic.json", output), "utf8"));
+const sourceJob = {
+  type: "compile-source",
+  jobId: "source-layout-proof",
+  baseTemplateIdentity: sourceBase.templateIdentity,
+  source: sourceBase.tex.replace(
+    "\\begin{document}",
+    "\\begin{document}\n% Explicit source-only layout change\n\\vspace{-2pt}",
+  ),
+  intendedText: sourceBase.validation.locations,
+};
+const sourcePreview = await run(sourceJob),
+  sourceRepeat = await run(sourceJob);
+assert.equal(sourcePreview.status, 200);
+assert.equal(sourcePreview.body.validation.passed, true);
+assert.equal(sourcePreview.body.rendererVersion, "river-source-tectonic-0.1.0");
+assert.equal(sourcePreview.body.tex, sourceJob.source);
+assert.equal(sourceRepeat.body.fingerprint, sourcePreview.body.fingerprint);
+const incorrectManifest = await run({
+  ...sourceJob,
+  jobId: "source-missing-text",
+  intendedText: [
+    ...sourceJob.intendedText,
+    { locator: "added-required-field", text: "A required sentence absent from the source." },
+  ],
+});
+assert.equal(incorrectManifest.status, 200);
+assert.equal(incorrectManifest.body.validation.passed, false);
+assert.equal(incorrectManifest.body.validation.checks.completeness, false);
+assert.equal(
+  (
+    await run({
+      ...sourceJob,
+      source: sourceJob.source.replace(
+        "\\begin{document}",
+        "\\begin{document}\\input{/etc/passwd}",
+      ),
+    })
+  ).status,
+  422,
+);
+assert.equal(
+  (
+    await run({
+      ...sourceJob,
+      source: sourceJob.source.replace(
+        "\\begin{document}",
+        "\\begin{document}\\setmainfont[Path=/tmp/]{Latin Modern Roman}",
+      ),
+    })
+  ).status,
+  422,
+);
+measurements.push({
+  type: "source-refinement",
+  status: sourcePreview.status,
+  durationMs: sourcePreview.body.durationMs,
+  repeated: sourceRepeat.body.fingerprint === sourcePreview.body.fingerprint,
+  missingTextBlocked: !incorrectManifest.body.validation.passed,
+});
+
 for (const theme of ["classic", "minimal", "technical"]) {
   const result = await run({ ...fixture, theme, document: fixture.allTypesDocument });
   assert.equal(result.status, 200, `${theme} all seven types`);

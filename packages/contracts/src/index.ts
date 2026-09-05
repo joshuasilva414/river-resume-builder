@@ -1,4 +1,4 @@
-import { AgentScope, ResumeDocument, Revision, Theme } from "@river/domain";
+import { AgentScope, IntendedTextManifest, ResumeDocument, Revision, Theme } from "@river/domain";
 import { TemplateGraph, ValidationReport } from "@river/templates";
 import { Schema } from "effect";
 
@@ -28,7 +28,20 @@ export const ValidationRequest = Schema.Struct({
   ...CompileRequest.fields,
   type: Schema.Literal("validate-template"),
 });
-export const DocumentJob = Schema.Union([CompileRequest, ExtractRequest, ValidationRequest]);
+export const SourceCompileRequest = Schema.Struct({
+  type: Schema.Literal("compile-source"),
+  jobId: Schema.NonEmptyString,
+  source: Schema.NonEmptyString.check(Schema.isMaxLength(250_000)),
+  intendedText: IntendedTextManifest,
+  baseTemplateIdentity: Schema.NonEmptyString.check(Schema.isMaxLength(128000)),
+});
+export type SourceCompileRequest = typeof SourceCompileRequest.Type;
+export const DocumentJob = Schema.Union([
+  CompileRequest,
+  ExtractRequest,
+  ValidationRequest,
+  SourceCompileRequest,
+]);
 export type DocumentJob = typeof DocumentJob.Type;
 
 export const TextSegment = Schema.Struct({
