@@ -486,6 +486,60 @@ it("returns to the original structured checkpoint in one independent branch and 
   expect((await r.listResumes(f.actor.ownerId, { jobId: null, offset: 0 })).items).toHaveLength(2);
 });
 
+it("requires an explicit eligible template when regenerating a source checkpoint with a retired binding", async () => {
+  const f = await fixture(true),
+    r = f.repository;
+  await f.candidate();
+  const publishing = await f.acceptance();
+  const saved = await r.finalizeSourceRefinement(
+    f.actor.ownerId,
+    f.started.id,
+    publishing.operationId,
+    publishing.retained,
+  );
+  const detail = await r.inspectStructuredReturn(f.actor.ownerId, saved.id);
+  const template = detail.base.data.template;
+  if (!template) throw new Error("Missing custom template fixture");
+  await r.db
+    .update(schema.templateRevisions)
+    .set({ state: "Retired" })
+    .where(eq(schema.templateRevisions.id, template.revisionId));
+  const request = {
+    checkpointId: saved.id,
+    structuredBaseId: detail.base.id,
+    candidateDigest: detail.source.candidateDigest,
+    name: "Recovered structured branch",
+    regenerationConfirmed: true,
+    idempotencyKey: "return-retired",
+  };
+  await expect(r.returnToStructured(f.actor, request)).rejects.toMatchObject({
+    code: "Conflict",
+  });
+  await expect(
+    r.returnToStructured(f.actor, {
+      ...request,
+      replacement: { theme: "minimal", template: null, confirmed: false },
+    }),
+  ).rejects.toMatchObject({ code: "InvalidInput" });
+  expect((await r.listResumes(f.actor.ownerId, { jobId: null, offset: 0 })).items).toHaveLength(1);
+  const confirmed = {
+    ...request,
+    replacement: { theme: "minimal" as const, template: null, confirmed: true },
+  };
+  const branch = await r.returnToStructured(f.actor, confirmed);
+  expect(await r.returnToStructured(f.actor, confirmed)).toEqual(branch);
+  const current = await r.inspectResume(f.actor.ownerId, branch.id);
+  expect(current.draft.data.theme).toBe("minimal");
+  expect(current.draft.data.template).toBeUndefined();
+  expect(compositionReferences(current.draft.data)).toEqual(
+    compositionReferences(detail.base.data),
+  );
+  expect((await r.inspectCheckpoint(f.actor.ownerId, saved.id)).source).toEqual(detail.source);
+  expect(
+    (await r.inspectCheckpoint(f.actor.ownerId, detail.base.id)).checkpoint.data.template,
+  ).toEqual(template);
+});
+
 it("captures complete immutable input and exact dependencies, keeps permanent replay, and denies Agent mutation", async () => {
   const f = await fixture(),
     r = f.repository;

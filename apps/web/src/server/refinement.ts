@@ -133,6 +133,7 @@ export const inspectStructuredReturn = (env: Env, checkpointId: string) =>
     const actor = yield* Actor,
       store = yield* Store;
     const detail = yield* attempt(() => store.inspectStructuredReturn(actor.ownerId, checkpointId));
+    const eligibility = yield* attempt(() => store.inspectCheckpointBranch(actor, detail.base.id));
     const [original, accepted] = yield* attempt(() =>
       Promise.all([
         store.inspectCheckpoint(actor.ownerId, detail.base.id),
@@ -170,6 +171,7 @@ export const inspectStructuredReturn = (env: Env, checkpointId: string) =>
     return {
       ...detail,
       comparison,
+      templateIssue: eligibility.templateIssue,
       baseOperationId: baseOperation.id,
       acceptedOperationId: acceptedOperation.id,
     };

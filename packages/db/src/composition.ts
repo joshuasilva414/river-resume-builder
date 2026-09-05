@@ -356,6 +356,7 @@ export function createCompositionRepository(db: Database) {
             jobId,
             input.checkpointId,
             input.name,
+            input.replacement,
           );
           return {
             ...plan,

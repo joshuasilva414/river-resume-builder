@@ -139,88 +139,85 @@ export function ScoreComparison({
           </Button>
         )}
         {beforeId && compared.isPending && <p role="status">Checking scoring compatibility…</p>}
-        {compared.data && (
-          <>
-            {compared.data.comparison.compatible ? (
-              <p className="text-sm text-approved">
-                Reported scoring identities and posting snapshots match. Changes below use the saved
-                results.
-              </p>
-            ) : (
-              <div className="space-y-2 border-l-2 border-warning bg-warning/10 p-4">
-                <h3 className="font-semibold">These results cannot be compared with deltas</h3>
-                <ul className="list-disc pl-5 text-sm">
-                  {compared.data.comparison.reasons.map((reason) => (
-                    <li key={reason}>{reason}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <table className="w-full text-left text-sm">
-              <caption className="sr-only">
-                Independent platform scores and compatible changes
-              </caption>
-              <thead>
-                <tr className="border-b">
-                  <th className="py-3">Platform</th>
-                  <th>Base</th>
-                  <th>Compare</th>
-                  {compared.data.comparison.compatible && <th>Change</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {scoringPlatforms.map((platform) => {
-                  const a = compared.data?.before.result?.response.results.find(
-                      (value) => value.system === platform,
-                    ),
-                    b = compared.data?.after.result?.response.results.find(
-                      (value) => value.system === platform,
-                    ),
-                    delta = compared.data?.comparison.deltas?.find(
-                      (value) => value.system === platform,
-                    );
-                  return (
-                    <tr key={platform} className="border-b">
-                      <th className="py-4 pr-3 font-medium">{platform}</th>
-                      <td>
-                        {a?.overallScore}
-                        <span className="block text-xs">
-                          {a?.passesFilter ? "Pass" : "Below filter"}
-                        </span>
-                      </td>
-                      <td>
-                        {b?.overallScore}
-                        <span className="block text-xs">
-                          {b?.passesFilter ? "Pass" : "Below filter"}
-                        </span>
-                      </td>
-                      {delta && (
-                        <td>
-                          {delta.change > 0 ? "+" : ""}
-                          {delta.change}
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <p className="text-xs text-muted-foreground">
-              Policy: {compared.data.comparison.policy}. Identity equality reflects
-              provider-reported metadata; it does not guarantee immutable weights behind a model
-              alias.
-            </p>
-            <SavedText
-              title="Complete base result and scoring context"
-              text={JSON.stringify(compared.data.before, null, 2)}
-            />
-            <SavedText
-              title="Complete compared result and scoring context"
-              text={JSON.stringify(compared.data.after, null, 2)}
-            />
-          </>
-        )}
+        {compared.data && <ScoreComparisonResults data={compared.data} />}
       </div>
     </EvidenceDialog>
+  );
+}
+
+export function ScoreComparisonResults({
+  data,
+}: {
+  data: Extract<Awaited<ReturnType<typeof compareScoringRuns>>, { ok: true }>["value"];
+}) {
+  return (
+    <>
+      {data.comparison.compatible ? (
+        <p className="text-sm text-approved">
+          Reported scoring identities and posting snapshots match. Changes below use the saved
+          results.
+        </p>
+      ) : (
+        <div className="space-y-2 border-l-2 border-warning bg-warning/10 p-4">
+          <h3 className="font-semibold">These results cannot be compared with deltas</h3>
+          <ul className="list-disc pl-5 text-sm">
+            {data.comparison.reasons.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <table className="w-full text-left text-sm">
+        <caption className="sr-only">Independent platform scores and compatible changes</caption>
+        <thead>
+          <tr className="border-b">
+            <th className="py-3">Platform</th>
+            <th>Base</th>
+            <th>Compare</th>
+            {data.comparison.compatible && <th>Change</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {scoringPlatforms.map((platform) => {
+            const a = data?.before.result?.response.results.find(
+                (value) => value.system === platform,
+              ),
+              b = data?.after.result?.response.results.find((value) => value.system === platform),
+              delta = data?.comparison.deltas?.find((value) => value.system === platform);
+            return (
+              <tr key={platform} className="border-b">
+                <th className="py-4 pr-3 font-medium">{platform}</th>
+                <td>
+                  {a?.overallScore}
+                  <span className="block text-xs">{a?.passesFilter ? "Pass" : "Below filter"}</span>
+                </td>
+                <td>
+                  {b?.overallScore}
+                  <span className="block text-xs">{b?.passesFilter ? "Pass" : "Below filter"}</span>
+                </td>
+                {delta && (
+                  <td>
+                    {delta.change > 0 ? "+" : ""}
+                    {delta.change}
+                  </td>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <p className="text-xs text-muted-foreground">
+        Policy: {data.comparison.policy}. Identity equality reflects provider-reported metadata; it
+        does not guarantee immutable weights behind a model alias.
+      </p>
+      <SavedText
+        title="Complete base result and scoring context"
+        text={JSON.stringify(data.before, null, 2)}
+      />
+      <SavedText
+        title="Complete compared result and scoring context"
+        text={JSON.stringify(data.after, null, 2)}
+      />
+    </>
   );
 }

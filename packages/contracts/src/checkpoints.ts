@@ -33,16 +33,15 @@ export const ExportCheckpointRequest = Schema.Struct({
   digest: Schema.NonEmptyString,
 });
 export type ExportCheckpointRequest = typeof ExportCheckpointRequest.Type;
+export const CheckpointTemplateReplacement = Schema.Struct({
+  theme: Theme,
+  template: Schema.NullOr(Schema.Struct({ designId: RecordId, revisionId: RecordId })),
+  confirmed: Schema.Boolean,
+});
 export const RestoreCheckpointRequest = Schema.Struct({
   checkpointId: RecordId,
   name: Schema.NonEmptyString.check(Schema.isMaxLength(160)),
-  replacement: Schema.optional(
-    Schema.Struct({
-      theme: Theme,
-      template: Schema.NullOr(Schema.Struct({ designId: RecordId, revisionId: RecordId })),
-      confirmed: Schema.Boolean,
-    }),
-  ),
+  replacement: Schema.optional(CheckpointTemplateReplacement),
   idempotencyKey: CommandKey,
 });
 export type RestoreCheckpointRequest = typeof RestoreCheckpointRequest.Type;

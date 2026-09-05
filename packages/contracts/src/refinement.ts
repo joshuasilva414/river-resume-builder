@@ -1,5 +1,6 @@
 import { RecordId, Revision } from "@river/domain";
 import { Schema } from "effect";
+import { CheckpointTemplateReplacement } from "./checkpoints";
 import { CommandKey } from "./evidence";
 
 export const StartSourceRefinementRequest = Schema.Struct({
@@ -40,5 +41,6 @@ export const ReturnToStructuredRequest = Schema.Struct({
   candidateDigest: Schema.NonEmptyString,
   name: Schema.NonEmptyString.check(Schema.isMaxLength(160)),
   regenerationConfirmed: Schema.Boolean,
+  replacement: Schema.optional(CheckpointTemplateReplacement),
 });
 export type ReturnToStructuredRequest = typeof ReturnToStructuredRequest.Type;

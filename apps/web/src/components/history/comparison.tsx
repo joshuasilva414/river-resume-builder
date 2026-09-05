@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { EvidenceDialog } from "~/components/evidence/shared";
 import { Button } from "~/components/ui/button";
@@ -6,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { HistoryContent } from "./content";
 import { HistoryPdf } from "./pdf";
 import { RestoreCheckpoint } from "./restore";
+import { HistoryScores } from "./scores";
 import { HistorySelectionPanel, type HistorySnapshot } from "./selection";
 
 export function CheckpointComparison({
@@ -19,7 +19,8 @@ export function CheckpointComparison({
 }) {
   const [before, setBefore] = useState<HistorySnapshot | null>(null),
     [after, setAfter] = useState<HistorySnapshot | null>(null),
-    [restore, setRestore] = useState<string | null>(null);
+    [restore, setRestore] = useState<string | null>(null),
+    [tab, setTab] = useState("content");
   return (
     <EvidenceDialog
       title="Compare saved versions"
@@ -35,13 +36,19 @@ export function CheckpointComparison({
             draftId={draftId}
             initialCheckpointId={checkpointId}
             pinned={before}
-            onPin={setBefore}
+            onPin={(value) => {
+              setBefore(value);
+              if (tab === "scores" && value.selection.kind === "draft") setTab("content");
+            }}
           />
           <HistorySelectionPanel
             label="Compare"
             draftId={draftId}
             pinned={after}
-            onPin={setAfter}
+            onPin={(value) => {
+              setAfter(value);
+              if (tab === "scores" && value.selection.kind === "draft") setTab("content");
+            }}
           />
         </div>
         {before && after ? (
@@ -52,7 +59,7 @@ export function CheckpointComparison({
                 included. Score deltas require the same snapshot and compatible scoring identities.
               </p>
             )}
-            <Tabs defaultValue="content">
+            <Tabs value={tab} onValueChange={setTab}>
               <TabsList>
                 <TabsTrigger value="content">Content</TabsTrigger>
                 <TabsTrigger value="pdf">PDF</TabsTrigger>
@@ -69,34 +76,15 @@ export function CheckpointComparison({
               <TabsContent value="pdf" forceMount className="data-[state=inactive]:hidden">
                 <HistoryPdf before={before} after={after} />
               </TabsContent>
-              <TabsContent value="scores">
-                <p className="text-sm">
-                  Open each saved checkpoint's Scores review to choose its exact completed scoring
-                  run. A saved version alone does not identify a scoring result.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-4">
-                  {(
-                    [
-                      ["Base", before],
-                      ["Compare", after],
-                    ] as const
-                  ).map(
-                    ([label, value]) =>
-                      value.selection.kind === "checkpoint" && (
-                        <Link
-                          key={label}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex min-h-11 items-center text-primary underline text-sm"
-                          to="/checkpoints/$checkpointId"
-                          params={{ checkpointId: value.selection.id }}
-                          search={{ scores: true }}
-                        >
-                          {label} scoring review
-                        </Link>
-                      ),
+              <TabsContent value="scores" forceMount className="data-[state=inactive]:hidden">
+                {before.selection.kind === "checkpoint" &&
+                  after.selection.kind === "checkpoint" && (
+                    <HistoryScores
+                      key={`${before.selection.id}:${after.selection.id}`}
+                      beforeCheckpointId={before.selection.id}
+                      afterCheckpointId={after.selection.id}
+                    />
                   )}
-                </div>
               </TabsContent>
             </Tabs>
             {(before.selection.kind === "draft" || after.selection.kind === "draft") && (

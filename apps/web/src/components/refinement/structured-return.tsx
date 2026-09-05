@@ -1,8 +1,12 @@
 import type { ReturnToStructuredRequest } from "@river/contracts";
+import { canonicalJson } from "@river/domain";
+import { fixedPack, type TemplateBase, validateGraph } from "@river/templates";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useId, useRef, useState } from "react";
 import { EvidenceDialog, Failure, FormField, unwrap } from "~/components/evidence/shared";
+import { compositionBase } from "~/components/templates/binding";
+import { BasePicker, GraphView, useTemplateBase } from "~/components/templates/shared";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
@@ -56,7 +60,16 @@ function ReturnForm({
   onClose: () => void;
   onSaving: (saving: boolean) => void;
 }) {
-  const confirmationId = useId();
+  const confirmationId = useId(),
+    templateConfirmationId = useId();
+  const original = compositionBase(detail.base.data);
+  const [selection, setSelection] = useState<TemplateBase>(original),
+    [templateConfirmed, setTemplateConfirmed] = useState(false);
+  const selected = useTemplateBase(selection);
+  const changed = canonicalJson(selection) !== canonicalJson(original);
+  const eligible = changed
+    ? selection.kind === "fixed" || selected.data?.revision.state === "Approved"
+    : !detail.templateIssue;
   const [name, setName] = useState(
       `${detail.base.data.name.slice(0, 130)} · structured continuation`,
     ),
@@ -89,6 +102,7 @@ function ReturnForm({
     onMutate: () => onSaving(true),
     onSettled: () => onSaving(false),
     mutationFn: async () => {
+      if (!selected.graph) throw new Error("The selected template is unavailable.");
       request.current ??= {
         idempotencyKey: crypto.randomUUID(),
         checkpointId: detail.checkpoint.id,
@@ -96,6 +110,18 @@ function ReturnForm({
         candidateDigest: detail.source.candidateDigest,
         name,
         regenerationConfirmed: confirmed,
+        ...(changed
+          ? {
+              replacement: {
+                theme: selected.graph.theme,
+                template:
+                  selection.kind === "saved" && selected.data
+                    ? { designId: selected.data.design.id, revisionId: selection.revisionId }
+                    : null,
+                confirmed: templateConfirmed,
+              },
+            }
+          : {}),
       };
       return unwrap(await createStructuredBranch({ data: request.current }));
     },
@@ -194,6 +220,47 @@ function ReturnForm({
               onChange={(event) => setName(event.target.value)}
             />
           </FormField>
+          {detail.templateIssue && (
+            <p className="border-l-2 border-warning bg-warning/10 p-4 text-sm">
+              {detail.templateIssue}
+            </p>
+          )}
+          <BasePicker
+            value={selection}
+            approvedOnly
+            label="Template for the structured branch"
+            disabled={create.isPending || !!request.current}
+            onChange={(value) => {
+              setSelection(value);
+              setTemplateConfirmed(false);
+            }}
+          />
+          <Failure error={selected.error} />
+          {changed && (
+            <div className="space-y-4">
+              <h3 className="font-editorial text-xl">Review the template change</h3>
+              {selected.graph && (
+                <GraphView
+                  graph={selected.graph}
+                  original={
+                    detail.base.templateGraph ?? validateGraph(fixedPack(detail.base.data.theme))
+                  }
+                />
+              )}
+              <label
+                htmlFor={templateConfirmationId}
+                className="flex min-h-11 items-start gap-3 text-sm"
+              >
+                <Checkbox
+                  id={templateConfirmationId}
+                  checked={templateConfirmed}
+                  disabled={create.isPending || !!request.current}
+                  onCheckedChange={(value) => setTemplateConfirmed(value === true)}
+                />
+                I reviewed the template change for this new structured branch.
+              </label>
+            </div>
+          )}
           <label htmlFor={confirmationId} className="flex items-start gap-3">
             <Checkbox
               id={confirmationId}
@@ -212,7 +279,17 @@ function ReturnForm({
             <Button type="button" variant="outline" disabled={create.isPending} onClick={onClose}>
               Keep source checkpoint
             </Button>
-            <Button type="submit" disabled={!confirmed || !name.trim() || create.isPending}>
+            <Button
+              type="submit"
+              disabled={
+                !confirmed ||
+                !name.trim() ||
+                create.isPending ||
+                !eligible ||
+                !selected.graph ||
+                (changed && !templateConfirmed)
+              }
+            >
               {create.isPending
                 ? "Saving branch…"
                 : create.error
