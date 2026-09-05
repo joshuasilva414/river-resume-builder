@@ -1,10 +1,7 @@
 import {
-  AtsScoringResponse,
-  PlatformScore,
-  ScoringPlatform,
+  type AtsScoringResponse,
   type ScoringProfile,
   ScoringProviderVersion,
-  ScoringSuggestion,
   scoringLimits,
   scoringPlatforms,
   scoringPreflight,
@@ -13,31 +10,6 @@ import {
 import { Schema } from "effect";
 
 export { type ScoringProfile, ScoringProviderVersion, scoringProfile } from "@river/domain";
-
-// The provider also uses SAP's full product name. Canonicalize only that known alias;
-// the domain validator still enforces bounds and unique simulations after decoding.
-const ProviderPlatform = Schema.Union([
-  ScoringPlatform,
-  Schema.Literal("SAP SuccessFactors").transform("SuccessFactors"),
-]);
-const ProviderResponse = Schema.Struct({
-  ...AtsScoringResponse.fields,
-  results: Schema.Array(
-    Schema.Struct({
-      ...PlatformScore.fields,
-      system: ProviderPlatform,
-      suggestions: Schema.Array(
-        Schema.Union([
-          ScoringSuggestion.members[0],
-          Schema.Struct({
-            ...ScoringSuggestion.members[1].fields,
-            platforms: Schema.Array(ProviderPlatform),
-          }),
-        ]),
-      ),
-    }),
-  ),
-});
 
 const messages = {
   RateLimited: "The score provider is rate limited. Retry after the recorded time.",
@@ -194,11 +166,7 @@ export async function scoreCheckpointText(
     signal,
   );
   try {
-    const normalized = Schema.decodeUnknownSync(ProviderResponse)(raw);
-    return {
-      raw,
-      response: validateScoringResponse(normalized, input.resumeText, input.jobDescription),
-    };
+    return { raw, response: validateScoringResponse(raw, input.resumeText, input.jobDescription) };
   } catch {
     throw new ScoringProviderError("InvalidResponse");
   }

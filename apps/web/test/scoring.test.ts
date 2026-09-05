@@ -64,6 +64,30 @@ function provider(input: { resumeText: string; jobDescription: string }) {
     ),
   );
 }
+it("retains an aliased provider response unchanged while publishing canonical simulation identities", async () => {
+  const { repository, actor, input, resumeText } = await fixture();
+  const started = await repository.startScoring(actor, input, profile);
+  const id = started.revisionId ?? "";
+  await prepareScoring(env, id);
+  const canonical = syntheticScoringResponse({ resumeText, jobDescription: "Synthetic posting" });
+  const raw = {
+    ...canonical,
+    results: canonical.results.map((result) => ({
+      ...result,
+      system: result.system === "SuccessFactors" ? "SAP SuccessFactors" : result.system,
+    })),
+  };
+  const transport = vi.fn<typeof fetch>(async (_url, init) =>
+    Response.json(init?.method === "POST" ? raw : syntheticScoringVersion),
+  );
+  await submitScoring(env, id, transport);
+  await repository.completeScoring(id);
+  const saved = await repository.inspectScoring(actor, started.id);
+  expect(saved.run.completedAt).not.toBeNull();
+  expect(saved.run.result?.raw).toEqual(raw);
+  expect(saved.run.result?.response).toEqual(canonical);
+  expect(saved.run.result?.digest).toBe(await fingerprint(canonicalJson(raw)));
+});
 it("atomically starts exact checkpoint scoring once, rejects stale revisions and restricts Owner access", async () => {
   const { repository, actor, input } = await fixture();
   const agent: Principal = {

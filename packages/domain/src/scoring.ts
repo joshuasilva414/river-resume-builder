@@ -93,6 +93,32 @@ export const AtsScoringResponse = Schema.Struct({
   _inputCoverage: Schema.optional(Schema.NullOr(ScoringCoverage)),
 });
 export type AtsScoringResponse = typeof AtsScoringResponse.Type;
+
+// The provider also uses SAP's full product name. Canonicalize only that known alias;
+// the domain validator still enforces bounds and unique simulations after decoding.
+const ProviderPlatform = Schema.Union([
+  ScoringPlatform,
+  Schema.Literal("SAP SuccessFactors").transform("SuccessFactors"),
+]);
+const ProviderResponse = Schema.Struct({
+  ...AtsScoringResponse.fields,
+  results: Schema.Array(
+    Schema.Struct({
+      ...PlatformScore.fields,
+      system: ProviderPlatform,
+      suggestions: Schema.Array(
+        Schema.Union([
+          ScoringSuggestion.members[0],
+          Schema.Struct({
+            ...ScoringSuggestion.members[1].fields,
+            platforms: Schema.Array(ProviderPlatform),
+          }),
+        ]),
+      ),
+    }),
+  ),
+});
+
 export const ScoringFindingOutcome = Schema.Literals(["Addressed", "Accepted", "Not applicable"]);
 export type ScoringFindingOutcome = typeof ScoringFindingOutcome.Type;
 
@@ -147,7 +173,8 @@ export function validateScoringResponse(raw: unknown, resumeText: string, jobDes
       message:
         "Scoring requires complete résumé and job text within the provider's effective limits.",
     });
-  const value = Schema.decodeUnknownSync(AtsScoringResponse)(raw);
+  const normalized = Schema.decodeUnknownSync(ProviderResponse)(raw);
+  const value = Schema.decodeUnknownSync(AtsScoringResponse)(normalized);
   if (new Set(value.results.map((result) => result.system)).size !== scoringPlatforms.length)
     throw new Error("The score provider did not return all six unique simulations.");
   for (const result of value.results) {
