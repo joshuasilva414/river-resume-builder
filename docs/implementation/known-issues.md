@@ -2,7 +2,7 @@
 
 ## PDF-001 — PDF previews repeatedly flicker between rendered and loading states
 
-Reported by Josh on 2026-09-05. **Open; recorded from supplied video. Diagnosis pending.**
+Reported by Josh on 2026-09-05. **Possibly resolved; current behavior unverified.** Josh subsequently noted that it might already be fixed and requested recording the report and moving on. Retain this as historical evidence for later verification, not a confirmed current release blocker.
 
 Evidence: [flickering-evidence.mov](/Users/joshuasilva/Downloads/flickering-evidence.mov), approximately 6.58 seconds at 30 fps. The recording is referenced locally and is not copied into Git.
 
