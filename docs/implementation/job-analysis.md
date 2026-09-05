@@ -17,7 +17,7 @@ Ranking acceptance records review only. The Owner then opens the existing eviden
 ## Configuration and bounds
 
 - Server secret: `OPENAI_API_KEY`. Never place the key in D1, browser state, or source control.
-- Task settings: `OPENAI_REQUIREMENTS_MODEL` and `OPENAI_RANKING_MODEL`, currently pinned to `gpt-5.4-mini-2026-03-17` in Wrangler. The installed OpenAI SDK recognizes this identity. A live provider call is not yet verified because no key is configured.
+- Task settings: `OPENAI_REQUIREMENTS_MODEL` and `OPENAI_RANKING_MODEL`, currently pinned to `gpt-5.4-mini-2026-03-17` in Wrangler. The installed OpenAI SDK recognizes this identity. The Owner-approved staging key is installed; a live job-analysis provider call remains unverified.
 - Prompt/schema contract: `river-job-analysis-v1`; OpenAI SDK `7.10.0`.
 - Maximum serialized input: 160,000 UTF-16 units; provider output budget: 12,000 tokens; maximum stored proposal: 200,000 UTF-16 units.
 - Maximum generated map: 30 requirements; ranking: 60 associations, 100 gap explanations, 30 candidates.

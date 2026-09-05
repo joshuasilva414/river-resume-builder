@@ -55,4 +55,11 @@ Local configured browser journey on 2026-09-05:
 - Actual PDF operation `01a0730e-2c7c-78e1-860e-1953cbb30d17` reached revision 10. Its 75% zoom survived inline review. The saved review queue retained the accepted record.
 - Desktop 1280px light inline review and dark inline launch/stale comparison were screenshot-inspected. An existing synthetic stale proposal displayed original/current wording and disabled acceptance.
 
-Hosted inline generation/acceptance and narrow-screen review remain unverified for this milestone. Synthetic fixture data does not establish candidate qualifications or the real Owner tailoring release gate.
+Hosted verification on web commit `fd614d6`, version `22be781c-a417-46da-af6a-9b743c0e6d2a`:
+
+- Existing synthetic restoration branch `01a072c5-ae2a-7b48-b1a3-900b94ff1b7c` began this check at revision 2 using Minimal. Task `01a07311-6a9e-7cb5-9aaf-2fc36154b94b` captured its exact header name and empty evidence selection, with the synthetic job snapshot fully visible before generation.
+- First-attempt `gpt-5.4-mini-2026-03-17` output changed `Synthetic Person` to `Person, Synthetic`. Full input, exact posting offsets, complete original/proposed text, meaning and rationale were inspected. Proposal digest: `1c82090bc2ff192514ae2df3ef8e1846e014f0ac349a50494fb324d83f7b8fbf`.
+- Explicit placement acceptance saved revision 3. Actual PDF operation `01a07312-0273-7c69-bc3c-16f82e161fcd` displayed the changed name. Undo saved revision 4 and restored the original pinned Content binding; PDF `01a07313-0e47-77fc-858b-7d07437af265` reached the current revision. The 75% zoom remained selected. The queue still identifies the proposal as Accepted at revision 3.
+- No checkpoint/export acknowledgment was submitted. The original checkpoint and labeled restoration baseline were not changed. Direct navigation to the attachment report was blocked by the browser client; this check does not claim a separate downloaded-report inspection.
+
+Narrow-screen review remains unverified for this milestone. Synthetic fixture data does not establish candidate qualifications or the real Owner tailoring release gate.

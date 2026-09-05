@@ -1,6 +1,6 @@
 # Reviewed source proposals and clarification
 
-Updated 2026-09-05. Phase 2 source-to-claim review is implemented. Live OpenAI generation remains unverified because the provider key is not configured. Browser candidates below are explicitly synthetic, not provider output or Owner facts.
+Updated 2026-09-05. Phase 2 source-to-claim review is implemented. The Owner-approved staging provider key is installed; live generation remains unverified. Browser candidates below are explicitly synthetic, not provider output or Owner facts.
 
 ## Input and execution
 

@@ -206,7 +206,7 @@ Duplicate comparison services, Paper review/history UI, and atomic optional disp
 
 Source proposal services, Paper UI, and clarification tracking are deployed with synthetic acceptance checks. The staging credential is installed; live generation remains unverified. See `docs/implementation/source-proposals.md`.
 - [x] Add the keyword rewrite queue with original/proposed wording, supporting evidence, meaning-change explanation, individual acceptance, and stale-input checks.
-Wording assistance is implemented and deployed with synthetic service/browser checks. A live local provider request, placement acceptance, session undo/redo and retained PDF state now pass. Hosted generation remains a separate acceptance gate. See `docs/implementation/wording.md`.
+Wording assistance is implemented and deployed. Live local and hosted provider requests, placement acceptance, session undo and retained PDF state pass; local redo also passes. All browser data in these checks is synthetic. See `docs/implementation/wording.md`.
 
 - [x] Implement guided template briefs and iterative generation using synthetic fixtures exclusively.
 - [x] Implement Draft → Validated → Approved → Retired lifecycle behavior; editing approved payloads creates new revisions.
@@ -225,7 +225,7 @@ Exit: every generated change is reviewable and attributable; content changes can
 - [ ] Compare scores only within the same provider/rubric identity. Label simulations separately from local document validation.
 - [ ] Implement retryable scoring failures and provider limits without blocking export.
 - [ ] Score canonical template fixtures and assign the separate ATS Screener tested designation only when its stated criteria pass.
-- [x] Add inline writing assistance after review-queue behavior is proven. Paper board 77 is implemented with exact target comparison and session undo; local live-provider and persisted browser checks pass. Hosted and narrow review checks remain release gates.
+- [x] Add inline writing assistance after review-queue behavior is proven. Paper board 77 is implemented with exact target comparison and session undo; local and hosted live-provider browser checks pass. Narrow review remains a release gate.
 
 Exit: restoring history never destroys newer work, score comparisons preserve their meaning, and scoring outages leave export usable.
 

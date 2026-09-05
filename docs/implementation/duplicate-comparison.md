@@ -32,4 +32,4 @@ Local browser review used clearly labeled synthetic explanations inserted only i
 
 Fixture pair: `01a0700c-a0f8-7027-8a75-4850d065b6a8`. Reviewed task: `01a07122-f441-7d87-87f9-52fa20a2621c`; proposal: `01a07122-f441-755b-bc02-f93ccfe72c55`. Rejected task: `01a07122-f441-7eb5-b4d7-93f43ded2001`. The remaining Pending task is historical after the explicit pair decision. Fixture identities are also in `test-results/duplicate-ai-browser-fixture.json`.
 
-Migration `0013_new_sue_storm.sql` adds the task and proposal tables. The configured Workflow is `river-staging-duplicate-comparison`. Live OpenAI generation and the configured launch UI remain unverified because the API key is absent. Current hosted version and acceptance status are recorded in `deployment.json`.
+Migration `0013_new_sue_storm.sql` adds the task and proposal tables. The configured Workflow is `river-staging-duplicate-comparison`. The Owner-approved staging key is installed; live generation and the configured launch UI remain unverified. Current hosted version and acceptance status are recorded in `deployment.json`.

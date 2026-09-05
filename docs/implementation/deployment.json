@@ -4,7 +4,7 @@
   "applicationUrl": "https://river-staging.jilva.workers.dev",
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
-  "webVersion": "5239f176-6901-48b4-997e-ca4d62a0fb23",
+  "webVersion": "22be781c-a417-46da-af6a-9b743c0e6d2a",
   "documentWorkerVersion": "6459e815-8f14-4772-827d-5aff881a30ca",
   "containerImageDigest": "sha256:5ca4c176095b9f4663fee737eaa9a7ec30d7662b4eeb7af51273c6bdd4dc6905",
   "database": "river-staging",
@@ -49,7 +49,7 @@
     "restoreDrill": "passed: isolated local SQLite, 39 base tables, FTS equality, foreign keys, exact citation offsets, 14 retained objects, one exported checkpoint",
     "jobAnalysis": "47 Workers tests; local synthetic review, stale rejection, payload discard, ranking review and explicit selection passed; live OpenAI generation not yet exercised with the configured key",
     "streamedRestoreDrill": "passed: v2 format derived from a real 42-table staging snapshot; isolated SQLite, FTS, foreign keys, one citation, 14 retained objects, one export; live scheduled export remains unverified",
-    "wording": "six service tests and local synthetic comparison, concurrent unrelated edit preservation, exact local acceptance, updated PDF, stale rejection, payload removal, 1280px light and 621px dark pass; live generation not yet exercised with the configured key",
+    "wording": "Passed: live local and hosted gpt-5.4-mini-2026-03-17 generation and complete inline review on synthetic fixtures. Local unrelated rename, acceptance r8, undo r9, redo r10; hosted visible name-formatting acceptance r3, undo r4, retained r3 decision. Actual PDFs and 75% zoom retained. 14 focused Workers tests, workspace types/lint and staging build pass.",
     "sourceProposals": "64 service tests pass; local synthetic individual acceptance, rejection, manual origin, exact citation, stale source guards, and source-backed clarification passed; live generation and configured launch not yet exercised with the configured key",
     "duplicateComparison": "70 Workers tests pass; local synthetic acknowledgment, optional disposition attribution, both-claim saved history, stale rejection and payload removal pass; 1280px light and 621px dark inspected; live generation and configured launch not yet exercised with the configured key",
     "templateStudio": "Passed: local real fixture validation, approval, concurrent preservation, mixing, exact draft/preview/checkpoint, retirement and retained export. Hosted third validation passed all four fixtures twice after fixing Container RPC stream ownership. Hosted graph remains Validated pending Owner visual approval. Anonymous PDF request returns 401.",
@@ -183,5 +183,16 @@
       "exportedCheckpoints": 1
     },
     "providerConfigured": false
+  },
+  "inlineWording": {
+    "commit": "fd614d6",
+    "hostedTaskId": "01a07311-6a9e-7cb5-9aaf-2fc36154b94b",
+    "draftId": "01a072c5-ae2a-7b48-b1a3-900b94ff1b7c",
+    "proposalDigest": "1c82090bc2ff192514ae2df3ef8e1846e014f0ac349a50494fb324d83f7b8fbf",
+    "acceptedRevision": 3,
+    "undoRevision": 4,
+    "acceptedPdfOperationId": "01a07312-0273-7c69-bc3c-16f82e161fcd",
+    "undoPdfOperationId": "01a07313-0e47-77fc-858b-7d07437af265",
+    "checkpointCreated": false
   }
 }
