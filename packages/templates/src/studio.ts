@@ -2,6 +2,7 @@ import { ContentType, canonicalJson, RecordId, Revision, Theme } from "@river/do
 import { Schema } from "effect";
 import { TEMPLATE_FIXTURE_VERSION, templateFixtures } from "./fixtures";
 import { graphTemplates, type TemplateGraph, validateGraph } from "./graph";
+import type { LayoutAdjustment } from "./layout-promotion";
 import { StyleTokens, type TemplateManifest, type TemplateRevision } from "./manifests";
 
 export const TemplateScope = Schema.Union([
@@ -40,7 +41,11 @@ export interface TemplateOrigin {
 }
 export const TemplateAiProfile = Schema.Struct({
   model: Schema.NonEmptyString,
-  contract: Schema.Literals(["river-template-generation-v1", "river-template-generation-v2"]),
+  contract: Schema.Literals([
+    "river-template-generation-v1",
+    "river-template-generation-v2",
+    "river-template-generation-v3",
+  ]),
   maxInputCharacters: Schema.Literal(160000),
   maxOutputTokens: Schema.Literal(12000),
   timeoutMs: Schema.Literal(60000),
@@ -50,6 +55,7 @@ export interface TemplateAiInput {
   readonly type: "template-generation";
   readonly scope: TemplateScope;
   readonly brief: TemplateBrief;
+  readonly layoutAdjustment?: readonly LayoutAdjustment[];
   readonly conversation?: {
     readonly id: string;
     readonly turn: number;

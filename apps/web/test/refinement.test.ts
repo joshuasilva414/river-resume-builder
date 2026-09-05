@@ -1,6 +1,10 @@
 import { applyD1Migrations } from "cloudflare:test";
 import { env } from "cloudflare:workers";
-import type { ArtifactManifest, ReviewSourceRefinementRequest } from "@river/contracts";
+import type {
+  ArtifactManifest,
+  ReviewSourceRefinementRequest,
+  StartTemplateAiRequest,
+} from "@river/contracts";
 import { type RefinementBaseArtifacts, schema } from "@river/db";
 import {
   canonicalJson,
@@ -12,9 +16,11 @@ import {
 import {
   compose,
   expectedText,
+  fixedPack,
   RENDERER_VERSION,
   refinedSourceIdentity,
   SOURCE_RENDERER_VERSION,
+  type TemplateAiProfile,
 } from "@river/templates";
 import type {
   SourceRefinementOutput,
@@ -34,7 +40,7 @@ const profile: SourceRefinementProfile = {
   maxOutputTokens: 24000,
   timeoutMs: 60000,
 };
-async function fixture() {
+async function fixture(customTemplate = false) {
   const f = await compositionFixture(),
     { repository: r, actor } = f;
   const claim = await r.createEvidence(
@@ -48,8 +54,30 @@ async function fixture() {
   );
   if (!claim.revisionId) throw new Error("Missing fixture evidence");
   const reference = { claimId: claim.id, revisionId: claim.revisionId };
+  const template = customTemplate
+    ? await r.saveTemplate(actor, {
+        id: null,
+        revision: null,
+        idempotencyKey: "promotion-base",
+        name: "Synthetic promotion base",
+        base: { kind: "fixed", theme: "classic" },
+        scope: { level: "document", type: null },
+        source: fixedPack("classic").document.source,
+        overrides: {},
+      })
+    : null;
+  if (template?.revisionId) {
+    // Seed an eligible immutable graph for this isolated repository test.
+    await r.db
+      .update(schema.templateRevisions)
+      .set({ state: "Approved" })
+      .where(eq(schema.templateRevisions.id, template.revisionId));
+  }
   const data = {
     ...f.data,
+    ...(template?.revisionId
+      ? { template: { designId: template.id, revisionId: template.revisionId } }
+      : {}),
     sections: f.data.sections.map((section) =>
       section.type !== "summary"
         ? section
@@ -228,6 +256,126 @@ async function fixture() {
   };
 }
 
+it("promotes only accepted generic layout values with exact base, permanent attribution and atomic retries", async () => {
+  const aiProfile: TemplateAiProfile = {
+    model: "gpt-5.4-mini-2026-03-17",
+    contract: "river-template-generation-v3",
+    maxInputCharacters: 160000,
+    maxOutputTokens: 12000,
+    timeoutMs: 60000,
+  };
+  for (const customTemplate of [false, true]) {
+    const f = await fixture(customTemplate),
+      r = f.repository;
+    await expect(r.inspectTemplatePromotion(f.actor, f.captured.id)).rejects.toMatchObject({
+      code: "NotFound",
+    });
+    await f.candidate({
+      ...f.output,
+      source: f.base.source.replace("{\\parskip}{3pt}", "{\\parskip}{2pt}"),
+    });
+    const acceptance = await f.acceptance();
+    await expect(
+      r.inspectTemplatePromotion(f.actor, acceptance.checkpointId),
+    ).rejects.toMatchObject({ code: "NotFound" });
+    const saved = await r.finalizeSourceRefinement(
+      f.actor.ownerId,
+      f.started.id,
+      acceptance.operationId,
+      acceptance.retained,
+    );
+    const safe = await r.inspectTemplatePromotion(f.actor, saved.id);
+    expect(safe.layout).toEqual({
+      state: "Isolated",
+      changes: [{ property: "paragraphSpacing", before: 3, after: 2 }],
+    });
+    expect(safe.base.kind).toBe(customTemplate ? "saved" : "fixed");
+    const agent: Principal = { kind: "agent", id: newId(), ownerId: f.actor.ownerId, scopes: [] };
+    await expect(r.inspectTemplatePromotion(agent, saved.id)).rejects.toMatchObject({
+      code: "Forbidden",
+    });
+    const otherId = newId();
+    await expect(
+      r.inspectTemplatePromotion({ kind: "owner", id: otherId, ownerId: otherId }, saved.id),
+    ).rejects.toMatchObject({ code: "NotFound" });
+    const request: StartTemplateAiRequest = {
+      id: safe.destination?.id ?? null,
+      revision: safe.destination?.revision ?? null,
+      reservedDesignId: safe.destination?.id ?? newId(),
+      expectedInputDigest: null,
+      idempotencyKey: "promote-source-layout",
+      name: "Generic spacing idea",
+      base: safe.base,
+      scope: { level: "document", type: null },
+      brief: {
+        structure: "Single column",
+        density: "Comfortable",
+        character: "Quiet typography",
+        constraints: "Keep all content slots",
+      },
+      sourcePromotion: { checkpointId: saved.id, candidateDigest: safe.candidateDigest },
+    };
+    const preview = await r.previewTemplateAi(f.actor, request);
+    expect(preview.input.layoutAdjustment).toEqual(safe.layout.changes);
+    for (const privateValue of [
+      "Original synthetic wording.",
+      f.claim.id,
+      f.reference.revisionId,
+      saved.id,
+      safe.candidateDigest,
+      f.base.source,
+    ]) {
+      expect(canonicalJson(preview.input)).not.toContain(privateValue);
+    }
+    for (const privateValue of [
+      "Original synthetic wording.",
+      f.claim.id,
+      f.reference.revisionId,
+      f.base.source,
+    ])
+      expect(canonicalJson(safe)).not.toContain(privateValue);
+    await expect(r.previewTemplateAi(agent, request)).rejects.toMatchObject({ code: "Forbidden" });
+    await expect(
+      r.previewTemplateAi(f.actor, {
+        ...request,
+        sourcePromotion: { checkpointId: saved.id, candidateDigest: "0".repeat(64) },
+      }),
+    ).rejects.toMatchObject({ code: "Conflict" });
+    await expect(
+      r.previewTemplateAi(f.actor, { ...request, base: { kind: "fixed", theme: "minimal" } }),
+    ).rejects.toMatchObject({ code: "Conflict" });
+    await expect(
+      r.previewTemplateAi(f.actor, { ...request, scope: { level: "block", type: "summary" } }),
+    ).rejects.toMatchObject({ code: "Conflict" });
+    await expect(
+      r.startTemplateAi(f.actor, { ...request, expectedInputDigest: "0".repeat(64) }, aiProfile),
+    ).rejects.toMatchObject({ code: "Conflict" });
+    const linksBefore = await r.db.select().from(schema.templateSourcePromotions);
+    const command = { ...request, expectedInputDigest: preview.digest };
+    const started = await r.startTemplateAi(f.actor, command, aiProfile);
+    expect(await r.startTemplateAi(f.actor, command, aiProfile)).toEqual(started);
+    const inspected = await r.inspectTemplateAi(f.actor.ownerId, started.id);
+    expect(inspected.sourcePromotion).toEqual({
+      taskId: started.id,
+      checkpointId: saved.id,
+      candidateDigest: safe.candidateDigest,
+    });
+    expect(inspected.proposal).toBeNull();
+    expect((await r.db.select().from(schema.templateSourcePromotions)).length).toBe(
+      linksBefore.length + 1,
+    );
+    if (safe.destination)
+      expect(
+        (
+          await r.inspectTemplate(
+            f.actor.ownerId,
+            safe.base.kind === "saved" ? safe.base.revisionId : "",
+          )
+        ).design.revision,
+      ).toBe(safe.destination.revision);
+  }
+});
+
 it("returns to the original structured checkpoint in one independent branch and retries preview without duplicating it", async () => {
   const f = await fixture(),
     r = f.repository;
@@ -247,6 +395,27 @@ it("returns to the original structured checkpoint in one independent branch and 
     publishing.retained,
   );
   const inspected = await r.inspectStructuredReturn(f.actor.ownerId, saved.id);
+  const promotion = await r.inspectTemplatePromotion(f.actor, saved.id);
+  expect(promotion.layout).toEqual({ state: "Unavailable", changes: [] });
+  const genericInput = await r.previewTemplateAi(f.actor, {
+    id: null,
+    revision: null,
+    reservedDesignId: newId(),
+    expectedInputDigest: null,
+    idempotencyKey: "generic-brief-preview",
+    name: "Generic fallback",
+    base: promotion.base,
+    scope: { level: "document", type: null },
+    brief: {
+      structure: "Single column",
+      density: "Compact",
+      character: "Compact headings",
+      constraints: "Preserve text slots",
+    },
+    sourcePromotion: { checkpointId: saved.id, candidateDigest: promotion.candidateDigest },
+  });
+  expect(genericInput.input.layoutAdjustment).toEqual([]);
+  expect(canonicalJson(genericInput.input)).not.toContain(changed);
   const request = {
     checkpointId: saved.id,
     structuredBaseId: f.captured.id,

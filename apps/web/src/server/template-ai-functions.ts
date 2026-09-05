@@ -13,6 +13,7 @@ import { bindings } from "./env";
 import { dispatchPending, execute } from "./services";
 import {
   inspectTemplateAi,
+  inspectTemplatePromotion,
   listTemplateAi,
   previewTemplateAi,
   readTemplateConversation,
@@ -21,6 +22,11 @@ import {
   startTemplateAi,
 } from "./template-ai";
 import { cleanRejectedTemplatePreviews } from "./template-ai-cleanup";
+export const getTemplatePromotion = createServerFn({ method: "GET" })
+  .validator(Schema.decodeUnknownSync(TemplateAiIdentity))
+  .handler(({ data }) =>
+    execute(bindings(), getRequestHeaders(), inspectTemplatePromotion(bindings(), data.id)),
+  );
 export const getTemplateConversation = createServerFn({ method: "GET" })
   .validator(Schema.decodeUnknownSync(TemplateConversationRequest))
   .handler(({ data }) =>

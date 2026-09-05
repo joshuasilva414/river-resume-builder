@@ -13,7 +13,11 @@ import {
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
-import { generateTemplateAiTask, previewTemplateAiInput } from "~/server/template-ai-functions";
+import {
+  generateTemplateAiTask,
+  type getTemplatePromotion,
+  previewTemplateAiInput,
+} from "~/server/template-ai-functions";
 import {
   BasePicker,
   CodePayload,
@@ -25,11 +29,13 @@ import {
 export function TemplateAiBrief({
   initialBase,
   detail,
+  promotion,
   onClose,
   onStarted,
 }: {
   initialBase: TemplateBase;
   detail?: TemplateDetail;
+  promotion?: Extract<Awaited<ReturnType<typeof getTemplatePromotion>>, { ok: true }>["value"];
   onClose: () => void;
   onStarted: (id: string) => void;
 }) {
@@ -37,7 +43,8 @@ export function TemplateAiBrief({
     [scope, setScope] = useState<TemplateScope>(
       detail?.design.scope ?? { level: "document", type: null },
     ),
-    [name, setName] = useState(detail?.design.name ?? ""),
+    [name, setName] = useState(detail?.design.name ?? promotion?.destination?.name ?? ""),
+    [destination, setDestination] = useState(promotion?.destination ? "base" : "new"),
     [reservedDesignId] = useState(() => detail?.design.id ?? newId()),
     [brief, setBrief] = useState<TemplateBrief>({
       structure: "Single column",
@@ -45,16 +52,29 @@ export function TemplateAiBrief({
       character: "",
       constraints: "",
     });
+  const target = promotion
+    ? destination === "base"
+      ? promotion.destination
+      : null
+    : detail?.design;
   const input: StartTemplateAiRequest = {
-    id: detail?.design.id ?? null,
-    revision: detail?.design.revision ?? null,
-    reservedDesignId,
+    id: target?.id ?? null,
+    revision: target?.revision ?? null,
+    reservedDesignId: target?.id ?? reservedDesignId,
     expectedInputDigest: null,
     name,
     base,
     scope,
     brief,
     idempotencyKey: "input-preview",
+    ...(promotion
+      ? {
+          sourcePromotion: {
+            checkpointId: promotion.checkpointId,
+            candidateDigest: promotion.candidateDigest,
+          },
+        }
+      : {}),
   };
   const preview = useMutation({
     mutationFn: async (request: StartTemplateAiRequest) => ({
@@ -73,20 +93,83 @@ export function TemplateAiBrief({
   );
   return (
     <EvidenceDialog
-      title={detail ? "Refine this template" : "Describe a template"}
-      description="Design one component using a complete base graph and synthetic content."
+      title={
+        promotion
+          ? "Promote a layout idea"
+          : detail
+            ? "Refine this template"
+            : "Describe a template"
+      }
+      description={
+        promotion
+          ? "Turn a reusable layout idea into a new template Draft. Approved revisions are preserved."
+          : "Design one component using a complete base graph and synthetic content."
+      }
       onClose={onClose}
       dirty={Boolean(brief.character || brief.constraints)}
       pending={generate.isPending}
       wide
     >
-      <div className="space-y-6">
+      <fieldset className="min-w-0 space-y-6" disabled={generate.isPending}>
+        {promotion && (
+          <>
+            <p className="font-mono text-xs tracking-wide text-muted-foreground">
+              FROM ACCEPTED SOURCE CHECKPOINT
+            </p>
+            <section className="space-y-2">
+              <h3 className="text-sm font-semibold">Allowed layout adjustment</h3>
+              <div className="rounded-sm bg-muted p-3 text-sm">
+                {promotion.layout.state === "Isolated" ? (
+                  <ul className="space-y-2">
+                    {promotion.layout.changes.map((change) => (
+                      <li key={change.property}>
+                        {layoutLabels[change.property]}: {change.before} → {change.after}
+                        {change.property === "font"
+                          ? ""
+                          : change.property === "margin"
+                            ? " in"
+                            : " pt"}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <>
+                    <p className="font-semibold">
+                      {promotion.layout.state === "Unavailable"
+                        ? "Layout change cannot be isolated"
+                        : "No supported layout values changed"}
+                    </p>
+                    <p className="mt-2">
+                      Describe the layout intent in a generic design brief below.
+                    </p>
+                  </>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                This describes the latest accepted source adjustment. Template generation receives
+                the generic brief, allowed values, base template and synthetic fixtures.
+              </p>
+            </section>
+            <FormField label="Promotion destination">
+              <select
+                className={selectClass}
+                value={destination}
+                onChange={(event) => setDestination(event.target.value)}
+              >
+                {promotion.destination && (
+                  <option value="base">New Draft revision of the base template</option>
+                )}
+                <option value="new">New template identity</option>
+              </select>
+            </FormField>
+          </>
+        )}
         <div className="grid gap-5 md:grid-cols-2">
           <FormField label="Template name">
-            <Input maxLength={200} value={name} onChange={(event) => setName(event.target.value)} />
+            <Input maxLength={160} value={name} onChange={(event) => setName(event.target.value)} />
           </FormField>
-          <ScopePicker value={scope} onChange={setScope} disabled={Boolean(detail)} />
-          <BasePicker value={base} onChange={setBase} disabled={Boolean(detail)} />
+          <ScopePicker value={scope} onChange={setScope} disabled={Boolean(detail || promotion)} />
+          <BasePicker value={base} onChange={setBase} disabled={Boolean(detail || promotion)} />
           <FormField label="Density">
             <select
               className={selectClass}
@@ -106,7 +189,7 @@ export function TemplateAiBrief({
         <p className="text-base md:text-sm text-muted-foreground">
           Single column · All seven content types · Synthetic fixtures only
         </p>
-        <FormField label="Visual character">
+        <FormField label={promotion ? "Design brief" : "Visual character"}>
           <Textarea
             value={brief.character}
             maxLength={2000}
@@ -163,7 +246,14 @@ export function TemplateAiBrief({
           Generation and preview have separate three-attempt budgets. Review the resulting graph and
           its synthetic PDF before accepting a new Draft.
         </p>
-      </div>
+      </fieldset>
     </EvidenceDialog>
   );
 }
+const layoutLabels = {
+  font: "Body font",
+  bodySize: "Body size",
+  sectionSpacing: "Section spacing",
+  margin: "Page margin",
+  paragraphSpacing: "Paragraph spacing",
+} as const;

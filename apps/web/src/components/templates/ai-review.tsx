@@ -267,6 +267,7 @@ function TemplateAiReviewBody({
               profile: task.profile,
               base: task.base,
               dependency: task.dependency,
+              sourcePromotion: current.sourcePromotion,
             }}
           />
         </div>

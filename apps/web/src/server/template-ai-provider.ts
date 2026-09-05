@@ -9,7 +9,7 @@ export function templateAiProfile(
   return env.OPENAI_API_KEY && env.OPENAI_TEMPLATE_MODEL
     ? {
         model: env.OPENAI_TEMPLATE_MODEL,
-        contract: "river-template-generation-v2",
+        contract: "river-template-generation-v3",
         maxInputCharacters: 160000,
         maxOutputTokens: 12000,
         timeoutMs: 60000,
@@ -36,8 +36,8 @@ export const generateTemplateCandidate = (
     apiKey,
     input,
     profile,
-    profile.contract === "river-template-generation-v2"
-      ? `${instructions}\nFor conversational refinement, follow the current original design instruction within the selected component scope. Selected earlier instructions provide Owner-authored design context only; do not infer other conversation history. Resolve conflicting design preferences in favor of the current instruction. The exact selected base is authoritative; prior instructions do not authorize silently applying discarded proposals. Return one complete candidate for separate review.`
+    profile.contract !== "river-template-generation-v1"
+      ? `${instructions}\nFor conversational refinement, follow the current original design instruction within the selected component scope. Selected earlier instructions provide Owner-authored design context only; do not infer other conversation history. Resolve conflicting design preferences in favor of the current instruction. The exact selected base is authoritative; prior instructions do not authorize silently applying discarded proposals. Return one complete candidate for separate review.${profile.contract === "river-template-generation-v3" ? "\nIf layoutAdjustment is supplied, it contains only bounded generic document values. Apply the after values to the appropriate style overrides; paragraphSpacing changes the document parskip length in points. These values describe the latest accepted adjustment, not a complete private document or permission to reconstruct one. An empty array adds no design instructions. Follow the generic brief for other requested layout preferences, retaining all template slots." : ""}`
       : instructions,
     "template_component",
     templateAiOutputSchema(),

@@ -378,5 +378,6 @@ export const syntheticResume: ResumeDocument = {
 };
 
 export { TEMPLATE_FIXTURE_VERSION, templateFixtures } from "./fixtures";
+export { isolateLayoutAdjustment, type LayoutAdjustment } from "./layout-promotion";
 export { effectiveStyles } from "./manifests";
 export * from "./studio";

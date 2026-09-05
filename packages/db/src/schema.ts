@@ -1130,6 +1130,15 @@ export const templateAiTasks = sqliteTable(
     index("template_ai_destination").on(table.destinationId),
   ],
 );
+export const templateSourcePromotions = sqliteTable("template_source_promotions", {
+  taskId: text("task_id")
+    .primaryKey()
+    .references(() => templateAiTasks.id),
+  checkpointId: text("checkpoint_id")
+    .notNull()
+    .references(() => checkpoints.id),
+  candidateDigest: text("candidate_digest").notNull(),
+});
 export const templateConversations = sqliteTable("template_conversations", {
   id: text("id").primaryKey(),
   ownerId: text("owner_id")

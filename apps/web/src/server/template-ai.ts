@@ -24,6 +24,13 @@ export const previewTemplateAi = (input: StartTemplateAiRequest) =>
       store = yield* Store;
     return yield* attempt(() => store.previewTemplateAi(actor, input));
   });
+export const inspectTemplatePromotion = (env: Env, checkpointId: string) =>
+  Effect.gen(function* () {
+    const actor = yield* Actor,
+      store = yield* Store;
+    const value = yield* attempt(() => store.inspectTemplatePromotion(actor, checkpointId));
+    return { ...value, configured: Boolean(env.TEMPLATE_AI_WORKFLOW && templateAiProfile(env)) };
+  });
 export const retryTemplateAi = (env: Env, input: RetryTemplateAiRequest) =>
   Effect.gen(function* () {
     const actor = yield* Actor,

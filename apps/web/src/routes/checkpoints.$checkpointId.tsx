@@ -16,6 +16,7 @@ import { EvidenceLinks } from "~/components/library/evidence-links";
 import { PdfPreview } from "~/components/pdf-preview";
 import { SourceRefinements } from "~/components/refinement/launch";
 import { StructuredReturn } from "~/components/refinement/structured-return";
+import { TemplatePromotion } from "~/components/refinement/template-promotion";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { WorkspaceShell } from "~/components/workspace-shell";
@@ -68,6 +69,7 @@ function Review({ detail }: { detail: Detail }) {
   const [history, setHistory] = useState(false),
     [refinements, setRefinements] = useState(false),
     [structuredReturn, setStructuredReturn] = useState(false),
+    [templatePromotion, setTemplatePromotion] = useState(false),
     [acknowledge, setAcknowledge] = useState(false),
     [search, setSearch] = useState("");
   const [request, setRequest] = useState<{
@@ -166,9 +168,14 @@ function Review({ detail }: { detail: Detail }) {
             Source refinements
           </Button>
           {detail.source && (
-            <Button variant="outline" onClick={() => setStructuredReturn(true)}>
-              Return to structured editing
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setStructuredReturn(true)}>
+                Return to structured editing
+              </Button>
+              <Button variant="outline" onClick={() => setTemplatePromotion(true)}>
+                Promote a layout idea
+              </Button>
+            </>
           )}
         </div>
         <p className="text-sm text-muted-foreground">
@@ -517,6 +524,12 @@ function Review({ detail }: { detail: Detail }) {
       {refinements && <SourceRefinements detail={detail} onClose={() => setRefinements(false)} />}
       {structuredReturn && (
         <StructuredReturn checkpointId={checkpoint.id} onClose={() => setStructuredReturn(false)} />
+      )}
+      {templatePromotion && (
+        <TemplatePromotion
+          checkpointId={checkpoint.id}
+          onClose={() => setTemplatePromotion(false)}
+        />
       )}
       {history && (
         <CheckpointHistory draftId={checkpoint.draftId} onClose={() => setHistory(false)} />

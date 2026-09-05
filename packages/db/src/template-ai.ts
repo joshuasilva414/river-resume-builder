@@ -25,10 +25,11 @@ import { conditionGuard, createCommands, type Guard, type Write } from "./comman
 import type { Database } from "./index";
 import * as s from "./schema";
 import { createTemplateConversationRepository } from "./template-conversations";
+import { captureTemplatePromotion } from "./template-promotion";
 import type { TemplateDependency } from "./template-types";
 import { createTemplateRepository, requireTemplateOwner } from "./templates";
 
-/** Template generation can read templates and canonical fixtures only, never workspace content. */
+/** Model input contains templates and synthetic fixtures; source promotion crosses an allowlisted value boundary. */
 export function createTemplateAiRepository(db: Database) {
   const commands = createCommands(db),
     templates = createTemplateRepository(db),
@@ -102,6 +103,23 @@ export function createTemplateAiRepository(db: Database) {
         message: "Name the template and describe its visual character.",
       });
     const base = await templates.resolveTemplateBase(ownerId, request.base);
+    const promotion = request.sourcePromotion
+      ? await captureTemplatePromotion(db, ownerId, request.sourcePromotion.checkpointId)
+      : null;
+    if (
+      promotion &&
+      (promotion.candidateDigest !== request.sourcePromotion?.candidateDigest ||
+        canonicalJson(promotion.base) !== canonicalJson(request.base) ||
+        request.scope.level !== "document" ||
+        (request.id !== null &&
+          (request.id !== promotion.destination?.id ||
+            request.revision !== promotion.destination.revision)))
+    )
+      throw new ApplicationError({
+        code: "Conflict",
+        message:
+          "Review the exact source checkpoint and its appropriate base template before promotion.",
+      });
     let dependency: TemplateDependency | null = null;
     if (request.base.kind === "saved") {
       const row = await templates.getTemplateRevision(ownerId, request.base.revisionId);
@@ -143,6 +161,7 @@ export function createTemplateAiRepository(db: Database) {
       type: "template-generation",
       scope: request.scope,
       brief: request.brief,
+      ...(promotion ? { layoutAdjustment: promotion.layout.changes } : {}),
       conversation: turn.input,
       baseGraph: base.graph,
       destination: {
@@ -164,6 +183,9 @@ export function createTemplateAiRepository(db: Database) {
       destinationRevision: request.revision,
       name: request.name,
       turn,
+      promotion: promotion
+        ? { checkpointId: promotion.checkpointId, candidateDigest: promotion.candidateDigest }
+        : null,
     };
   }
   const operationWrites = (
@@ -186,6 +208,10 @@ export function createTemplateAiRepository(db: Database) {
   const active = (taskId: string, operationId: string) =>
     sql`EXISTS (SELECT 1 FROM template_ai_tasks t JOIN operations o ON o.id=t.latest_operation_id WHERE t.id=${taskId} AND o.id=${operationId} AND o.state IN ('Pending','Running'))`;
   return {
+    async inspectTemplatePromotion(actor: Principal, checkpointId: string) {
+      requireTemplateOwner(actor);
+      return captureTemplatePromotion(db, actor.ownerId, checkpointId);
+    },
     async previewTemplateAi(actor: Principal, request: StartTemplateAiRequest) {
       requireTemplateOwner(actor);
       const captured = await capture(actor.ownerId, request),
@@ -230,7 +256,7 @@ export function createTemplateAiRepository(db: Database) {
           const id = newId(),
             operationId = newId(),
             inputDigest = await fingerprint(canonicalJson(captured.input));
-          const { turn, ...taskInput } = captured;
+          const { turn, promotion, ...taskInput } = captured;
           return {
             result: { id, revision: 0, revisionId: operationId },
             guards: [
@@ -250,6 +276,9 @@ export function createTemplateAiRepository(db: Database) {
                 createdAt: Date.now(),
               }),
               ...turn.writes(id),
+              ...(promotion
+                ? [db.insert(s.templateSourcePromotions).values({ taskId: id, ...promotion })]
+                : []),
             ],
             history: [
               {
@@ -262,6 +291,7 @@ export function createTemplateAiRepository(db: Database) {
                   scope: request.scope,
                   conversationId: captured.turn.input.id,
                   turn: captured.turn.input.turn,
+                  ...(promotion ? { sourcePromotion: promotion } : {}),
                 },
               },
             ],
@@ -294,7 +324,23 @@ export function createTemplateAiRepository(db: Database) {
       const candidateGraphDigest = proposal?.payload
         ? await fingerprint(canonicalJson(proposal.payload.graph))
         : null;
-      return { task, proposal, operation, staleReasons, currentBase, candidateGraphDigest };
+      const sourcePromotion =
+        (
+          await db
+            .select()
+            .from(s.templateSourcePromotions)
+            .where(eq(s.templateSourcePromotions.taskId, id))
+            .limit(1)
+        )[0] ?? null;
+      return {
+        task,
+        proposal,
+        operation,
+        staleReasons,
+        currentBase,
+        candidateGraphDigest,
+        sourcePromotion,
+      };
     },
     async listTemplateAi(ownerId: string, request: TemplateAiList) {
       const designFilter = request.designId

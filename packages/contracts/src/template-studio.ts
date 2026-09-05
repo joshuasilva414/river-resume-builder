@@ -65,6 +65,12 @@ export const StartTemplateAiRequest = Schema.Struct({
   base: TemplateBase,
   scope: TemplateScope,
   brief: TemplateBrief,
+  sourcePromotion: Schema.optional(
+    Schema.Struct({
+      checkpointId: RecordId,
+      candidateDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
+    }),
+  ),
   conversation: Schema.optional(
     Schema.Struct({
       id: RecordId,
