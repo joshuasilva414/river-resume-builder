@@ -4,8 +4,8 @@
   "applicationUrl": "https://river-staging.jilva.workers.dev",
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
-  "webVersion": "6c544922-2ada-4cdd-ad38-77c0574e812e",
-  "documentWorkerVersion": "41b6ee79-64cf-4a54-919b-06add26319a9",
+  "webVersion": "49335aaa-0091-47fd-aed7-56302915cf5b",
+  "documentWorkerVersion": "8ad4cf9e-bb6e-4a1d-8fbc-7107e78f818f",
   "containerImageDigest": "sha256:a35ce74287fdce2c7a7152e2afd107ac2d9b736bd31b8f9eb8b42bdf5cec3a2f",
   "database": "river-staging",
   "databaseId": "1b837147-de99-4aaa-a4ad-386b826412b0",
@@ -63,7 +63,8 @@
     "hostedSourceRefinement": "Passed on third bounded preview after one real generation: complete source, intended field, unchanged extracted text, both real PDFs and complete passing reports inspected. Anonymous preview returns 401. Candidate remains Pending; no acceptance. Earlier two 422 failures remain unattributed.",
     "currentSchemaRestore": "Passed: fresh isolated local SQLite from migration 0026 backup, 71 base tables, exact FTS equality, foreign keys, one citation, 50 retained objects and one exported checkpoint. No remote cutover.",
     "documentDiagnostics": "Offline full fixture suite passed; fixed protocol/stage headers identify malformed input and prohibited source without exposing exception contents. Peak memory 421687296 bytes.",
-    "templateScoring": "Deployed: canonical fixture capture, bounded qualification Workflow, Owner review and protected artifact route. Hosted fixed Classic empty/unavailable state verified; anonymous artifact request returns 401. ATS provider origin remains unset; no hosted score or designation."
+    "templateScoring": "Deployed: canonical fixture capture, bounded qualification Workflow, Owner review and protected artifact route. Hosted fixed Classic empty/unavailable state verified; anonymous artifact request returns 401. ATS provider origin remains unset; no hosted score or designation.",
+    "applicationDiagnostics": "Passed: one JSON event per application execution, anonymous 401 traceId matches response, authenticated outcomes include elapsed spans, and successful dispatch records identical Operation/Workflow IDs. 139 Workers tests, workspace types/lint and staging build pass."
   },
   "hostedRuntimeSamples": [
     {
@@ -144,7 +145,7 @@
     "validation": "All four fixtures rendered twice and passed; Validated, awaiting separate Owner visual approval.",
     "conversationId": "01a071e6-f217-7952-93c0-b97743159fc3"
   },
-  "deployedWebCommit": "c3bfc9d",
+  "deployedWebCommit": "149d87f",
   "scoringWorkflow": "river-staging-scoring",
   "sourceRefinementWorkflow": "river-staging-source-refinement",
   "hostedHistory": {
@@ -173,7 +174,7 @@
     "previewFingerprint": "ab9485a7cb387774fe2d93ae269fe54092172cf150b2e5f6575092dbd6feb451",
     "documentMs": 11408.33835
   },
-  "deployedDocumentCommit": "fc2b6f0",
+  "deployedDocumentCommit": "149d87f",
   "templateScoringRelease": {
     "commit": "570278e",
     "workflow": "river-staging-template-scoring",
@@ -240,5 +241,12 @@
       "01a0734e-e11d-74de-a0b8-05d9edeb222a"
     ],
     "fingerprint": "12975f6a16a3b966022b3201259c142df5c3ac1350d38dcc758c38a2853ee4a9"
+  },
+  "applicationDiagnostics": {
+    "commit": "149d87f",
+    "unauthorizedTraceId": "01a07360-66fe-7a3d-b517-f2ab89edd876",
+    "operationId": "01a07360-933f-7bee-af1f-6477c5d43767",
+    "dispatchMs": 628,
+    "containerRollout": false
   }
 }

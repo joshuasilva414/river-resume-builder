@@ -120,7 +120,7 @@ Depends on Phase 0.
 - [ ] Implement owner bootstrap and both login methods, verification/recovery, revocation, and protected routes/downloads.
 - [x] Implement credential creation, one-time secret display, scopes, expiration, revocation, and credential activity.
 - [x] Implement shared command execution, optimistic concurrency, permanent idempotency, and activity history.
-- [ ] Add correlated diagnostics with redaction and CI checks for types, formatting/linting, focused tests, and builds.
+- [x] Add correlated diagnostics with redaction and CI checks for types, formatting/linting, focused tests, and builds. Hosted request/Problem Details and Operation/Workflow correlation passed; see `diagnostics.md`.
 
 Exit: owner and agent capabilities are distinct; duplicate requests do not duplicate mutations; conflicting requests cannot overwrite newer state.
 
