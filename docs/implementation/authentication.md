@@ -25,6 +25,8 @@ Reproduce with `pnpm --filter @river/web exec vitest run test/auth.test.ts test/
 
 ## Hosted acceptance limits
 
+Commit `dc27521` is deployed to personal staging as Worker version `230d70d0-0600-4020-818c-e46daf72f84a`. The schema and document Container are unchanged.
+
 The Owner has created and verified the staging account and authenticated multiple persisted workflows. Verification email delivery and protected routes are established. This local recovery test does not establish hosted reset email delivery or Owner password entry. Completing that journey requires the Owner to enter a new password in the existing reset page. No Owner password was changed by this work, and no existing staging session was revoked merely by deploying the setting.
 
 The personal GitHub OAuth app form is prepared for `https://river-staging.jilva.workers.dev/api/auth/callback/github`. Registration and credential installation remain pending approval. A real hosted Agent Credential journey remains separate from the passing local/service checks.

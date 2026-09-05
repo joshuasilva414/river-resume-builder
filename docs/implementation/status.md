@@ -44,7 +44,7 @@ GitHub OAuth remains unconfigured. The Owner-approved OpenAI and daily backup cr
 
 ## Latest deployed milestone
 
-Staging is through migration `0027_source_upload_checks.sql`. Web commit `61c0ac9` is deployed as `6713b49e-c25b-428f-a27a-2059f83bee44`; exact document/image identities are in `deployment.json`. The latest migration adds only upload-check maintenance state; the Container is unchanged. The requirement citation correction passed all 136 Workers tests across 24 files, workspace type/lint checks and staging build. The subsequent ranking guard passed ten focused job tests and the same workspace/build checks; the full suite was not repeated for that narrower change. Source refinement, checkpoint scoring and template scoring Workflows are bound.
+Staging is through migration `0027_source_upload_checks.sql`. Web commit `dc27521` is deployed as `230d70d0-0600-4020-818c-e46daf72f84a`; exact document/image identities are in `deployment.json`. The latest change revokes Owner sessions when a password reset completes. All 142 Workers tests, workspace types/lint and the staging build pass. This release changes neither the schema nor the Container. Source refinement, checkpoint scoring and template scoring Workflows remain bound.
 
 Explicit labeled checkpoints, chronology, independent restoration branches and pinned full content/PDF comparisons are deployed. The hosted synthetic fixture restored and rendered a new branch, captured a labeled checkpoint and displayed both actual PDFs with independent zoom. The original exported checkpoint remains unchanged. Local concurrent-tab checks keep the selected older revision until explicit refresh. Exact cross-checkpoint score selectors and reviewed template replacement during source regeneration are implemented. See `history.md`.
 
@@ -69,6 +69,8 @@ Upload reconciliation now rotates its bounded 50-source scan and isolates indivi
 Actual 390 × 844 Chrome checks now cover Sources, light/dark history and wording review, exact content and both retained PDFs, backup status and earlier failures, scoring availability and retained PDF download. A confirmed wording-dialog focus loss is fixed and verified locally and hosted. No page design changed. The viewport was reset. GitHub OAuth registration is prepared in the personal account but remains unsubmitted pending credential-creation approval. See `mobile-review.md`.
 
 Live clarification now passes the complete hosted path: first-attempt provider questions, individual Draft creation, immutable supporting-source intake, a new cited Evidence Revision, explicit answer-source selection and retained answer after reload. Original and answering revisions remain inspectable. The metric sibling was rejected with its payload removed. The fictional Draft is archived; D1 confirms zero verification decisions. No code changed or tests were rerun for this journey. See `source-proposals.md`.
+
+The release audit then reproduced a password-recovery gap: successful resets left existing sessions authenticated. The fix enables Better Auth's explicit revocation option. Isolated tests prove Owner-only mail, the actual callback, two-session revocation, new-password sign-in and used/expired-token rejection. The deployed setting leaves current sessions intact until a reset completes. Hosted Owner password entry remains pending; no Owner password was changed. See `authentication.md` and the consolidated `release-gates.md`.
 
 ## Remaining V1 work
 
