@@ -25,3 +25,11 @@ Web types, focused Biome checks and the staging build passed for this UI correct
 History baseline: checkpoint `01a072c6-9255-7d8f-bc16-f44d904b5c6b`; current draft `01a072c5-ae2a-7b48-b1a3-900b94ff1b7c`, r4. Comparison PDF Operations: `01a072c6-9255-7ba4-a78f-227d70cf9209` and `01a07313-0e47-77fc-858b-7d07437af265`. Wording task: `01a07311-6a9e-7cb5-9aaf-2fc36154b94b`. Retained export: checkpoint `01a07091-d743-76c2-a7ee-51294410467a`, PDF Operation `01a07095-99dd-744e-8d97-351520d5d9f8`.
 
 This establishes the listed review states, not every mobile workflow. Live scoring/qualification results, source-publication acceptance and the real Owner tailoring session remain release work. No MVP or V1 release is claimed.
+
+## Populated scoring acceptance — 2026-09-05
+
+After successful GitHub sign-in, Chrome reviewed checkpoint `01a07091-d743-76c2-a7ee-51294410467a` at an actual 390 × 844 viewport. Light and dark appearance display both completed runs, all six platform rows, below-threshold outcomes and selectable dimensional findings. The dark exact-result comparison displays both pinned result IDs, matching identity/snapshot notice, six independent zero deltas and the comparison policy.
+
+Screenshots confirmed the results and comparison tables fit. The document measured 390 pixels; each modal measured 388 client/scroll pixels, including both nested dialogs. No page-level horizontal overflow was observed. The temporary viewport override was reset after review. No new score, finding decision, checkpoint or export was created by this mobile inspection. Scoring runs were created by the earlier approved desktop acceptance.
+
+This completes populated checkpoint-scoring review for the recorded states. Canonical qualification, error/retry and incompatible-result mobile states remain separate coverage.

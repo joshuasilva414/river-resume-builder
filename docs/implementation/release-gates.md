@@ -4,7 +4,7 @@ Updated 2026-09-05. V1 is not released. This maps the remaining plan gates to co
 
 ## Service and persistence gate
 
-The complete Workers run recorded in `/tmp/river-approved-full-tests.log` passed 151 tests in 26 files, including the password-reset session-revocation correction and earlier dialog focus fix. All workspace type/lint checks, both environment builds and production dry runs passed. The following assertions satisfy M6's focused integration-test gate; hosted credential and provider acceptance remain separate.
+The complete Workers run recorded in `/tmp/river-approved-final-tests.log` passed 152 tests in 26 files, including the password-reset session-revocation correction and earlier dialog focus fix. All workspace type/lint checks and the clean staging build passed. Production build/dry-run verification was recorded earlier for `a797477`; production remains unpublished. The following assertions satisfy M6's focused integration-test gate; hosted credential and provider acceptance remain separate.
 
 | Contract | Verification |
 | --- | --- |
@@ -26,10 +26,10 @@ Hosted Agent Credential acceptance passed with real REST/MCP source, evidence an
 
 The following work still prevents V1 release:
 
-- Required GitHub OAuth and hosted password recovery. The personal GitHub app is registered and staging credential installation is approved; GitHub requires Owner identity verification before secret generation; the Owner must enter a new password for the hosted recovery journey.
+- Hosted password recovery. GitHub OAuth now passes real Owner sign-in; the Owner must enter a new password to complete the separate reset journey.
 - Explicit source-refinement acceptance, retained export, structured return and template promotion. Candidate rendering passed; acceptance remains pending the Owner review attestation.
-- ATS identity deployment and two synthetic provider requests passed. River integration, compatible comparisons, failure/retry and canonical template qualification remain open. No tested designation is awarded.
-- Populated mobile scoring/qualification review and a restore containing real scoring records.
+- Live scoring failure/retry and canonical template qualification. ATS deployment, authenticated six-platform scoring, cached identity preservation and compatible comparisons now pass. No tested designation is awarded.
+- Populated canonical qualification review and its restore. Checkpoint-scoring phone review and the isolated restore now pass with two complete runs and preserved cache identity.
 - One real Owner job-tailoring session within 15 minutes, using Owner-selected job and evidence files.
 - Production secret/authentication setup, `river.jilva.dev` deployment and final production acceptance. Isolated personal-account D1/R2 resources, all 28 migrations, environment-specific backup handling and an empty production restore are prepared; see `production.md`.
 

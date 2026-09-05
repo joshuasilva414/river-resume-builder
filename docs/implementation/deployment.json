@@ -4,7 +4,7 @@
   "applicationUrl": "https://river-staging.jilva.workers.dev",
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
-  "webVersion": "8362a12e-d080-42fb-8588-1a4c157b2dd0",
+  "webVersion": "5e0fc3ae-0c56-4f53-93f9-af5b72272d62",
   "documentWorkerVersion": "8ad4cf9e-bb6e-4a1d-8fbc-7107e78f818f",
   "containerImageDigest": "sha256:a35ce74287fdce2c7a7152e2afd107ac2d9b736bd31b8f9eb8b42bdf5cec3a2f",
   "database": "river-staging",
@@ -61,14 +61,16 @@
     "backupSettings": "Desktop and actual 390px light/dark status, safe failure inspection, successful retention and preserved three-attempt history verified against staging. Bounded retry was verified in the earlier desktop journey.",
     "templateConversation": "Hosted accepted turn, complete original brief, same-scope prior-instruction default and pinned accepted base verified in the conversation. Concurrent and pagination behavior covered in Workers tests.",
     "hostedHistory": "Passed: restored an independent synthetic Classic branch, rendered r0, captured a labeled checkpoint, inspected lineage and pinned complete content/PDF comparison. Both actual PDFs render with independent zoom. No new export attestation.",
-    "hostedScoring": "Workflow and Owner UI deployed; provider origin unset, new submissions unavailable. ATS deployment approval remains pending.",
+    "hostedScoring": "Passed: two first-attempt authenticated synthetic checkpoint Workflows, six complete simulations, exact 17/95 input coverage, raw retention, cached identity preservation and compatible zero-delta comparison. Export remains available. Light/dark 390px results and compatible comparison pass; qualification and outage/retry remain separate.",
     "hostedSourceRefinement": "Passed on third bounded preview after one real generation: complete source, intended field, unchanged extracted text, both real PDFs and complete passing reports inspected. Anonymous preview returns 401. Candidate remains Pending; no acceptance. Earlier two 422 failures remain unattributed.",
-    "currentSchemaRestore": "Passed: fresh isolated local SQLite from migration 0027 backup, 72 base tables, exact FTS equality, foreign keys, seven citations, 88 retained objects and one exported checkpoint. Clarification answer/source/revision, archived Draft and rejected null payload verified. No remote cutover; scoring remains unpopulated.",
+    "currentSchemaRestore": "Passed: isolated SQLite with 72 tables, 98 immutable objects, eight exact citations, original export, two live scoring runs with exact raw digests and cached identity, and existing Owner password/GitHub linkage. No remote cutover; template qualification remains unpopulated.",
     "documentDiagnostics": "Offline full fixture suite passed; fixed protocol/stage headers identify malformed input and prohibited source without exposing exception contents. Peak memory 421687296 bytes.",
     "templateScoring": "Deployed: canonical fixture capture, bounded qualification Workflow, Owner review and protected artifact route. Hosted fixed Classic empty/unavailable state verified; anonymous artifact request returns 401. ATS provider origin remains unset; no hosted score or designation.",
     "applicationDiagnostics": "Passed: one JSON event per application execution, anonymous 401 traceId matches response, authenticated outcomes include elapsed spans, and successful dispatch records identical Operation/Workflow IDs. 139 Workers tests, workspace types/lint and staging build pass.",
     "sourceUploadRecovery": "Deployed: persistent least-recently-checked scan of at most 50 uploads and isolated redacted R2 failures. 141 Workers tests, workspace types/lint and staging build pass. Hosted original source records remain Ready. Batch-boundary and failure injection are local Workers tests, not hosted injected failures.",
-    "mobileReview": "Passed at actual 390x844 Chrome viewport: source list, light/dark history and wording review, exact content and both retained PDFs, light/dark backup status and failure history, unavailable scoring state and retained PDF download action. Focus-return correction passed locally and hosted. Populated scoring/mobile acceptance remain unverified; see mobile-review.md."
+    "mobileReview": "Passed at actual 390x844 Chrome viewport: source list, light/dark history and wording review, exact content and both retained PDFs, light/dark backup status and failure history, unavailable scoring state and retained PDF download action. Focus-return correction passed locally and hosted. Populated scoring/mobile acceptance remain unverified; see mobile-review.md.",
+    "hostedGithub": "Passed: personal River staging app, exact callback, read-only email/profile scopes, fresh Chrome OAuth sign-in, protected checkpoint access and existing Owner account linkage.",
+    "hostedAgentAccess": "Passed: six scoped source/evidence/job REST/MCP capabilities, exact citations, shared idempotency, stale writes, denied review/archive scopes, revocation and both endpoints returning 401. Fictional claim/job archived."
   },
   "hostedRuntimeSamples": [
     {
@@ -141,6 +143,20 @@
       "clarificationAnswerRestored": true,
       "published": false,
       "populatedScoring": false
+    },
+    "hostedScoringDrill": {
+      "key": "backups/database/staging/2026-09-05T23-44-30.457Z-ec37af2f-7f03-4549-bd23-5a557f136362/snapshot.json.gz",
+      "sha256": "11370a748cd35d5d7edd958f4aa3cce11dbde5520b2ddc2eb04946d7013f8f16",
+      "report": "test-results/recovery/drill-1b616dbe-170a-488e-9db1-6e29015be5cd/report.json",
+      "tables": 72,
+      "objects": 98,
+      "citations": 8,
+      "exportedCheckpoints": 1,
+      "scoringRuns": 2,
+      "scoringRawDigestsVerified": true,
+      "cachedIdentityPreserved": true,
+      "ownerAuthProviders": ["credential", "github"],
+      "published": false
     }
   },
   "jobAnalysisWorkflow": "river-staging-job-analysis",
@@ -161,7 +177,7 @@
     "validation": "All four fixtures rendered twice and passed; Validated, awaiting separate Owner visual approval.",
     "conversationId": "01a071e6-f217-7952-93c0-b97743159fc3"
   },
-  "deployedWebCommit": "a797477",
+  "deployedWebCommit": "05238d5",
   "requestLifetimeProof": {
     "webVersion": "230d70d0-0600-4020-818c-e46daf72f84a",
     "report": "test-results/runtime/river-lifetime-4c7f4b67-b5c5-4ed2-b735-86101a834fc2/report.json",
@@ -219,7 +235,7 @@
       "citations": 1,
       "exportedCheckpoints": 1
     },
-    "providerConfigured": false
+    "providerConfigured": true
   },
   "inlineWording": {
     "commit": "fd614d6",
@@ -296,7 +312,10 @@
     "wordingFocusRestored": true,
     "savedDraftRevision": 4,
     "checkpointRevision": 0,
-    "populatedScoring": false
+    "populatedScoring": true,
+    "scoringComparison": true,
+    "scoringAppearance": ["light", "dark"],
+    "qualification": false
   },
   "productionPreparation": {
     "applicationPublished": false,
@@ -328,5 +347,50 @@
     "stagingWebVersion": "8362a12e-d080-42fb-8588-1a4c157b2dd0",
     "supersededStagingWebVersion": "b3ef72dc-a8f8-468e-8dcc-2fdffb2244d3",
     "cleanGeneratedOutput": true
+  },
+  "githubOAuth": {
+    "appId": "3839574",
+    "clientId": "Ov23liu8Dx6Sb3xJJ5MB",
+    "owner": "joshuasilva414",
+    "callback": "https://river-staging.jilva.workers.dev/api/auth/callback/github",
+    "hostedVerified": true,
+    "credentialFileRemoved": true,
+    "wildcards": false,
+    "deviceFlow": false
+  },
+  "scoringProvider": {
+    "origin": "https://ats.jilva.dev",
+    "workerVersion": "a92d53b4-3159-4757-b2a3-0a85dfceb847",
+    "sourceCommit": "fdd17c3",
+    "existingSetupFilesUncommitted": true,
+    "buildId": "4035124d-7dab-48bb-ab4e-831cfc46d442",
+    "reportedModel": "gemini-3.5-flash-lite",
+    "hostedCacheVerified": true
+  },
+  "hostedScoring": {
+    "checkpointId": "01a07091-d743-76c2-a7ee-51294410467a",
+    "runIds": ["01a073f2-5579-7a3a-99b1-4ea3e586bbe8", "01a073f4-331d-7f35-b652-f7795e70bea1"],
+    "operationIds": [
+      "01a073f2-5579-7604-84ad-d92449cde648",
+      "01a073f4-331d-7821-8a65-38dabd9058bf"
+    ],
+    "attempts": [1, 1],
+    "cached": [false, true],
+    "inputCoverage": {
+      "resumeText": 17,
+      "jobDescription": 95,
+      "complete": true
+    },
+    "compatibleComparison": true,
+    "templateQualification": false
+  },
+  "hostedAgentAccess": {
+    "credentialId": "01a073de-170e-7927-8505-94c97eb79c74",
+    "revoked": true,
+    "restAfterRevocation": 401,
+    "mcpAfterRevocation": 401,
+    "report": "test-results/agent-access/d37ede9a-bac3-4608-97ca-10b758ebd719/report.json",
+    "claimArchived": true,
+    "jobArchived": true
   }
 }

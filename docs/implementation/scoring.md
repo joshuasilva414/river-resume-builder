@@ -1,6 +1,6 @@
 # ATS scoring implementation
 
-Phase 3 is in progress. Scoring persistence, bounded Workflows, atomic Save & score, finding decisions, comparisons and the Paper-based interface are deployed to staging. The approved ATS identity deployment and synthetic provider acceptance passed. The River staging adapter correction and provider configuration are ready for deployment; hosted River scoring remains to be verified. The design contract is `history-scoring-design.md`.
+Phase 3 is in progress. Scoring persistence, bounded Workflows, atomic Save & score, finding decisions, comparisons and the Paper-based interface are deployed to staging. The approved ATS identity deployment, synthetic provider acceptance and two authenticated River scoring Workflows passed. The second hosted result came from the provider cache; compatible saved-result comparison passed. The design contract is `history-scoring-design.md`.
 
 ## River adapter foundation
 
@@ -10,7 +10,7 @@ Comparison policy `river-reported-scoring-identity-v1` requires the same provide
 
 `apps/web/src/server/scoring-provider.ts` captures `/api/version` capabilities before any résumé submission. New submissions require the supported effective-limit metadata. It sends exact saved strings to `/api/analyze`, does not follow redirects or attach browser credentials, and limits the actual response stream to 256 KiB. Capability responses are limited to 16 KiB. Requests have 10-second discovery and 65-second scoring deadlines. The adapter performs no automatic retries. Rate limits retain a parsed retry time; cancellation, outages, incompatible capabilities and malformed output have safe typed failures without provider body contents.
 
-`ATS_SCREENER_ORIGIN` is an optional validated HTTPS origin. It is not configured or enabled yet. Result identity always comes from the scoring response; the separate version observation never supplies or replaces it. Full raw JSON is retained in D1 alongside validated fields.
+`ATS_SCREENER_ORIGIN` is an optional validated HTTPS origin. Staging now uses `https://ats.jilva.dev`; production remains unset. Result identity always comes from the scoring response; the separate version observation never supplies or replaces it. Full raw JSON is retained in D1 alongside validated fields.
 
 Verification: four domain tests, five Workers adapter tests, workspace type checks and lint pass. The adapter tests use synthetic mocked responses only. Persistent operations and captured artifact/text/job fingerprints are now implemented below; finding decisions are implemented below; hosted tests remain open.
 
@@ -64,8 +64,25 @@ Two real fictional full-score requests returned HTTP 200, six simulations, compl
 
 The first live response named one simulation `SAP SuccessFactors`, while the advertised capability and River use `SuccessFactors`. River's shared provider-response validator now canonicalizes this exact alias in system names and suggestion references before strict domain validation. Both HTTP acceptance and D1 retention use this validator. Unknown names, duplicate simulations and duplicate suggestion references still fail. Full raw JSON and returned scoring identity remain unchanged. The captured fictional input/version/response is a committed contract fixture. Seven focused Workers adapter tests and eleven scoring persistence tests pass, including aliased raw-response retention through publication with its exact digest. All five domain tests, 152 Workers tests across 26 files, workspace types/lint and the clean staging build pass.
 
-River staging configuration now names `https://ats.jilva.dev`; the provider is not enabled on the deployed River Worker until that tested build is deployed. Production configuration remains unset. This deployment approval does not authorize a source-refinement review attestation.
+River staging now uses `https://ats.jilva.dev` with code `05238d5`. Web deployment `c3ce5019-2abd-48fb-939d-abd695bdae22` became `5e0fc3ae-0c56-4f53-93f9-af5b72272d62` after the approved GitHub secret installation. Production configuration remains unset. This deployment approval does not authorize a source-refinement review attestation.
 
 ## Canonical qualification foundation
 
-The separate `river-ats-fixtures-v1` set and strict all-fixture qualification rule are implemented locally. All three synthetic documents render with complete text integrity in all three fixed packs. All 32 template tests, 21 focused Workers tests, workspace types/lint, the staging build and offline Container fixtures pass. No real scoring request or badge is claimed. Durable qualification runs and Paper's fixture review remain to be implemented; see `template-scoring.md`.
+The separate `river-ats-fixtures-v1` set and strict all-fixture qualification rule are implemented and deployed. All three synthetic documents render with complete text integrity in all three fixed packs. All 32 template tests, 21 focused Workers tests, workspace types/lint, the staging build and offline Container fixtures pass. No real template qualification or badge is claimed. Durable qualification runs and Paper's fixture review are deployed and await canonical hosted acceptance; see `template-scoring.md`.
+
+## Hosted checkpoint scoring acceptance — 2026-09-05
+
+The Owner browser submitted the existing fictional checkpoint `01a07091-d743-76c2-a7ee-51294410467a`. Its exact saved text is `Synthetic Person\n` (17 UTF-16 units), with a 95-unit explicitly fictional job snapshot `01a07069-09f0-7477-8e8c-9dc5d03d99d3`. This sparse fixture establishes execution and retention, not résumé quality.
+
+Both runs succeeded on their first bounded attempts:
+
+| Run | Operation | Cached | Raw result digest |
+| --- | --- | --- | --- |
+| `01a073f2-5579-7a3a-99b1-4ea3e586bbe8` | `01a073f2-5579-7604-84ad-d92449cde648` | false | `bdf170f006d29a1d358d29b28044b2ef81479067fda7985641df42354926dcbb` |
+| `01a073f4-331d-7f35-b652-f7795e70bea1` | `01a073f4-331d-7821-8a65-38dabd9058bf` | true | `2e5310e75721ba264a17a4f026d261eac8fab531bd5bb08667efb9b2109117bc` |
+
+D1 retains complete 17/17 and 95/95 input coverage, original raw responses, all six simulations and the same actual returned scoring identity recorded above. The browser displayed the five dimensions, full findings, identity and chronological attempts. Selecting the exact earlier result produced a compatible comparison and six zero deltas. The cached response retained the winning identity; its raw digest differs because cached metadata differs.
+
+The provider classified all six scores below threshold. Its explanation inaccurately described the name-only input as blank and made unverified claims about vendor internals. River preserves those statements as provider suggestions; they remain Unreviewed and do not establish evidence. The original passing document report, acknowledgment and retained PDF download remain available. No new export or finding attestation was submitted.
+
+Populated light/dark phone results and the compatible comparison now pass at 390 × 844; see `mobile-review.md`. Canonical template qualification, live failure/retry and differing-snapshot browser comparisons remain separate acceptance work. The shared validator and local tests cover missing/incompatible identities and suppressed deltas.
