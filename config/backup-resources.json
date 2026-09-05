@@ -1,0 +1,14 @@
+{
+  "staging": {
+    "accountId": "a91c30d69981b341efe3b656a263f6da",
+    "databaseId": "1b837147-de99-4aaa-a4ad-386b826412b0",
+    "database": "river-staging",
+    "bucket": "river-staging-artifacts"
+  },
+  "production": {
+    "accountId": "a91c30d69981b341efe3b656a263f6da",
+    "databaseId": "50d255b8-840b-4d03-87d9-c3fb9e810366",
+    "database": "river-production",
+    "bucket": "river-production-artifacts"
+  }
+}

@@ -4,7 +4,8 @@ import { BackupExport, backupCatalogQuery, canonicalJson, fingerprint } from "@r
 import { Schema } from "effect";
 import {
   backupConfigured,
-  backupResources,
+  backupEnvironment,
+  backupTargets,
   exportDatabase,
   retainBackupManifest,
   safeBackupFailure,
@@ -42,6 +43,9 @@ export class BackupWorkflow extends WorkflowEntrypoint<Env, { operationId: strin
     const store = createRepository(this.env.DB),
       id = event.payload.operationId;
     try {
+      const environment = backupEnvironment(this.env);
+      if (!environment) throw new Error("Daily backup settings are unavailable.");
+      const resources = backupTargets[environment];
       const captured = await step.do("capture-backup-schema", persistenceStep, async () => {
         if (!backupConfigured(this.env)) throw new Error("Daily backup settings are unavailable.");
         const operation = await store.getOperation(id);
@@ -63,15 +67,24 @@ export class BackupWorkflow extends WorkflowEntrypoint<Env, { operationId: strin
           ...(await backupSchema(this.env.DB)),
           date: operation.input.date,
           createdAt: new Date(backup.createdAt).toISOString(),
+          environment,
+          resources,
         };
       });
       if (!captured) return;
-      const prefix = `backups/database/staging/${captured.date}-${id}`;
+      // Previously captured Workflow steps were staging-only and omitted this resource tuple.
+      if (
+        (captured.environment ?? "staging") !== environment ||
+        canonicalJson(captured.resources ?? backupTargets.staging) !== canonicalJson(resources)
+      )
+        throw new Error("Daily backup settings are unavailable.");
+      const prefix = `backups/database/${environment}/${captured.date}-${id}`;
       const data = await step.do(
         "export-and-retain-sql",
         { retries: { limit: 2, delay: "10 seconds", backoff: "constant" }, timeout: "2 minutes" },
         () =>
           exportDatabase({
+            environment,
             token: this.env.D1_EXPORT_API_TOKEN ?? "",
             tables: captured.tables,
             key: `${prefix}/data.sql`,
@@ -91,7 +104,7 @@ export class BackupWorkflow extends WorkflowEntrypoint<Env, { operationId: strin
             format: "river-d1-export-v2",
             id,
             createdAt: captured.createdAt,
-            resources: backupResources,
+            resources,
             tables: captured.tables,
             migrations: captured.migrations,
             data,

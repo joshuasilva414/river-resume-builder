@@ -1,23 +1,27 @@
 import { createHash } from "node:crypto";
 import { type BackupObject, fingerprint } from "@river/domain";
 import { Schema } from "effect";
+import backupTargets from "../../../../config/backup-resources.json";
 import type { Env } from "./env";
 
-export const backupResources = {
-  accountId: "a91c30d69981b341efe3b656a263f6da",
-  databaseId: "1b837147-de99-4aaa-a4ad-386b826412b0",
-  database: "river-staging",
-  bucket: "river-staging-artifacts",
-} as const;
+export { backupTargets };
+export type BackupEnvironment = keyof typeof backupTargets;
+
+/** Match the whole resource tuple so a mixed environment can never export another database. */
+export function backupEnvironment(
+  env: Pick<Env, "ENVIRONMENT" | "BACKUP_ACCOUNT_ID" | "BACKUP_DATABASE_ID" | "BACKUP_BUCKET_NAME">,
+): BackupEnvironment | null {
+  if (env.ENVIRONMENT === "development") return null;
+  const target = backupTargets[env.ENVIRONMENT];
+  return env.BACKUP_ACCOUNT_ID === target.accountId &&
+    env.BACKUP_DATABASE_ID === target.databaseId &&
+    env.BACKUP_BUCKET_NAME === target.bucket
+    ? env.ENVIRONMENT
+    : null;
+}
 
 export function backupConfigured(env: Env) {
-  return (
-    env.ENVIRONMENT === "staging" &&
-    Boolean(env.D1_EXPORT_API_TOKEN && env.BACKUP_WORKFLOW) &&
-    env.BACKUP_ACCOUNT_ID === backupResources.accountId &&
-    env.BACKUP_DATABASE_ID === backupResources.databaseId &&
-    env.BACKUP_BUCKET_NAME === backupResources.bucket
-  );
+  return backupEnvironment(env) !== null && Boolean(env.D1_EXPORT_API_TOKEN && env.BACKUP_WORKFLOW);
 }
 
 const ExportResponse = Schema.Struct({
@@ -40,6 +44,7 @@ export function safeBackupFailure(error: unknown) {
     /^The database backup download or immutable upload failed at (download-url|download-request|download-response-[1-5]\d{2}|bounded-content-length|hash-stream|fixed-length-stream|immutable-r2-upload|verify-upload-length)\. No backup completion was recorded\.$/;
   const known = [
     "The D1 export request failed. Check the dedicated token and personal staging resources.",
+    "The D1 export request failed. Check the dedicated token and configured River resources.",
     "D1 could not complete the database export.",
     "D1 export exceeded its 60-poll limit.",
     "Schema changed during backup; retry must capture the new schema.",
@@ -66,6 +71,7 @@ async function hashStoredObject(bucket: R2Bucket, key: string): Promise<BackupOb
 }
 
 export async function exportDatabase({
+  environment,
   token,
   tables,
   key,
@@ -73,6 +79,7 @@ export async function exportDatabase({
   transport = fetch,
   pause = (ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
 }: {
+  environment: BackupEnvironment;
   token: string;
   tables: readonly string[];
   key: string;
@@ -80,6 +87,9 @@ export async function exportDatabase({
   transport?: typeof fetch;
   pause?: (ms: number) => Promise<void>;
 }): Promise<BackupObject> {
+  if (!key.startsWith(`backups/database/${environment}/`))
+    throw new Error("Backup object prefix does not match its environment.");
+  const backupResources = backupTargets[environment];
   const existing = await hashStoredObject(bucket, key);
   if (existing) return existing;
   if (!tables.length || tables.some((table) => !/^[a-z_]+$/.test(table)))
@@ -106,7 +116,7 @@ export async function exportDatabase({
     } catch {
       // API diagnostics can include SQL, credentials, or signed URLs. Deliberately omit the original error.
       throw new Error(
-        "The D1 export request failed. Check the dedicated token and personal staging resources.",
+        "The D1 export request failed. Check the dedicated token and configured River resources.",
       );
     }
     if (result.status === "complete") {

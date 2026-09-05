@@ -8,24 +8,26 @@ import {
   migrationQuery,
   privateFile,
   query,
+  resourcesFor,
   restoreDatabase,
   retainedObjects,
   root,
   sha256,
-  staging,
   wrangler,
 } from "./lib/recovery.mjs";
 
-assert.deepEqual(
-  process.argv.slice(2),
-  ["--staging"],
-  "Use: pnpm backup:staging. Production and other accounts are intentionally unsupported.",
+const [flag] = process.argv.slice(2);
+assert.ok(
+  process.argv.length === 3 && ["--staging", "--production"].includes(flag),
+  "Use: pnpm backup:staging or pnpm backup:production.",
 );
+const environment = flag.slice(2);
+const resources = resourcesFor(environment);
 const id = `${new Date().toISOString().replaceAll(":", "-")}-${randomUUID()}`;
 const directory = join(root, "test-results", "recovery", id);
 await mkdir(directory, { recursive: true, mode: 0o700 });
-const tables = (await query(catalogQuery)).map((row) => row.name);
-const applied = (await query(migrationQuery)).map((row) => row.name);
+const tables = (await query(catalogQuery, environment)).map((row) => row.name);
+const applied = (await query(migrationQuery, environment)).map((row) => row.name);
 const migrations = [];
 for (const name of applied) {
   assert.match(name, /^\d{4}_[a-z_]+\.sql$/);
@@ -33,26 +35,31 @@ for (const name of applied) {
   migrations.push({ name, sql, sha256: sha256(sql) });
 }
 for (const name of tables) assert.match(name, /^[a-z_]+$/);
-console.log(`Exporting ${tables.length} base tables from personal staging in one D1 snapshot.`);
+console.log(
+  `Exporting ${tables.length} base tables from personal ${environment} in one D1 snapshot.`,
+);
 const dataPath = join(directory, "data.sql");
-await wrangler([
-  "d1",
-  "export",
-  staging.database,
-  "--remote",
-  "--no-schema",
-  "--output",
-  dataPath,
-  ...tables.flatMap((name) => ["--table", name]),
-]);
+await wrangler(
+  [
+    "d1",
+    "export",
+    resources.database,
+    "--remote",
+    "--no-schema",
+    "--output",
+    dataPath,
+    ...tables.flatMap((name) => ["--table", name]),
+  ],
+  environment,
+);
 await chmod(dataPath, 0o600);
 assert.deepEqual(
-  (await query(migrationQuery)).map((row) => row.name),
+  (await query(migrationQuery, environment)).map((row) => row.name),
   applied,
   "Migrations changed during export; retry when deployment is idle.",
 );
 assert.deepEqual(
-  (await query(catalogQuery)).map((row) => row.name),
+  (await query(catalogQuery, environment)).map((row) => row.name),
   tables,
   "Tables changed during export; retry when deployment is idle.",
 );
@@ -61,30 +68,37 @@ const snapshot = {
   format: "river-d1-snapshot-v1",
   id,
   createdAt: new Date().toISOString(),
-  resources: staging,
+  resources,
   tables,
   migrations,
   data,
   dataSha256: sha256(data),
 };
-const { db, counts } = await restoreDatabase(snapshot, join(directory, "validation.sqlite"));
+const { db, counts } = await restoreDatabase(
+  snapshot,
+  join(directory, "validation.sqlite"),
+  environment,
+);
 snapshot.counts = counts;
 snapshot.objects = retainedObjects(db);
 db.close();
 const bytes = gzipSync(JSON.stringify(snapshot));
 const file = await privateFile(join(directory, "snapshot.json.gz"), bytes);
-const key = `backups/database/staging/${id}/snapshot.json.gz`;
-await wrangler([
-  "r2",
-  "object",
-  "put",
-  `${staging.bucket}/${key}`,
-  "--remote",
-  "--file",
-  file,
-  "--content-type",
-  "application/gzip",
-]);
+const key = `backups/database/${environment}/${id}/snapshot.json.gz`;
+await wrangler(
+  [
+    "r2",
+    "object",
+    "put",
+    `${resources.bucket}/${key}`,
+    "--remote",
+    "--file",
+    file,
+    "--content-type",
+    "application/gzip",
+  ],
+  environment,
+);
 await privateFile(
   join(directory, "receipt.json"),
   JSON.stringify(

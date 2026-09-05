@@ -1,8 +1,14 @@
 import type { ReadBackupStatusRequest, RetryBackupRequest } from "@river/contracts";
 import type { Repository } from "@river/db";
-import { BackupExport, fingerprint } from "@river/domain";
+import { BackupExport, canonicalJson, fingerprint } from "@river/domain";
 import { Effect, Schema } from "effect";
-import { backupConfigured, safeBackupFailure } from "./backup-export";
+import {
+  type BackupEnvironment,
+  backupConfigured,
+  backupEnvironment,
+  backupTargets,
+  safeBackupFailure,
+} from "./backup-export";
 import type { Env } from "./env";
 import { Actor, attempt, Store } from "./services";
 
@@ -13,7 +19,10 @@ export const readBackupStatus = (env: Env, input: ReadBackupStatusRequest) =>
     const { retainedCandidates, ...status } = yield* attempt(() =>
       store.readBackupStatus(actor, input),
     );
-    const retained = yield* attempt(() => retainedBackupStatus(env.ARTIFACTS, retainedCandidates));
+    const environment = backupEnvironment(env);
+    const retained = environment
+      ? yield* attempt(() => retainedBackupStatus(env.ARTIFACTS, retainedCandidates, environment))
+      : null;
     return {
       ...status,
       attempts: status.attempts.map((item) => ({
@@ -29,9 +38,11 @@ export const readBackupStatus = (env: Env, input: ReadBackupStatusRequest) =>
 export async function retainedBackupStatus(
   bucket: R2Bucket,
   candidates: Awaited<ReturnType<Repository["readBackupStatus"]>>["retainedCandidates"],
+  environment: BackupEnvironment,
 ) {
   for (const candidate of candidates) {
     if (!candidate.manifest || !candidate.completedAt) continue;
+    if (!candidate.manifest.key.startsWith(`backups/database/${environment}/`)) continue;
     const object = await bucket.get(candidate.manifest.key);
     if (!object || object.size !== candidate.manifest.bytes || object.size > 2 * 1024 * 1024)
       continue;
@@ -43,6 +54,11 @@ export async function retainedBackupStatus(
     } catch {
       continue;
     }
+    if (
+      canonicalJson(manifest.resources) !== canonicalJson(backupTargets[environment]) ||
+      manifest.data.key !== candidate.manifest.key.replace(/manifest\.json$/, "data.sql")
+    )
+      continue;
     const data = await bucket.head(manifest.data.key);
     if (!data || data.size !== manifest.data.bytes) continue;
     const expiresAt =

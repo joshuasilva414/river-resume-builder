@@ -4,20 +4,24 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { privateFile, query, root } from "./lib/recovery.mjs";
 
-const [date] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const environment = args[0] === "--production" ? "production" : "staging";
+if (args[0] === "--production" || args[0] === "--staging") args.shift();
+const [date] = args;
 assert.ok(
-  process.argv.length <= 3,
-  "Use pnpm backup:status, or pnpm backup:status YYYY-MM-DD to save a completed run's restore receipt.",
+  args.length <= 1,
+  "Use pnpm backup:status [--production], or pnpm backup:status [--production] YYYY-MM-DD to save a completed run's restore receipt.",
 );
 if (date) assert.match(date, /^\d{4}-\d{2}-\d{2}$/);
 const rows = await query(
   `SELECT b.date, b.operation_id, o.state, o.stage, o.failure, b.manifest, b.completed_at FROM database_backups b JOIN operations o ON o.id=b.operation_id ${date ? `WHERE b.date='${date}'` : ""} ORDER BY b.date DESC LIMIT 7`,
+  environment,
 );
 if (!date) {
   console.log(
     JSON.stringify(
       {
-        environment: "personal staging",
+        environment: `personal ${environment}`,
         backups: rows.map((row) => ({
           ...row,
           manifest: row.manifest ? JSON.parse(row.manifest) : null,

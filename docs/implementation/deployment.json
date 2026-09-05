@@ -297,5 +297,32 @@
     "savedDraftRevision": 4,
     "checkpointRevision": 0,
     "populatedScoring": false
+  },
+  "productionPreparation": {
+    "applicationPublished": false,
+    "secretsInstalled": false,
+    "accountId": "a91c30d69981b341efe3b656a263f6da",
+    "database": "river-production",
+    "databaseId": "50d255b8-840b-4d03-87d9-c3fb9e810366",
+    "bucket": "river-production-artifacts",
+    "migrationsThrough": "0027_source_upload_checks.sql",
+    "migrationCount": 28,
+    "baseTables": 72,
+    "ownerCount": 0,
+    "publicBucketAccess": false,
+    "retentionRuleCount": 5,
+    "webBuildPassed": true,
+    "webDryRunPassed": true,
+    "documentDryRunPassed": true,
+    "backup": {
+      "key": "backups/database/production/2026-09-05T22-24-55.085Z-75c41e87-e83f-4912-af64-fcffa049ddb7/snapshot.json.gz",
+      "sha256": "d207e21eff8e0da0fef73d5d150cc0af7ff58573d78b1e2f7dfb0cefa43a19a9",
+      "report": "test-results/recovery/drill-8d0a7065-7cb4-47ef-bafa-f73885899601/report.json",
+      "tables": 72,
+      "objects": 0,
+      "citations": 0,
+      "exportedCheckpoints": 0
+    },
+    "stagingCompatibilityReport": "test-results/recovery/drill-7b510481-1ba0-4fd1-8688-76110d94b38b/report.json"
   }
 }

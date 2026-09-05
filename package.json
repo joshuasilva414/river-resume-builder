@@ -16,6 +16,7 @@
     "db:migrate:local": "pnpm --filter @river/web exec wrangler d1 migrations apply river-local --local",
     "test:documents": "node apps/documents/scripts/verify-container.mjs",
     "backup:staging": "node scripts/backup.mjs --staging",
+    "backup:production": "node scripts/backup.mjs --production",
     "restore:drill": "node scripts/restore-drill.mjs",
     "backup:status": "node scripts/backup-status.mjs"
   },

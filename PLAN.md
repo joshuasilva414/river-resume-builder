@@ -189,7 +189,7 @@ Exit: all three packs render representative fixtures and real owner content with
 Depends on M1–M5.
 
 - [ ] Verify critical journeys with Playwright: sign in, add sources/evidence, review a job, compose, resolve a conflict, inspect warnings, and export.
-- [x] Verify authorization, stale proposal rejection, idempotent retry, partial background failure, and immutable historical outputs with focused integration tests. The reviewed 142-test Workers run covers these contracts; hosted provider/credential gates remain separate. See `docs/implementation/release-gates.md`.
+- [x] Verify authorization, stale proposal rejection, idempotent retry, partial background failure, and immutable historical outputs with focused integration tests. The reviewed 149-test Workers run covers these contracts; hosted provider/credential gates remain separate. See `docs/implementation/release-gates.md`.
 - [x] Configure D1 Time Travel and daily D1 exports to a private R2 backup location; preserve immutable source objects.
 - [x] Perform a restore drill into isolated resources and verify source/provenance links and retained exports.
 - [x] Document deployment, migrations, secrets, rollback constraints, background-job diagnosis, backup and restore procedures.

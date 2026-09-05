@@ -5,7 +5,8 @@ import { fingerprint, newId, type Principal } from "@river/domain";
 import { eq } from "drizzle-orm";
 import { beforeAll, expect, it } from "vitest";
 import {
-  backupResources,
+  backupEnvironment,
+  backupTargets,
   exportDatabase,
   retainBackupManifest,
   safeBackupFailure,
@@ -14,6 +15,27 @@ import { backupSchema } from "../src/server/backup-workflow";
 import { retainedBackupStatus } from "../src/server/backups";
 
 beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
+const environments = ["staging", "production"] as const;
+
+it.each(environments)(
+  "requires the complete %s resource tuple before enabling backups",
+  (environment) => {
+    const resources = backupTargets[environment];
+    const configured = {
+      ENVIRONMENT: environment,
+      BACKUP_ACCOUNT_ID: resources.accountId,
+      BACKUP_DATABASE_ID: resources.databaseId,
+      BACKUP_BUCKET_NAME: resources.bucket,
+    };
+    expect(backupEnvironment(configured)).toBe(environment);
+    expect(backupEnvironment({ ...configured, ENVIRONMENT: "development" })).toBeNull();
+    expect(backupEnvironment({ ...configured, BACKUP_ACCOUNT_ID: "unrelated-account" })).toBeNull();
+    expect(backupEnvironment({ ...configured, BACKUP_DATABASE_ID: undefined })).toBeNull();
+    const other = backupTargets[environment === "staging" ? "production" : "staging"];
+    expect(backupEnvironment({ ...configured, BACKUP_DATABASE_ID: other.databaseId })).toBeNull();
+    expect(backupEnvironment({ ...configured, BACKUP_BUCKET_NAME: other.bucket })).toBeNull();
+  },
+);
 it("deduplicates daily dispatch atomically and records completion only after retained manifest publication", async () => {
   const store = createRepository(env.DB),
     id = newId(),
@@ -71,74 +93,87 @@ it("captures exact migration resources and excludes derived FTS tables from the 
     expect(await fingerprint(migration.sql)).toBe(migration.sha256);
 });
 
-it("polls one export, streams SQL into private R2, and recovers immutable upload without another export", async () => {
-  const key = `backups/database/staging/fixture-${newId()}/data.sql`,
-    sql = "INSERT INTO fixture VALUES ('Synthetic backup data');";
-  let calls = 0;
-  const transport: typeof fetch = async (input, init) => {
-    // Exercise Workers Request validation even though the remote response is synthetic.
-    new Request(input, init);
-    calls++;
-    if (String(input).startsWith("https://api.cloudflare.com/")) {
-      expect(String(input)).toContain(
-        `/accounts/${backupResources.accountId}/d1/database/${backupResources.databaseId}/export`,
-      );
-      const body = JSON.parse(String(init?.body));
-      expect(body.dump_options).toEqual({ no_schema: true, no_data: false, tables: ["fixture"] });
-      if (calls === 1)
+it.each(environments)(
+  "exports %s SQL into private R2 and recovers its immutable upload",
+  async (environment) => {
+    const backupResources = backupTargets[environment];
+    const key = `backups/database/${environment}/fixture-${newId()}/data.sql`,
+      sql = "INSERT INTO fixture VALUES ('Synthetic backup data');";
+    let calls = 0;
+    const transport: typeof fetch = async (input, init) => {
+      // Exercise Workers Request validation even though the remote response is synthetic.
+      new Request(input, init);
+      calls++;
+      if (String(input).startsWith("https://api.cloudflare.com/")) {
+        expect(String(input)).toContain(
+          `/accounts/${backupResources.accountId}/d1/database/${backupResources.databaseId}/export`,
+        );
+        const body = JSON.parse(String(init?.body));
+        expect(body.dump_options).toEqual({ no_schema: true, no_data: false, tables: ["fixture"] });
+        if (calls === 1)
+          return Response.json({
+            success: true,
+            result: { success: true, status: "active", at_bookmark: "fixture-bookmark" },
+          });
+        expect(body.current_bookmark).toBe("fixture-bookmark");
         return Response.json({
           success: true,
-          result: { success: true, status: "active", at_bookmark: "fixture-bookmark" },
-        });
-      expect(body.current_bookmark).toBe("fixture-bookmark");
-      return Response.json({
-        success: true,
-        result: {
-          success: true,
-          status: "complete",
           result: {
-            signed_url: "https://fixture.example.test/private?signature=not-a-real-secret",
+            success: true,
+            status: "complete",
+            result: {
+              signed_url: "https://fixture.example.test/private?signature=not-a-real-secret",
+            },
           },
-        },
+        });
+      }
+      expect(new Headers(init?.headers).has("Authorization")).toBe(false);
+      expect(new Headers(init?.headers).get("Accept-Encoding")).toBe("identity");
+      expect(init?.redirect).toBe("manual");
+      return new Response(sql, {
+        headers: { "Content-Length": String(new TextEncoder().encode(sql).byteLength) },
       });
-    }
-    expect(new Headers(init?.headers).has("Authorization")).toBe(false);
-    expect(new Headers(init?.headers).get("Accept-Encoding")).toBe("identity");
-    expect(init?.redirect).toBe("manual");
-    return new Response(sql, {
-      headers: { "Content-Length": String(new TextEncoder().encode(sql).byteLength) },
+    };
+    const settings = {
+      environment,
+      token: "synthetic-token",
+      tables: ["fixture"],
+      key,
+      bucket: env.ARTIFACTS,
+      transport,
+      pause: async () => {},
+    };
+    const first = await exportDatabase(settings);
+    expect(first).toEqual({
+      key,
+      bytes: new TextEncoder().encode(sql).byteLength,
+      sha256: await fingerprint(sql),
     });
-  };
-  const settings = {
-    token: "synthetic-token",
-    tables: ["fixture"],
-    key,
-    bucket: env.ARTIFACTS,
-    transport,
-    pause: async () => {},
-  };
-  const first = await exportDatabase(settings);
-  expect(first).toEqual({
-    key,
-    bytes: new TextEncoder().encode(sql).byteLength,
-    sha256: await fingerprint(sql),
-  });
-  expect(calls).toBe(3);
-  expect(await exportDatabase(settings)).toEqual(first);
-  expect(calls).toBe(3);
-  expect(await (await env.ARTIFACTS.get(key))?.text()).toBe(sql);
-  const manifestKey = key.replace("data.sql", "manifest.json"),
-    content = JSON.stringify({ data: first });
-  const manifest = await retainBackupManifest(env.ARTIFACTS, manifestKey, content);
-  expect(await retainBackupManifest(env.ARTIFACTS, manifestKey, content)).toEqual(manifest);
-  await expect(
-    retainBackupManifest(env.ARTIFACTS, manifestKey, "different immutable manifest"),
-  ).rejects.toThrow("differs");
-  expect(await (await env.ARTIFACTS.get(manifestKey))?.text()).toBe(content);
-});
+    expect(calls).toBe(3);
+    expect(await exportDatabase(settings)).toEqual(first);
+    expect(calls).toBe(3);
+    await expect(
+      exportDatabase({
+        ...settings,
+        environment: environment === "staging" ? "production" : "staging",
+      }),
+    ).rejects.toThrow("prefix does not match");
+    expect(calls).toBe(3);
+    expect(await (await env.ARTIFACTS.get(key))?.text()).toBe(sql);
+    const manifestKey = key.replace("data.sql", "manifest.json"),
+      content = JSON.stringify({ data: first });
+    const manifest = await retainBackupManifest(env.ARTIFACTS, manifestKey, content);
+    expect(await retainBackupManifest(env.ARTIFACTS, manifestKey, content)).toEqual(manifest);
+    await expect(
+      retainBackupManifest(env.ARTIFACTS, manifestKey, "different immutable manifest"),
+    ).rejects.toThrow("differs");
+    expect(await (await env.ARTIFACTS.get(manifestKey))?.text()).toBe(content);
+  },
+);
 
 it("bounds export polling and strips private API error details", async () => {
   const base = {
+    environment: "staging" as const,
     token: "synthetic-token",
     tables: ["fixture"],
     key: `backups/database/staging/fixture-${newId()}/data.sql`,
@@ -270,39 +305,72 @@ it("pages UTC dates without replacing the latest attempt or another Owner's hist
   expect(second.nextBefore).toBeNull();
 });
 
-it("requires both immutable artifacts before reporting a retained daily success", async () => {
-  const key = `backups/database/staging/${newId()}/data.sql`,
-    content = "Synthetic SQL fixture",
-    bytes = new TextEncoder().encode(content).byteLength;
-  await env.ARTIFACTS.put(key, content);
-  const manifest = await retainBackupManifest(
-    env.ARTIFACTS,
-    key.replace("data.sql", "manifest.json"),
-    JSON.stringify({
+it.each(environments)(
+  "requires matching %s resources and both artifacts to report retained success",
+  async (environment) => {
+    const other = environment === "staging" ? "production" : "staging";
+    const key = `backups/database/${environment}/${newId()}/data.sql`,
+      content = "Synthetic SQL fixture",
+      bytes = new TextEncoder().encode(content).byteLength;
+    await env.ARTIFACTS.put(key, content);
+    const manifest = await retainBackupManifest(
+      env.ARTIFACTS,
+      key.replace("data.sql", "manifest.json"),
+      JSON.stringify({
+        format: "river-d1-export-v2",
+        id: newId(),
+        createdAt: new Date().toISOString(),
+        resources: backupTargets[environment],
+        tables: ["fixture"],
+        migrations: [],
+        data: { key, bytes, sha256: await fingerprint(content) },
+      }),
+    );
+    const candidate = { date: "2026-09-05", completedAt: Date.now(), manifest };
+    const candidates = [candidate];
+    expect(await retainedBackupStatus(env.ARTIFACTS, candidates, environment)).toMatchObject({
+      date: candidates[0]?.date,
       format: "river-d1-export-v2",
-      id: newId(),
-      createdAt: new Date().toISOString(),
-      resources: backupResources,
-      tables: ["fixture"],
-      migrations: [],
-      data: { key, bytes, sha256: await fingerprint(content) },
-    }),
-  );
-  const candidate = { date: "2026-09-05", completedAt: Date.now(), manifest };
-  const candidates = [candidate];
-  expect(await retainedBackupStatus(env.ARTIFACTS, candidates)).toMatchObject({
-    date: candidates[0]?.date,
-    format: "river-d1-export-v2",
-    bytes,
-  });
-  expect(
-    await retainedBackupStatus(env.ARTIFACTS, [
-      { ...candidate, manifest: { ...manifest, sha256: "a".repeat(64) } },
-    ]),
-  ).toBeNull();
-  await env.ARTIFACTS.delete(key);
-  expect(await retainedBackupStatus(env.ARTIFACTS, candidates)).toBeNull();
-});
+      bytes,
+    });
+    expect(await retainedBackupStatus(env.ARTIFACTS, candidates, other)).toBeNull();
+    const mixedKey = `backups/database/${environment}/${newId()}/manifest.json`;
+    const mixedManifest = await retainBackupManifest(
+      env.ARTIFACTS,
+      mixedKey,
+      JSON.stringify({
+        format: "river-d1-export-v2",
+        id: newId(),
+        createdAt: new Date().toISOString(),
+        resources: backupTargets[other],
+        tables: ["fixture"],
+        migrations: [],
+        data: {
+          key: mixedKey.replace("manifest.json", "data.sql"),
+          bytes,
+          sha256: await fingerprint(content),
+        },
+      }),
+    );
+    await env.ARTIFACTS.put(mixedKey.replace("manifest.json", "data.sql"), content);
+    expect(
+      await retainedBackupStatus(
+        env.ARTIFACTS,
+        [{ ...candidate, manifest: mixedManifest }],
+        environment,
+      ),
+    ).toBeNull();
+    expect(
+      await retainedBackupStatus(
+        env.ARTIFACTS,
+        [{ ...candidate, manifest: { ...manifest, sha256: "a".repeat(64) } }],
+        environment,
+      ),
+    ).toBeNull();
+    await env.ARTIFACTS.delete(key);
+    expect(await retainedBackupStatus(env.ARTIFACTS, candidates, environment)).toBeNull();
+  },
+);
 
 it("exposes only allowlisted transfer diagnostics and retains nothing when the download length is missing", async () => {
   const key = `backups/database/staging/${newId()}/data.sql`;
@@ -320,6 +388,7 @@ it("exposes only allowlisted transfer diagnostics and retains nothing when the d
   let failure: unknown;
   try {
     await exportDatabase({
+      environment: "staging",
       token: "synthetic-token",
       tables: ["fixture"],
       key,
@@ -343,6 +412,7 @@ it("exposes only allowlisted transfer diagnostics and retains nothing when the d
   let requests = 0;
   await expect(
     exportDatabase({
+      environment: "staging",
       token: "synthetic-token",
       tables: ["fixture"],
       key,

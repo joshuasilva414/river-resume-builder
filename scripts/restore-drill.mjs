@@ -12,26 +12,31 @@ import {
   sha256,
 } from "./lib/recovery.mjs";
 
-const [receiptPath] = process.argv.slice(2);
+const [receiptPath, flag = "--staging"] = process.argv.slice(2);
+const environment = flag === "--production" ? "production" : "staging";
 assert.ok(
-  receiptPath && process.argv.length === 3,
-  "Use: pnpm restore:drill /absolute/path/to/receipt.json",
+  receiptPath && process.argv.length <= 4 && ["--staging", "--production"].includes(flag),
+  "Use: pnpm restore:drill /absolute/path/to/receipt.json [--production]",
 );
 const receipt = JSON.parse(await readFile(resolve(receiptPath), "utf8"));
+assert.ok(
+  receipt.key.startsWith(`backups/database/${environment}/`),
+  "Select the receipt's River environment.",
+);
 assert.match(
   receipt.key,
-  /^backups\/database\/staging\/[A-Za-z0-9:.-]+\/(snapshot\.json\.gz|manifest\.json)$/,
+  /^backups\/database\/(staging|production)\/[A-Za-z0-9:.-]+\/(snapshot\.json\.gz|manifest\.json)$/,
 );
 const directory = join(root, "test-results", "recovery", `drill-${randomUUID()}`);
 await mkdir(directory, { recursive: true, mode: 0o700 });
-const bytes = await downloadObject(receipt.key, directory);
+const bytes = await downloadObject(receipt.key, directory, environment);
 assert.equal(sha256(bytes), receipt.sha256, "Downloaded backup differs from its receipt.");
 let snapshot;
 if (receipt.key.endsWith("manifest.json")) {
   const manifest = JSON.parse(bytes.toString("utf8"));
   assert.equal(manifest.format, "river-d1-export-v2");
   assert.equal(manifest.data.key, receipt.key.replace(/manifest\.json$/, "data.sql"));
-  const sql = await downloadObject(manifest.data.key, directory);
+  const sql = await downloadObject(manifest.data.key, directory, environment);
   assert.equal(sql.byteLength, manifest.data.bytes);
   assert.ok(sql.byteLength <= 64 * 1024 * 1024);
   assert.equal(sha256(sql), manifest.data.sha256);
@@ -44,7 +49,11 @@ if (receipt.key.endsWith("manifest.json")) {
 } else {
   snapshot = JSON.parse(gunzipSync(bytes, { maxOutputLength: 100 * 1024 * 1024 }).toString("utf8"));
 }
-const { db, counts } = await restoreDatabase(snapshot, join(directory, "restored.sqlite"));
+const { db, counts } = await restoreDatabase(
+  snapshot,
+  join(directory, "restored.sqlite"),
+  environment,
+);
 try {
   const references = retainedObjects(db);
   if (snapshot.objects) assert.deepEqual(references, snapshot.objects);
@@ -53,7 +62,7 @@ try {
     `Restored ${snapshot.tables.length} tables. Checking ${references.length} retained objects.`,
   );
   for (const reference of references) {
-    const value = await downloadObject(reference.key, directory);
+    const value = await downloadObject(reference.key, directory, environment);
     if (reference.digest) assert.equal(sha256(value), reference.digest);
     if (reference.kind === "pdf") assert.equal(value.subarray(0, 5).toString(), "%PDF-");
     objects.set(reference.key, value);
@@ -114,6 +123,7 @@ try {
     completedAt: new Date().toISOString(),
     backup: receipt.key,
     database: "isolated local SQLite",
+    environment,
     published: false,
     counts,
     citations,

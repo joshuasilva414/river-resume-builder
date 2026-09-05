@@ -14,8 +14,20 @@
       "instance_type": "basic"
     }
   ],
-  "durable_objects": { "bindings": [{ "name": "CONTAINER", "class_name": "DocumentContainer" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DocumentContainer"] }],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "CONTAINER",
+        "class_name": "DocumentContainer"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["DocumentContainer"]
+    }
+  ],
   "env": {
     "staging": {
       "name": "river-documents-staging",
@@ -28,7 +40,31 @@
         }
       ],
       "durable_objects": {
-        "bindings": [{ "name": "CONTAINER", "class_name": "DocumentContainer" }]
+        "bindings": [
+          {
+            "name": "CONTAINER",
+            "class_name": "DocumentContainer"
+          }
+        ]
+      }
+    },
+    "production": {
+      "name": "river-documents-production",
+      "containers": [
+        {
+          "class_name": "DocumentContainer",
+          "image": "../../Dockerfile.documents",
+          "max_instances": 1,
+          "instance_type": "basic"
+        }
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "CONTAINER",
+            "class_name": "DocumentContainer"
+          }
+        ]
       }
     }
   }

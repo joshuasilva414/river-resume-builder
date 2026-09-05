@@ -7,27 +7,30 @@ import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 
 export const root = fileURLToPath(new URL("../../", import.meta.url));
-export const staging = {
-  accountId: "a91c30d69981b341efe3b656a263f6da",
-  databaseId: "1b837147-de99-4aaa-a4ad-386b826412b0",
-  database: "river-staging",
-  bucket: "river-staging-artifacts",
-};
+const targets = JSON.parse(await readFile(resolve(root, "config/backup-resources.json"), "utf8"));
+export function resourcesFor(environment) {
+  assert.ok(
+    environment === "staging" || environment === "production",
+    "Select a River environment.",
+  );
+  return targets[environment];
+}
 export const catalogQuery =
   "SELECT name FROM pragma_table_list WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name != 'd1_migrations' ORDER BY name";
 export const migrationQuery = "SELECT name FROM d1_migrations ORDER BY id";
 export const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
 /** Do not echo Wrangler output: D1 exports print a signed URL granting temporary backup access. */
-export async function wrangler(args) {
+export async function wrangler(args, environment) {
+  const resources = resourcesFor(environment);
   return new Promise((resolveResult, reject) => {
     const child = spawn(
       "pnpm",
-      ["--filter", "@river/web", "exec", "wrangler", ...args, "--env", "staging"],
+      ["--filter", "@river/web", "exec", "wrangler", ...args, "--env", environment],
       {
         cwd: root,
         stdio: ["ignore", "pipe", "pipe"],
-        env: { ...process.env, CLOUDFLARE_ACCOUNT_ID: staging.accountId },
+        env: { ...process.env, CLOUDFLARE_ACCOUNT_ID: resources.accountId },
       },
     );
     let output = "";
@@ -50,9 +53,13 @@ export async function wrangler(args) {
   });
 }
 
-export async function query(sql) {
+export async function query(sql, environment) {
+  const resources = resourcesFor(environment);
   const results = JSON.parse(
-    await wrangler(["d1", "execute", staging.database, "--remote", "--json", "--command", sql]),
+    await wrangler(
+      ["d1", "execute", resources.database, "--remote", "--json", "--command", sql],
+      environment,
+    ),
   );
   assert.equal(results.length, 1);
   assert.equal(results[0].success, true);
@@ -65,12 +72,12 @@ export async function privateFile(path, bytes) {
 }
 
 /** Restore into an unpublished SQLite file. Foreign keys and FTS triggers are active during import. */
-export async function restoreDatabase(snapshot, destination) {
+export async function restoreDatabase(snapshot, destination, environment) {
   assert.equal(snapshot.format, "river-d1-snapshot-v1");
   assert.deepEqual(
     snapshot.resources,
-    staging,
-    "This tool accepts only the configured personal staging resources.",
+    resourcesFor(environment),
+    "The snapshot must match the selected personal River environment.",
   );
   assert.equal(sha256(snapshot.data), snapshot.dataSha256);
   // Exclusive creation prevents accidental overwrite of a previous drill or application database.
@@ -175,9 +182,13 @@ export function retainedObjects(db) {
   );
 }
 
-export async function downloadObject(key, directory) {
+export async function downloadObject(key, directory, environment) {
+  const resources = resourcesFor(environment);
   const path = resolve(directory, `${sha256(key)}.object`);
-  await wrangler(["r2", "object", "get", `${staging.bucket}/${key}`, "--remote", "--file", path]);
+  await wrangler(
+    ["r2", "object", "get", `${resources.bucket}/${key}`, "--remote", "--file", path],
+    environment,
+  );
   await chmod(path, 0o600);
   return readFile(path);
 }
