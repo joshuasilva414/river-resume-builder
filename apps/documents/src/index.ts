@@ -1,7 +1,7 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
 import { Container } from "@cloudflare/containers";
 import { DocumentJob, DocumentResult } from "@river/contracts";
-import { Schema } from "effect";
+import { Effect, Logger, Schema } from "effect";
 import runtimeContract from "../runtime-contract.json";
 
 interface Env {
@@ -28,6 +28,18 @@ export class DocumentContainer extends Container<Env> {
         body: JSON.stringify(job),
         signal: AbortSignal.timeout(100_000),
       }),
+    );
+    const cache = response.headers.get("X-River-Document-Cache");
+    await Effect.runPromise(
+      Effect.logInfo("river.document.response").pipe(
+        Effect.annotateLogs({
+          operationId: /^[a-f0-9-]{36}$/.test(job.jobId) ? job.jobId : "fixture",
+          jobType: job.type,
+          status: response.status,
+          cache: cache === "hit" || cache === "miss" || cache === "bypass" ? cache : "unidentified",
+        }),
+        Effect.withLogger(Logger.consoleJson),
+      ),
     );
     if (!response.ok) {
       const reportedStage = response.headers.get("X-River-Document-Stage");
