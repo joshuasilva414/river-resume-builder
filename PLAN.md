@@ -225,7 +225,7 @@ Exit: every generated change is reviewable and attributable; content changes can
 - [ ] Compare scores only within the same provider/rubric identity. Label simulations separately from local document validation.
 - [ ] Implement retryable scoring failures and provider limits without blocking export.
 - [ ] Score canonical template fixtures and assign the separate ATS Screener tested designation only when its stated criteria pass.
-- [x] Add inline writing assistance after review-queue behavior is proven. Paper board 77 is implemented with exact target comparison and session undo; local and hosted live-provider browser checks pass. Narrow review remains a release gate.
+- [x] Add inline writing assistance after review-queue behavior is proven. Paper board 77 is implemented with exact target comparison and session undo; local and hosted live-provider browser checks pass. Actual 390-pixel proposal review and keyboard focus return now pass; populated scoring review remains separate.
 
 Exit: restoring history never destroys newer work, score comparisons preserve their meaning, and scoring outages leave export usable.
 

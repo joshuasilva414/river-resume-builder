@@ -4,7 +4,7 @@
   "applicationUrl": "https://river-staging.jilva.workers.dev",
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
-  "webVersion": "35b5c589-ceb7-44d7-b87d-cc3017c8d7e2",
+  "webVersion": "6713b49e-c25b-428f-a27a-2059f83bee44",
   "documentWorkerVersion": "8ad4cf9e-bb6e-4a1d-8fbc-7107e78f818f",
   "containerImageDigest": "sha256:a35ce74287fdce2c7a7152e2afd107ac2d9b736bd31b8f9eb8b42bdf5cec3a2f",
   "database": "river-staging",
@@ -56,7 +56,7 @@
     "templateGeneration": "Hosted real model response and first-attempt 11-point PDF passed graph, text-integrity and runtime checks. Full component change, PDF, text and report reviewed; accepted into immutable Draft. All 86 Workers tests through conversations and eight focused backup tests pass; workspace checks/lint/build pass.",
     "dailyBackupRestore": "Passed: live token-driven v2 backup, 58 base tables, FTS equality, foreign keys, exact citation offsets, 30 retained objects, one exported checkpoint. Fresh unpublished local SQLite; no remote cutover.",
     "templateBodySizes": "Offline container suite passes all supported body sizes 9/10/11/12; runtime image warms each article size. Peak fixture container memory 411049984 bytes.",
-    "backupSettings": "Paper-based desktop light/dark, status, bounded explicit retry, safe failure inspection, successful retention and preserved three-attempt history verified against staging. Narrow viewport check remains open.",
+    "backupSettings": "Desktop and actual 390px light/dark status, safe failure inspection, successful retention and preserved three-attempt history verified against staging. Bounded retry was verified in the earlier desktop journey.",
     "templateConversation": "Hosted accepted turn, complete original brief, same-scope prior-instruction default and pinned accepted base verified in the conversation. Concurrent and pagination behavior covered in Workers tests.",
     "hostedHistory": "Passed: restored an independent synthetic Classic branch, rendered r0, captured a labeled checkpoint, inspected lineage and pinned complete content/PDF comparison. Both actual PDFs render with independent zoom. No new export attestation.",
     "hostedScoring": "Workflow and Owner UI deployed; provider origin unset, new submissions unavailable. ATS deployment approval remains pending.",
@@ -65,7 +65,8 @@
     "documentDiagnostics": "Offline full fixture suite passed; fixed protocol/stage headers identify malformed input and prohibited source without exposing exception contents. Peak memory 421687296 bytes.",
     "templateScoring": "Deployed: canonical fixture capture, bounded qualification Workflow, Owner review and protected artifact route. Hosted fixed Classic empty/unavailable state verified; anonymous artifact request returns 401. ATS provider origin remains unset; no hosted score or designation.",
     "applicationDiagnostics": "Passed: one JSON event per application execution, anonymous 401 traceId matches response, authenticated outcomes include elapsed spans, and successful dispatch records identical Operation/Workflow IDs. 139 Workers tests, workspace types/lint and staging build pass.",
-    "sourceUploadRecovery": "Deployed: persistent least-recently-checked scan of at most 50 uploads and isolated redacted R2 failures. 141 Workers tests, workspace types/lint and staging build pass. Hosted original source records remain Ready. Batch-boundary and failure injection are local Workers tests, not hosted injected failures."
+    "sourceUploadRecovery": "Deployed: persistent least-recently-checked scan of at most 50 uploads and isolated redacted R2 failures. 141 Workers tests, workspace types/lint and staging build pass. Hosted original source records remain Ready. Batch-boundary and failure injection are local Workers tests, not hosted injected failures.",
+    "mobileReview": "Passed at actual 390x844 Chrome viewport: source list, light/dark history and wording review, exact content and both retained PDFs, light/dark backup status and failure history, unavailable scoring state and retained PDF download action. Focus-return correction passed locally and hosted. Populated scoring/mobile acceptance remain unverified; see mobile-review.md."
   },
   "hostedRuntimeSamples": [
     {
@@ -146,7 +147,7 @@
     "validation": "All four fixtures rendered twice and passed; Validated, awaiting separate Owner visual approval.",
     "conversationId": "01a071e6-f217-7952-93c0-b97743159fc3"
   },
-  "deployedWebCommit": "9c1b54b",
+  "deployedWebCommit": "61c0ac9",
   "scoringWorkflow": "river-staging-scoring",
   "sourceRefinementWorkflow": "river-staging-source-refinement",
   "hostedHistory": {
@@ -264,5 +265,17 @@
       "tables": 72,
       "verification": "Captured schema/data passed the backup script isolated SQLite checks; full retained-artifact drill was not repeated."
     }
+  },
+  "mobileReview": {
+    "commit": "61c0ac9",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "viewportReset": true,
+    "wordingFocusRestored": true,
+    "savedDraftRevision": 4,
+    "checkpointRevision": 0,
+    "populatedScoring": false
   }
 }

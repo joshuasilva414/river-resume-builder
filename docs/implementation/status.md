@@ -44,7 +44,7 @@ GitHub OAuth remains unconfigured. The Owner-approved OpenAI and daily backup cr
 
 ## Latest deployed milestone
 
-Staging is through migration `0027_source_upload_checks.sql`. Web commit `9c1b54b` is deployed as `35b5c589-ceb7-44d7-b87d-cc3017c8d7e2`; exact document/image identities are in `deployment.json`. The latest migration adds only upload-check maintenance state; the Container is unchanged. The requirement citation correction passed all 136 Workers tests across 24 files, workspace type/lint checks and staging build. The subsequent ranking guard passed ten focused job tests and the same workspace/build checks; the full suite was not repeated for that narrower change. Source refinement, checkpoint scoring and template scoring Workflows are bound.
+Staging is through migration `0027_source_upload_checks.sql`. Web commit `61c0ac9` is deployed as `6713b49e-c25b-428f-a27a-2059f83bee44`; exact document/image identities are in `deployment.json`. The latest migration adds only upload-check maintenance state; the Container is unchanged. The requirement citation correction passed all 136 Workers tests across 24 files, workspace type/lint checks and staging build. The subsequent ranking guard passed ten focused job tests and the same workspace/build checks; the full suite was not repeated for that narrower change. Source refinement, checkpoint scoring and template scoring Workflows are bound.
 
 Explicit labeled checkpoints, chronology, independent restoration branches and pinned full content/PDF comparisons are deployed. The hosted synthetic fixture restored and rendered a new branch, captured a labeled checkpoint and displayed both actual PDFs with independent zoom. The original exported checkpoint remains unchanged. Local concurrent-tab checks keep the selected older revision until explicit refresh. Exact cross-checkpoint score selectors and reviewed template replacement during source regeneration are implemented. See `history.md`.
 
@@ -66,12 +66,14 @@ Application and dispatch diagnostics are deployed. All 139 Workers tests, worksp
 
 Upload reconciliation now rotates its bounded 50-source scan and isolates individual storage failures. Abandoned reservations retain their original identities and retry receipts. All 141 Workers tests, types/lint and the staging build passed. Migration 0027 applied locally and on staging after a backup; a new 72-table snapshot passed the backup script’s isolated schema/data restore checks. The prior full retained-artifact drill remains recorded separately. See `source-intake.md`.
 
+Actual 390 × 844 Chrome checks now cover Sources, light/dark history and wording review, exact content and both retained PDFs, backup status and earlier failures, scoring availability and retained PDF download. A confirmed wording-dialog focus loss is fixed and verified locally and hosted. No page design changed. The viewport was reset. GitHub OAuth registration is prepared in the personal account but remains unsubmitted pending credential-creation approval. See `mobile-review.md`.
+
 ## Remaining V1 work
 
 - Complete explicitly approved source acceptance/publication, export, structured return and template promotion journeys.
 - Deploy and verify ATS identity after approval, enable River scoring, and prove successful/failed runs, cache identity and exact finding review.
 - Complete live-provider verification of template scoring qualification and Paper’s fixture review. The canonical set, qualification gate, four-table persistence, bounded Workflow, Owner services and review UI are deployed to personal staging through migration 0026. All 132 Workers tests, workspace types/lint and the staging build pass; local unavailable/empty states are reviewed in both themes, and hosted authenticated Classic inspection and anonymous artifact denial pass. The new 71-table staging snapshot passed an isolated restore with 50 retained objects. Actual hosted provider runs and populated/mobile browser review remain open. Award `ATS Screener tested` only after a complete retained compatible passing report. See `template-scoring.md`.
-- Complete narrow mobile wording/history/comparison/scoring/recovery checks.
+- Complete mobile review with populated scoring/qualification results after enabling the provider. Actual 390-pixel wording, history, PDF comparison, backup recovery and retained download checks now pass; see `mobile-review.md`.
 - Finish hosted clarification generation, password recovery and authenticated Agent Credential journeys; required GitHub configuration remains unverified.
 - Complete the real Owner tailoring session, production resources/domain and release gates. No MVP or V1 release is claimed.
 
