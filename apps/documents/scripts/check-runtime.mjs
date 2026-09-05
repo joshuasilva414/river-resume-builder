@@ -17,7 +17,7 @@ async function run(job) {
   const start = performance.now();
   const result = await new Promise((resolve, reject) => {
     const code =
-      'let chunks=[]; for await (const c of process.stdin) chunks.push(c); const r=await fetch("http://127.0.0.1:8080/jobs", {method:"POST",body:Buffer.concat(chunks),headers:{"content-type":"application/json"}}); console.log(JSON.stringify({status:r.status,protocol:r.headers.get("X-River-Document-Protocol"),stage:r.headers.get("X-River-Document-Stage"),body:await r.json()}));';
+      'let chunks=[]; for await (const c of process.stdin) chunks.push(c); const r=await fetch("http://127.0.0.1:8080/jobs", {method:"POST",body:Buffer.concat(chunks),headers:{"content-type":"application/json"}}); console.log(JSON.stringify({status:r.status,protocol:r.headers.get("X-River-Document-Protocol"),stage:r.headers.get("X-River-Document-Stage"),cache:r.headers.get("X-River-Document-Cache"),body:await r.json()}));';
     const child = spawn(
       docker,
       ["exec", "-i", container, "node", "--input-type=module", "-e", code],
@@ -51,6 +51,7 @@ for (const [theme, graph] of Object.entries(fixture.fixedGraphs)) {
       document: candidate.document,
     });
     assert.equal(result.status, 200, `${theme}/${candidate.id}`);
+    assert.equal(result.cache, "bypass", "Fixture validation must run independently");
     assert.equal(result.body.validation.passed, true, JSON.stringify(result.body.validation));
     assert.equal(result.body.extractedText, result.body.validation.extractedText);
     assert.ok(
@@ -79,7 +80,8 @@ for (const [theme, graph] of Object.entries(fixture.fixedGraphs)) {
 }
 let classicFingerprint;
 for (const theme of ["classic", "classic", "minimal", "technical"]) {
-  const result = await run({ ...fixture, theme });
+  const result = await run({ ...fixture, theme, type: "validate-template" });
+  assert.equal(result.cache, "bypass", "Determinism checks must execute both compilations");
   measurements.push({
     theme,
     status: result.status,
@@ -119,6 +121,32 @@ for (const theme of ["classic", "classic", "minimal", "technical"]) {
   for (const segment of extraction.body.segments)
     assert.equal(extraction.body.text.slice(segment.start, segment.end), segment.text);
 }
+const firstRender = await run({ ...fixture, jobId: "cache-first" });
+const reusedRender = await run({ ...fixture, jobId: "cache-different-operation" });
+assert.equal(firstRender.status, 200);
+assert.equal(firstRender.cache, "miss");
+assert.equal(reusedRender.status, 200);
+assert.equal(reusedRender.cache, "hit");
+assert.deepEqual(
+  reusedRender.body,
+  firstRender.body,
+  "Every cached artifact and identity stays exact",
+);
+const changedRender = await run({
+  ...fixture,
+  jobId: "cache-changed-content",
+  document: { ...fixture.document, name: "Different Synthetic Person" },
+});
+assert.equal(changedRender.status, 200);
+assert.equal(changedRender.cache, "miss");
+assert.notEqual(changedRender.body.fingerprint, firstRender.body.fingerprint);
+measurements.push({
+  type: "warm-render-cache",
+  missElapsedMs: firstRender.elapsedMs,
+  hitElapsedMs: reusedRender.elapsedMs,
+  changedContent: "miss",
+  exactArtifacts: true,
+});
 const sourceBase = JSON.parse(await readFile(new URL("classic.json", output), "utf8"));
 const sourceJob = {
   type: "compile-source",

@@ -47,6 +47,14 @@ try {
     "1",
     "river-documents:fixtures",
   ]);
+  await run(docker, [
+    "exec",
+    container,
+    "node",
+    "--input-type=module",
+    "-e",
+    'const deadline = Date.now() + 10_000; for (;;) { try { const response = await fetch("http://127.0.0.1:8080/healthz", { signal: AbortSignal.timeout(1000) }); if (response.ok) break; } catch {} if (Date.now() >= deadline) throw new Error("Document Container did not become ready within 10 seconds"); await new Promise(resolve => setTimeout(resolve, 100)); }',
+  ]);
   await run(process.execPath, ["apps/documents/scripts/check-runtime.mjs"], {
     ...process.env,
     DOCKER_PATH: docker,

@@ -1,5 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "lib": ["ES2023", "DOM"], "types": ["node"] },
-  "include": ["src/process-job.ts", "src/fixture.ts"]
+  "include": [
+    "src/process-job.ts",
+    "src/fixture.ts",
+    "src/compile-cache.ts",
+    "src/compile-cache.test.ts"
+  ]
 }

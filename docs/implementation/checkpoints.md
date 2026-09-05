@@ -18,7 +18,7 @@ Classic, Minimal, and Technical each contain a document manifest, six non-header
 
 The Workflow writes PDF, LaTeX, extracted text, and validation JSON to immutable R2 keys before publishing the manifest. Checkpoints use `retained/checkpoints/`; previews use `transient/previews/` and expire after seven days. Protected downloads require Owner access and, for checkpoint download links, a completed export record. Failed integrity outputs remain available for authenticated inspection. Inline preview is an inspection capability, not DRM.
 
-Preview coalescing includes the acknowledged draft revision and exact template inventory. The last successful PDF remains visible with freshness/revision labels; obsolete results cannot publish as current. The viewer supports actual page navigation, fit width, and zoom. Cross-revision render-cache reuse remains open.
+Preview coalescing includes the acknowledged draft revision and exact template inventory. The last successful PDF remains visible with freshness/revision labels; obsolete results cannot publish as current. The viewer supports actual page navigation, fit width, and zoom. Complete-input warm render reuse is implemented and locally verified; every Operation still retains its own artifact manifest and publication guards. See `render-cache.md` for limits and deployment status.
 
 ## Validation and deployment
 

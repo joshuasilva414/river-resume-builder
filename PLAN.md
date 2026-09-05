@@ -1,6 +1,6 @@
 # River build plan
 
-Status: implementation authorized. The local Phase 0 path and initial access screens are implemented. The verified Owner completed the hosted PDF path; remaining authentication and recovery gates are tracked explicitly. See [implementation status](docs/implementation/status.md) and [runtime proof](docs/implementation/phase-0.md).
+Status: V1 implementation is ongoing on personal staging. The core tailoring loop, reviewed AI, template workflows and history are deployed. Scoring activation, final-source acceptance, remaining authentication/mobile checks and the real Owner release session remain open. See [implementation status](docs/implementation/status.md) and [runtime proof](docs/implementation/phase-0.md).
 
 ## Approved implementation decisions
 
@@ -176,7 +176,7 @@ Depends on M4 and the document pipeline proof.
 - [x] Ship Classic, Minimal, and Technical packs with fixed compatible compositions.
 - [x] Compile only typed document jobs using bounded input/output, fresh job environments, offline resources, and explicit process limits.
 - [x] Debounce/coalesce previews, retain the last successful PDF with stale/compiling status, and ignore obsolete results when updating the current preview.
-- [ ] Cache by complete render inputs. Exact revision/template coalescing and separate transient/retained keys are implemented; cross-revision cache reuse remains open.
+- [x] Cache by complete render inputs. Exact revision/template coalescing and separate transient/retained keys remain intact. Bounded warm-process reuse across Operation IDs passes real artifact and invalidation checks; cold Containers compile normally. See `render-cache.md`.
 - [x] Validate required text completeness, intended multiplicity, and reading order against a canonical expected-text representation with documented normalization.
 - [x] Block compilation/integrity failures and prohibited constructs; expose layout warnings and required evidence acknowledgments.
 - [x] On export, capture the exact draft revision as a checkpoint and export artifacts from that snapshot. Concurrent edits must not change the export payload.
@@ -229,22 +229,22 @@ Exit: every generated change is reviewable and attributable; content changes can
 
 Exit: restoring history never destroys newer work, score comparisons preserve their meaning, and scoring outages leave export usable.
 
-## Review items still open
+## Resolved implementation contracts
 
-These choices are not settled by Q77. Resolve product behavior before the affected milestone; resolve replaceable adapter details through focused technical evaluation.
+The approved implementation request and subsequent compatibility work resolved these earlier planning questions. The unchecked milestones above track remaining implementation and acceptance work.
 
-| Item | Needed by | What remains to decide |
+| Item | Needed by | Decision and evidence |
 | --- | --- | --- |
-| Requirement Map contract | M3 | Requirement categories, priorities, confidence representation, source anchors, manual overrides, and unsupported/unknown evidence treatment |
-| AI execution | M3 | SDK/API, model profiles, task/output budgets, cancellation, retry limits, and whether long tasks expose streamed progress |
-| Evidence export policy | M4/M5 | Exact behavior for Draft, archived, stale, or unattested content; agreed warnings cover Needs clarification and unsupported skills but do not specify every state |
-| Provenance details | M2 | Parser-specific citation anchors and historical contact/context values; avoid mutable context records changing checkpoint output |
-| Review metadata | M2/Phase 2 | How verification and template lifecycle transitions are recorded while revision payloads remain immutable |
-| Document adapters and limits | Phase 0/M5 | Parser/viewer choices, file/page/output limits, timeouts, warm-container strategy, resource/cost envelope, preview latency target |
-| Raw document overrides | Phase 2 | What happens when structured draft content changes after a final-source override has been accepted |
-| Deployment configuration | M1/M6 | App hostname, Owner bootstrap identity, sender domain/address, environment separation and deployment automation |
-| Retention | M5/M6 | Exact preview lifetime, backup retention, and how rejected proposal content removal relates to backups and provider retention |
-| Recovery protocols | M1/M2 | Durable dispatch after a D1 commit, retry ownership, orphaned objects, and document-job idempotency |
+| Requirement Map contract | M3 | Versioned categories, priorities, keywords, confidence and exact immutable posting passages. Manual edits remain authoritative; missing evidence stays a gap. See `job-analysis.md`. |
+| AI execution | M3 | Server OpenAI Responses profiles, strict validated output, captured input budgets, bounded explicit retry/cancellation and persisted Operation stages without token streaming. See each AI workflow's implementation record. |
+| Evidence export policy | M4/M5 | Acknowledge each Draft, Needs clarification, stale, archived or unsupported issue for the exact checkpoint; compilation, prohibited constructs and text integrity block. See `checkpoints.md`. |
+| Provenance details | M2 | Exact source/processing identities, quote and UTF-16 offsets, parser page/line locators and immutable checkpoint contact/context values. See `source-intake.md` and `checkpoints.md`. |
+| Review metadata | M2/Phase 2 | Separate revision-checked review/lifecycle state with retained decisions, audit and immutable material revisions. See `evidence.md` and `template-studio.md`. |
+| Document adapters and limits | Phase 0/M5 | PDF.js, Mammoth and pinned offline Tectonic; measured limits and one bounded Container with two-minute idle sleep. See `phase-0.md`; hosted performance remains measured rather than guaranteed. |
+| Raw document overrides | Phase 2 | Accept into a new checkpoint; structured return creates a separate branch and regenerates source after an explicit explanation. See `source-refinement.md`. |
+| Deployment configuration | M1/M6 | Sole Owner `joshuasilva414@gmail.com`, intended `river.jilva.dev`, personal-account staging and isolated production resources. ACM UTSA is excluded. See `deployment.json`. |
+| Retention | M5/M6 | Seven-day transient previews, 30-day daily backups, preserved original/checkpoint objects and removed rejected live payloads. Provider requests use `store: false`. See `recovery.md`. |
+| Recovery protocols | M1/M2 | Operation/dispatch persistence before execution, stable dispatch identities, atomic D1 commands and immutable recoverable R2 writes. See `recovery.md` and workflow implementation records. |
 
 ## Deferred ideas
 

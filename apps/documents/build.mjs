@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
 await build({
-  entryPoints: ["src/process-job.ts", "src/fixture.ts"],
+  entryPoints: ["src/process-job.ts", "src/fixture.ts", "src/compile-cache.ts"],
   outdir: "dist",
   outExtension: { ".js": ".mjs" },
   platform: "node",

@@ -1,11 +1,22 @@
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { CompileCache } from "./compile-cache.mjs";
 import runtimeContract from "./runtime-contract.json" with { type: "json" };
 
 const MAX_BODY = 15 * 1024 * 1024;
+// Compiler resources and the complete bundled program/dependency lock identify this process's runtime.
+const runtimeHash = createHash("sha256").update(process.version);
+for (const path of ["/app/resources.json", "/app/process-job.mjs", "/workspace/pnpm-lock.yaml"])
+  runtimeHash.update(
+    createHash("sha256")
+      .update(await readFile(path))
+      .digest(),
+  );
+const cache = new CompileCache(runtimeHash.digest("hex"));
 let busy = false;
 
 createServer(
@@ -40,11 +51,25 @@ createServer(
         }
         chunks.push(chunk);
       }
+      const body = Buffer.concat(chunks);
+      let cacheKey = null;
+      try {
+        cacheKey = cache.key(JSON.parse(body.toString("utf8")));
+      } catch {
+        // Invalid input still takes the ordinary process validation and safe diagnostic path.
+      }
+      const cached = cacheKey ? cache.get(cacheKey) : null;
+      response.setHeader("X-River-Document-Cache", cached ? "hit" : cacheKey ? "miss" : "bypass");
+      if (cached) {
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(cached);
+        return;
+      }
       directory = await mkdtemp(join(tmpdir(), "river-document-"));
       const input = join(directory, "input.json");
       const output = join(directory, "output.json");
       stagePath = join(directory, "stage.txt");
-      await writeFile(input, Buffer.concat(chunks), { mode: 0o600 });
+      await writeFile(input, body, { mode: 0o600 });
       stage = "document-process";
       await new Promise((resolve, reject) => {
         const child = spawn(
@@ -87,6 +112,7 @@ createServer(
       const result = await readFile(output);
       stage = "response-body";
       if (result.length > 30 * 1024 * 1024) throw new Error("Output limit exceeded");
+      if (cacheKey) cache.put(cacheKey, result.toString("utf8"));
       response.writeHead(200, { "Content-Type": "application/json" });
       response.end(result);
     } catch {
