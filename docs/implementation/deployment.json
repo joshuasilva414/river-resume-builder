@@ -4,14 +4,14 @@
   "applicationUrl": "https://river-staging.jilva.workers.dev",
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
-  "webVersion": "49c5362a-8d29-4125-b8e1-e17e1e0f8cfa",
-  "documentWorkerVersion": "db8fe550-2daf-4c70-af68-bd8cbe55dbae",
-  "containerImageDigest": "sha256:aa6e88276cf052431099172fcc2376a693a207f0a6220fe9ecca0a788cb08fc4",
+  "webVersion": "32a705e5-1963-44c9-8ff0-abc46d36b7fc",
+  "documentWorkerVersion": "8444c62b-5879-461a-bbcc-40cc5aec00e4",
+  "containerImageDigest": "sha256:8296667d59c1c63dab4f107035419aa1488d465b05a23211f71f2944408b27ca",
   "database": "river-staging",
   "databaseId": "1b837147-de99-4aaa-a4ad-386b826412b0",
   "bucket": "river-staging-artifacts",
   "workflow": "river-staging-documents",
-  "migrationsThrough": "0016_busy_thing.sql",
+  "migrationsThrough": "0018_backup_attempts.sql",
   "checks": {
     "signIn": 200,
     "unauthenticatedSettings": 307,
@@ -45,15 +45,19 @@
     "checkpointUnauthenticated": 401,
     "checkpointResponsive": "1280px local desktop and 621px hosted narrow light/dark; no horizontal document overflow at 621px",
     "previewRetention": "R2 transient/previews/ lifecycle configured for seven days; expired artifact requests return 410",
-    "backupRetention": "R2 backups/database/ lifecycle configured for 30 days; daily Workflow deployed but disabled without dedicated D1 export token",
+    "backupRetention": "Owner-approved dedicated token installed; live daily backup succeeded on the third bounded attempt. Private SQL and manifest retained for 30 days; Settings verifies artifact availability and expiry.",
     "restoreDrill": "passed: isolated local SQLite, 39 base tables, FTS equality, foreign keys, exact citation offsets, 14 retained objects, one exported checkpoint",
-    "jobAnalysis": "47 Workers tests; local synthetic review, stale rejection, payload discard, ranking review and explicit selection passed; live OpenAI generation unverified without a key",
+    "jobAnalysis": "47 Workers tests; local synthetic review, stale rejection, payload discard, ranking review and explicit selection passed; live OpenAI generation not yet exercised with the configured key",
     "streamedRestoreDrill": "passed: v2 format derived from a real 42-table staging snapshot; isolated SQLite, FTS, foreign keys, one citation, 14 retained objects, one export; live scheduled export remains unverified",
-    "wording": "six service tests and local synthetic comparison, concurrent unrelated edit preservation, exact local acceptance, updated PDF, stale rejection, payload removal, 1280px light and 621px dark pass; live generation unverified without a key",
-    "sourceProposals": "64 service tests pass; local synthetic individual acceptance, rejection, manual origin, exact citation, stale source guards, and source-backed clarification passed; live generation and configured launch unverified without a key",
-    "duplicateComparison": "70 Workers tests pass; local synthetic acknowledgment, optional disposition attribution, both-claim saved history, stale rejection and payload removal pass; 1280px light and 621px dark inspected; live generation and configured launch unverified without key",
+    "wording": "six service tests and local synthetic comparison, concurrent unrelated edit preservation, exact local acceptance, updated PDF, stale rejection, payload removal, 1280px light and 621px dark pass; live generation not yet exercised with the configured key",
+    "sourceProposals": "64 service tests pass; local synthetic individual acceptance, rejection, manual origin, exact citation, stale source guards, and source-backed clarification passed; live generation and configured launch not yet exercised with the configured key",
+    "duplicateComparison": "70 Workers tests pass; local synthetic acknowledgment, optional disposition attribution, both-claim saved history, stale rejection and payload removal pass; 1280px light and 621px dark inspected; live generation and configured launch not yet exercised with the configured key",
     "templateStudio": "Passed: local real fixture validation, approval, concurrent preservation, mixing, exact draft/preview/checkpoint, retirement and retained export. Hosted third validation passed all four fixtures twice after fixing Container RPC stream ownership. Hosted graph remains Validated pending Owner visual approval. Anonymous PDF request returns 401.",
-    "templateGeneration": "83 Workers tests pass; local real preview, full graph/text/report inspection, acceptance into Draft, rejection removal, 1280px light/dark and 621px narrow review pass. Deployed with generation hidden pending server key. Conversational iteration and live model validation remain incomplete."
+    "templateGeneration": "Hosted real model response and first-attempt 11-point PDF passed graph, text-integrity and runtime checks. Full component change, PDF, text and report reviewed; accepted into immutable Draft. All 86 Workers tests through conversations and eight focused backup tests pass; workspace checks/lint/build pass.",
+    "dailyBackupRestore": "Passed: live token-driven v2 backup, 58 base tables, FTS equality, foreign keys, exact citation offsets, 30 retained objects, one exported checkpoint. Fresh unpublished local SQLite; no remote cutover.",
+    "templateBodySizes": "Offline container suite passes all supported body sizes 9/10/11/12; runtime image warms each article size. Peak fixture container memory 411049984 bytes.",
+    "backupSettings": "Paper-based desktop light/dark, status, bounded explicit retry, safe failure inspection, successful retention and preserved three-attempt history verified against staging. Narrow viewport check remains open.",
+    "templateConversation": "Hosted accepted turn, complete original brief, same-scope prior-instruction default and pinned accepted base verified in the conversation. Concurrent and pagination behavior covered in Workers tests."
   },
   "hostedRuntimeSamples": [
     {
@@ -78,6 +82,15 @@
       "receipt": "test-results/recovery/format-drill-33f57daf-0718-4adb-8c91-eb3ad81d5014/receipt.json",
       "report": "test-results/recovery/drill-551ea349-ac9f-459c-ac0b-1d781f9b2d45/report.json",
       "sourceBackupKey": "backups/database/staging/2026-09-05T08-59-11.010Z-193b07d1-7816-41a5-9059-d0b1d10f5ee3/snapshot.json.gz"
+    },
+    "dailyWorkflowDrill": {
+      "operationId": "01a071e7-d9a3-78b2-be1d-90eb11efb542",
+      "date": "2026-09-05",
+      "attempt": 3,
+      "receipt": "test-results/recovery/receipt-2026-09-05-4639902f-2a9a-485f-bf04-8157ec763ed2/receipt.json",
+      "report": "test-results/recovery/drill-5c9c1ca1-e8b9-43d5-a8db-569121966589/report.json",
+      "tables": 58,
+      "objects": 30
     }
   },
   "jobAnalysisWorkflow": "river-staging-job-analysis",
@@ -86,5 +99,16 @@
   "sourceClaimsWorkflow": "river-staging-source-claims",
   "duplicateComparisonWorkflow": "river-staging-duplicate-comparison",
   "templateValidationWorkflow": "river-staging-template-validation",
-  "templateAiWorkflow": "river-staging-template-ai"
+  "templateAiWorkflow": "river-staging-template-ai",
+  "hostedTemplateAi": {
+    "taskId": "01a071e7-75f6-7cef-af70-0b5fd368708c",
+    "operationId": "01a071e7-75f6-72f0-bde6-359b45a79a2d",
+    "draftRevisionId": "01a071e9-8a06-76d5-901f-142ad1344a8c",
+    "graphDigest": "3d5a83dd30c5cb0fe9b39ae5cc8c3eb422a937d58c4e323b8118fd628b107dab",
+    "generationAttempts": 1,
+    "previewAttempts": 1,
+    "validationId": "01a071ea-7ef6-77ab-9430-db189dac8e5b",
+    "validation": "All four fixtures rendered twice and passed; Validated, awaiting separate Owner visual approval.",
+    "conversationId": "01a071e6-f217-7952-93c0-b97743159fc3"
+  }
 }
