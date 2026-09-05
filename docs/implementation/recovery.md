@@ -59,3 +59,12 @@ Cloudflare activates Worker code before its Container rollout completes. A succe
 ## Migration 0025 restore proof — 2026-09-05
 
 A fresh post-migration backup retained all 67 base tables under `backups/database/staging/2026-09-05T18-25-28.476Z-f3dd7261-ab8f-4c28-9435-9c8fdb45bcd5/snapshot.json.gz`, with SHA-256 `6effb22143e001f3a86ebb4331b043e867586b4199addc1ae752917de3511f2b`. A separate fresh local restore passed schema/data integrity, exact FTS equality, foreign keys, one citation, 50 retained objects and the original exported checkpoint. Its report is `test-results/recovery/drill-c08c37e9-a550-410c-bbed-bc1b126aa1d5/report.json`. Pending/failed Operations were not redispatched, and no remote data or bindings changed.
+
+
+## Template qualification schema restore — 2026-09-05
+
+Before deploying commit `570278e`, the 67-table migration-0025 staging database was backed up to `backups/database/staging/2026-09-05T19-10-28.465Z-01c5d448-1fb1-40a5-88f3-68d41478c8d7/snapshot.json.gz` (SHA-256 `7db0f144a783ebeca0aadb991be8c52ce8ae3bc9f96611159b984e40cb61755e`). The additive migration `0026_template_scoring.sql` applied successfully.
+
+The new 71-table snapshot is `backups/database/staging/2026-09-05T19-12-36.488Z-22730f37-6741-481b-a4d8-c3c9e69ea8e8/snapshot.json.gz` (SHA-256 `c298bdec91b98172f953e4699e9d698c495301ad706a347a1efed8df94991666`). The isolated local drill passed FTS equality, foreign keys, one exact citation, 50 retained objects and one exported checkpoint. Receipt: `test-results/recovery/2026-09-05T19-12-36.488Z-22730f37-6741-481b-a4d8-c3c9e69ea8e8/receipt.json`; report: `test-results/recovery/drill-695926dd-7ddc-4094-82d6-28fd700b0051/report.json`. Private artifacts remain ignored by Git. No remote cutover or restored operation dispatch occurred.
+
+Restore discovery includes every hashed PDF, LaTeX, text and validation file referenced by `template_scoring_fixtures.document`. Staging has no qualification records while the provider remains unconfigured; a drill with a populated live qualification remains part of provider verification. Logs: `/tmp/river-template-score-predeploy-backup.log`, `/tmp/river-template-score-postdeploy-backup.log`, `/tmp/river-template-score-restore.log`.

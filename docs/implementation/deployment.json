@@ -4,14 +4,14 @@
   "applicationUrl": "https://river-staging.jilva.workers.dev",
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
-  "webVersion": "f307e560-c38e-4256-822f-ef73e4e0c830",
+  "webVersion": "5239f176-6901-48b4-997e-ca4d62a0fb23",
   "documentWorkerVersion": "6459e815-8f14-4772-827d-5aff881a30ca",
   "containerImageDigest": "sha256:5ca4c176095b9f4663fee737eaa9a7ec30d7662b4eeb7af51273c6bdd4dc6905",
   "database": "river-staging",
   "databaseId": "1b837147-de99-4aaa-a4ad-386b826412b0",
   "bucket": "river-staging-artifacts",
   "workflow": "river-staging-documents",
-  "migrationsThrough": "0025_checkpoint_labels.sql",
+  "migrationsThrough": "0026_template_scoring.sql",
   "checks": {
     "signIn": 200,
     "unauthenticatedSettings": 307,
@@ -61,8 +61,9 @@
     "hostedHistory": "Passed: restored an independent synthetic Classic branch, rendered r0, captured a labeled checkpoint, inspected lineage and pinned complete content/PDF comparison. Both actual PDFs render with independent zoom. No new export attestation.",
     "hostedScoring": "Workflow and Owner UI deployed; provider origin unset, new submissions unavailable. ATS deployment approval remains pending.",
     "hostedSourceRefinement": "Passed on third bounded preview after one real generation: complete source, intended field, unchanged extracted text, both real PDFs and complete passing reports inspected. Anonymous preview returns 401. Candidate remains Pending; no acceptance. Earlier two 422 failures remain unattributed.",
-    "currentSchemaRestore": "Passed: fresh isolated local SQLite from migration 0025 backup, 67 base tables, exact FTS equality, foreign keys, one citation, 50 retained objects and one exported checkpoint. No remote cutover.",
-    "documentDiagnostics": "Offline full fixture suite passed; fixed protocol/stage headers identify malformed input and prohibited source without exposing exception contents. Peak memory 421687296 bytes."
+    "currentSchemaRestore": "Passed: fresh isolated local SQLite from migration 0026 backup, 71 base tables, exact FTS equality, foreign keys, one citation, 50 retained objects and one exported checkpoint. No remote cutover.",
+    "documentDiagnostics": "Offline full fixture suite passed; fixed protocol/stage headers identify malformed input and prohibited source without exposing exception contents. Peak memory 421687296 bytes.",
+    "templateScoring": "Deployed: canonical fixture capture, bounded qualification Workflow, Owner review and protected artifact route. Hosted fixed Classic empty/unavailable state verified; anonymous artifact request returns 401. ATS provider origin remains unset; no hosted score or designation."
   },
   "hostedRuntimeSamples": [
     {
@@ -161,5 +162,26 @@
     "previewFingerprint": "ab9485a7cb387774fe2d93ae269fe54092172cf150b2e5f6575092dbd6feb451",
     "documentMs": 11408.33835
   },
-  "deployedDocumentCommit": "60f0205"
+  "deployedDocumentCommit": "60f0205",
+  "templateScoringRelease": {
+    "commit": "570278e",
+    "workflow": "river-staging-template-scoring",
+    "workflowCount": 11,
+    "workerStartupMs": 62,
+    "preMigrationBackup": {
+      "key": "backups/database/staging/2026-09-05T19-10-28.465Z-01c5d448-1fb1-40a5-88f3-68d41478c8d7/snapshot.json.gz",
+      "sha256": "7db0f144a783ebeca0aadb991be8c52ce8ae3bc9f96611159b984e40cb61755e",
+      "tables": 67
+    },
+    "currentSchemaBackup": {
+      "key": "backups/database/staging/2026-09-05T19-12-36.488Z-22730f37-6741-481b-a4d8-c3c9e69ea8e8/snapshot.json.gz",
+      "sha256": "c298bdec91b98172f953e4699e9d698c495301ad706a347a1efed8df94991666",
+      "tables": 71,
+      "restoreDrill": "drill-695926dd-7ddc-4094-82d6-28fd700b0051",
+      "retainedObjects": 50,
+      "citations": 1,
+      "exportedCheckpoints": 1
+    },
+    "providerConfigured": false
+  }
 }

@@ -1,6 +1,6 @@
 # Canonical template ATS qualification
 
-Canonical qualification, durable fixture runs, Owner application services, a bounded Workflow, protected artifact inspection and Paper’s review interface are implemented locally on 2026-09-05. The Paper contract is board 75 in `history-scoring-design.md`. Live provider qualification remains unverified; no live template has an `ATS Screener tested` designation from this work.
+Canonical qualification, durable fixture runs, Owner application services, a bounded Workflow, protected artifact inspection and Paper’s review interface are deployed to personal staging on 2026-09-05. The Paper contract is board 75 in `history-scoring-design.md`. Live provider qualification remains unverified; no live template has an `ATS Screener tested` designation from this work.
 
 ## Exact synthetic inputs
 
@@ -48,6 +48,12 @@ Restore discovery now includes the four hashed files of every retained scoring f
 
 All **132 Workers tests in 24 files pass**, including nine new template scoring cases: atomic capture/idempotency, Owner and revision restrictions, retained artifact proof, full qualification, partial-result recovery, once-only submission, cancellation/budget enforcement, corruption and artifact loss, shared capacity/rate limits, withheld failing or unidentified results, and finalization recovery without resubmission. Test scores are explicitly synthetic and are isolated from the application database.
 
-All six workspace type and lint checks pass. The staging build passes. Migration 0026 is applied locally. Browser inspection covers the fixed Classic inspector’s unavailable/empty state in both light and dark themes at desktop size. Real-provider success, populated review browser journeys, mobile review and hosted qualification remain open. Logs: `/tmp/river-template-score-all-workers.log`, `/tmp/river-template-score-types.log`, `/tmp/river-template-score-lint.log`, `/tmp/river-template-score-build.log`, `/tmp/river-template-score-migrate.log`.
+All six workspace type and lint checks pass. The staging build passes. Migration 0026 is applied locally and to personal staging. Browser inspection covers the fixed Classic inspector’s unavailable/empty state in both light and dark themes at desktop size. Real-provider success, populated review browser journeys, mobile review and hosted qualification remain open. Logs: `/tmp/river-template-score-all-workers.log`, `/tmp/river-template-score-types.log`, `/tmp/river-template-score-lint.log`, `/tmp/river-template-score-build.log`, `/tmp/river-template-score-migrate.log`.
 
-Next: deploy the additive schema and Workflow to River staging; after the separate ATS deployment approval, verify the live identity endpoint, enable scoring and complete actual synthetic fixture runs and their browser review. No live scoring or current production designation is claimed.
+## Staging delivery
+
+Commit `570278e` is deployed as web version `5239f176-6901-48b4-997e-ca4d62a0fb23`, including `river-staging-template-scoring` (11 Workflows total). Startup measured 62 ms. The document Worker remains `6459e815-8f14-4772-827d-5aff881a30ca`; its existing validate-template contract supports the canonical documents sent by the web Workflow.
+
+Before migration, a private 67-table backup was retained and locally validated. After deployment, a 71-table snapshot was retained and restored into a fresh unpublished local SQLite database. FTS equality, foreign keys, one exact citation, all 50 retained objects and one exported checkpoint passed. The new scoring tables are empty on staging, so this drill does not establish recovery of a populated live qualification. Exact keys and digests are in `deployment.json`. Hosted authenticated Classic inspection resolves the current fixture set and its empty history. No qualification badge or submission control appears while the provider is unconfigured. The new artifact route returns 401 anonymously. Installed secret names were verified without reading values. Deployment and recovery logs: `/tmp/river-template-score-staging-deploy.log`, `/tmp/river-template-score-staging-migrate.log`, `/tmp/river-template-score-predeploy-backup.log`, `/tmp/river-template-score-postdeploy-backup.log`, `/tmp/river-template-score-restore.log`.
+
+Next: after the separate ATS deployment approval, verify the live identity endpoint, enable scoring and complete actual synthetic fixture runs and their populated browser review. No live scoring or production designation is claimed.
