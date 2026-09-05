@@ -41,6 +41,42 @@ assert.equal(invalidInput.status, 422);
 assert.equal(invalidInput.stage, "input-validation");
 assert.deepEqual(invalidInput.body, { error: "Document processing failed." });
 const measurements = [];
+for (const [theme, graph] of Object.entries(fixture.fixedGraphs)) {
+  for (const candidate of fixture.atsFixtureSet.fixtures) {
+    const result = await run({
+      type: "validate-template",
+      jobId: `ats-${theme}-${candidate.id}`,
+      theme,
+      templateGraph: graph,
+      document: candidate.document,
+    });
+    assert.equal(result.status, 200, `${theme}/${candidate.id}`);
+    assert.equal(result.body.validation.passed, true, JSON.stringify(result.body.validation));
+    assert.equal(result.body.extractedText, result.body.validation.extractedText);
+    assert.ok(
+      result.body.extractedText.length <= 6000,
+      "A required ATS fixture would be truncated",
+    );
+    assert.ok(candidate.jobDescription.length <= 4000, "A required ATS job would be truncated");
+    await writeFile(
+      new URL(`ats-${theme}-${candidate.id}.json`, output),
+      JSON.stringify(result.body, null, 2),
+    );
+    await writeFile(
+      new URL(`ats-${theme}-${candidate.id}.pdf`, output),
+      Buffer.from(result.body.pdfBase64, "base64"),
+    );
+    measurements.push({
+      type: "ats-canonical-render",
+      theme,
+      fixture: candidate.id,
+      resumeCharacters: result.body.extractedText.length,
+      jobCharacters: candidate.jobDescription.length,
+      pages: result.body.validation.pageCount,
+      passed: true,
+    });
+  }
+}
 let classicFingerprint;
 for (const theme of ["classic", "classic", "minimal", "technical"]) {
   const result = await run({ ...fixture, theme });

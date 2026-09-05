@@ -1,5 +1,6 @@
 import type { ValidationReport } from "./validation-report";
 
+export * from "./ats-qualification";
 export * from "./graph";
 export * from "./refinement";
 export { ValidationReport } from "./validation-report";
@@ -377,6 +378,12 @@ export const syntheticResume: ResumeDocument = {
   ],
 };
 
+export {
+  ATS_FIXTURE_SET_VERSION,
+  type AtsFixtureSet,
+  atsFixtures,
+  captureAtsFixtureSet,
+} from "./ats-fixtures";
 export { TEMPLATE_FIXTURE_VERSION, templateFixtures } from "./fixtures";
 export { isolateLayoutAdjustment, type LayoutAdjustment } from "./layout-promotion";
 export { effectiveStyles } from "./manifests";
