@@ -29,8 +29,9 @@ The following work still prevents V1 release:
 - Explicit source-refinement acceptance, retained export, structured return and template promotion. Candidate rendering passed; acceptance remains pending the Owner review attestation.
 - ATS identity deployment and live six-platform scoring, compatible comparisons, failure/retry and canonical template qualification. The River provider origin remains unset. No tested designation is awarded.
 - Populated mobile scoring/qualification review and a restore containing real scoring records.
-- The deployed aborted-request lifetime check.
 - One real Owner job-tailoring session within 15 minutes, using Owner-selected job and evidence files.
 - Isolated production resources, `river.jilva.dev` deployment and final production acceptance in the personal account.
 
 Pending approval does not authorize a different path around the Owner attestation or ATS deployment holds. Original sources and checkpoint artifacts remain retained. Production and ACM UTSA remain untouched.
+
+The deployed request-lifetime gate now has a captured Cloudflare `canceled` invocation, a subsequent expected authorization response and a successful authenticated synthetic compile. See `request-lifetime.md`. The prepared temporary Agent Credential has six read/write source/evidence/job scopes, seven-day expiry and an explicit post-check revocation plan; creation remains pending approval.

@@ -102,7 +102,7 @@ Implementation requirements derived from the accepted concurrency contract:
 - [x] Execute one Effect application service through a server function and an external server route. Validate its Effect Schema input and typed error mapping.
 - [x] Prove Drizzle/D1 migration, conditional revision update, and atomic persistence of aggregate, index, and audit data.
 - [ ] Prove Better Auth GitHub login, allowlisted registration, verification/reset delivery, session revocation, and denial of non-owner access.
-- [ ] Exercise cold starts, aborted requests, and subsequent requests on the deployed runtime to catch initialization lifetime issues.
+- [x] Exercise cold starts, aborted requests, and subsequent requests on the deployed runtime to catch initialization lifetime issues. Hosted startup/render measurements and a server-observed cancellation followed by authenticated compilation pass; see `docs/implementation/request-lifetime.md` for the sampled scope and reproduction command.
 - [x] Read/write private R2 content and execute an Effect program within a Workflow step; verify retry and Operation reporting.
 - [x] Run one synthetic resume through the document Container: manifest composition, offline Tectonic compilation, PDF text extraction, and artifact return.
 - [x] Select the PDF/DOCX parsing and PDF-viewer libraries after testing their actual extraction fidelity, licensing, and runtime compatibility.

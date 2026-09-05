@@ -72,6 +72,8 @@ Live clarification now passes the complete hosted path: first-attempt provider q
 
 The release audit then reproduced a password-recovery gap: successful resets left existing sessions authenticated. The fix enables Better Auth's explicit revocation option. Isolated tests prove Owner-only mail, the actual callback, two-session revocation, new-password sign-in and used/expired-token rejection. The deployed setting leaves current sessions intact until a reset completes. Hosted Owner password entry remains pending; no Owner password was changed. See `authentication.md` and the consolidated `release-gates.md`.
 
+A uniquely filtered hosted probe now records an actual canceled Worker invocation during the identity/D1 path. A subsequent expected 401 and authenticated synthetic compilation pass; the latter retained its artifacts and rendered the actual PDF with correct text. The sampled request-lifetime gate is complete. Its reproducible command uses no real credential. The temporary staging Agent Credential form is prepared for six source/evidence/job read/write scopes and seven-day expiry but remains unsubmitted pending approval. See `request-lifetime.md`.
+
 ## Remaining V1 work
 
 - Complete explicitly approved source acceptance/publication, export, structured return and template promotion journeys.
