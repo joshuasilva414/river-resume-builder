@@ -60,7 +60,7 @@ The current-schema restore drill also passed: 67 base tables, exact FTS equality
 
 - Complete explicitly approved source acceptance/publication, export, structured return and template promotion journeys.
 - Deploy and verify ATS identity after approval, enable River scoring, and prove successful/failed runs, cache identity and exact finding review.
-- Complete persistent template scoring qualification and Paper's fixture review. The canonical set and strict qualification rule are implemented locally; all nine fixture/pack renders, 32 template tests and 21 focused service tests pass. Award `ATS Screener tested` only after a complete retained compatible passing report. See `template-scoring.md`.
+- Deploy and verify persistent template scoring qualification and Paper’s fixture review. The canonical set, qualification gate, four-table persistence, bounded Workflow, Owner services and review UI are implemented locally through migration 0026. All 132 Workers tests, workspace types/lint and the staging build pass; unavailable/empty states are reviewed in both themes. Actual hosted provider runs and populated/mobile browser review remain open. Award `ATS Screener tested` only after a complete retained compatible passing report. See `template-scoring.md`.
 - Complete the Paper-designed inline wording integration and narrow mobile history/comparison/scoring/recovery checks.
 - Finish remaining hosted job, wording, source-claim and duplicate AI journeys; password recovery and optional GitHub configuration remain unverified.
 - Complete the real Owner tailoring session, production resources/domain and release gates. No MVP or V1 release is claimed.

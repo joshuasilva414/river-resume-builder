@@ -198,6 +198,10 @@ export async function reconcileOperations(env: Env) {
       });
       continue;
     }
+    if ("type" in operation.input && operation.input.type === "template-score") {
+      await repository.failTemplateScoring(operation.id);
+      continue;
+    }
     await repository.failSource(
       operation.id,
       "Text extraction was interrupted. The original is preserved; retry extraction.",
@@ -242,6 +246,8 @@ function workflowFor(
       return env.WORDING_WORKFLOW;
     case "database-backup":
       return env.BACKUP_WORKFLOW;
+    case "template-score":
+      return env.TEMPLATE_SCORING_WORKFLOW;
     case "checkpoint-score":
       return env.SCORING_WORKFLOW;
     default: {

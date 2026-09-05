@@ -46,7 +46,7 @@ function Passages({ label, values }: { label: string; values: readonly string[] 
     </div>
   );
 }
-function Dimensions({ score }: { score: PlatformScore }) {
+export function ScoreDimensions({ score }: { score: PlatformScore }) {
   const { formatting, keywordMatch, sections, experience, education } = score.breakdown;
   return (
     <div className="space-y-5">
@@ -152,7 +152,7 @@ export function ScoreResults({ detail }: { detail: ScoringDetail }) {
             <p className="text-sm">
               {score.vendor} · Provider filter: {score.passesFilter ? "Pass" : "Below threshold"}
             </p>
-            <Dimensions score={score} />
+            <ScoreDimensions score={score} />
           </>
         )}
         <h3 className="border-t pt-5 font-editorial text-xl">Findings</h3>

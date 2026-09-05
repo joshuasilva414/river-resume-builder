@@ -1,6 +1,6 @@
 # Canonical template ATS qualification
 
-Foundation implemented locally on 2026-09-05. The Paper contract is board 75 in `history-scoring-design.md`. Durable fixture runs, Owner application services, the review interface and actual provider qualification remain to be implemented. No template has an `ATS Screener tested` designation from this work.
+Canonical qualification, durable fixture runs, Owner application services, a bounded Workflow, protected artifact inspection and Paper’s review interface are implemented locally on 2026-09-05. The Paper contract is board 75 in `history-scoring-design.md`. Live provider qualification remains unverified; no live template has an `ATS Screener tested` designation from this work.
 
 ## Exact synthetic inputs
 
@@ -20,7 +20,7 @@ These names, employers, qualifications and achievements are fictional test data.
 
 Every provider response is schema-validated for all six unique simulations. Each must report `passesFilter: true`. Missing coverage or reported model identity, differing endpoints/adapters, and incompatible rubric/model/deployment/request identities withhold qualification. Canonical fixtures intentionally use different jobs; their exact job text is validated independently. This is separate from checkpoint score comparison, which requires the same posting snapshot.
 
-Full validated findings and per-fixture failures remain inspectable. The rule retains the digest of the exact raw response string and never calculates a cross-platform average. A passing in-memory decision is not a persistent badge: the pending service must verify retained artifacts, commit a complete immutable report and associate it with the exact template revision.
+Full validated findings and per-fixture failures remain inspectable. The rule retains the digest of the exact raw response string and never calculates a cross-platform average. The runtime verifies all four retained artifact files and their hashes before provider submission and final qualification. A designation comes only from a complete committed report for its captured exact graph. The report, report digest, selected result identities and completion date remain accessible in history.
 
 ## Verification and remaining delivery
 
@@ -30,4 +30,24 @@ The offline Container suite rendered all nine fixture/pack combinations with com
 
 The fixture generator is now a checked TypeScript entry point instead of inline build-script source. Runtime artifacts remain private ignored test outputs. Logs: `/tmp/river-ats-qualification-tests.log`, `/tmp/river-ats-qualification-workers.log`, `/tmp/river-ats-qualification-types.log`, `/tmp/river-ats-qualification-lint.log`, `/tmp/river-ats-qualification-build.log`, `/tmp/river-ats-canonical-documents.log`.
 
-Next: capture a complete qualification manifest and graph in Owner-scoped persistence; run bounded document/provider attempts through durable Operations; preserve selected results and failed history; atomically retain the complete report; connect Paper's fixture matrix and historical designation. No real provider submission or new UI control is claimed here.
+## Durable execution and review
+
+Migration `0026_template_scoring.sql` adds independent qualification runs, root attempts, fixture records and fixture attempts. It does not create synthetic Owner jobs, resumes or checkpoints. Starting a run captures the complete graph, graph digest, canonical fixture set and exact adapter profile in the same transaction as its Operation, dispatch, audit entry and permanent idempotency receipt. Custom templates require the exact current Validated or Approved review revision. Fixed packs use their pinned complete graphs.
+
+At most one template qualification is active per Owner. It occupies one of the two shared checkpoint/template scoring slots. Each run has at most three Owner-requested attempts. Each required fixture renders at most once and submits at most once in each attempt, sequentially. A render step is bounded to two minutes; submission to 90 seconds, including the adapter’s 10-second discovery and 65-second request limits. Workflow retries only storage/finalization steps. Unknown submission outcomes require an explicit new attempt.
+
+Fixture documents are immutable four-file R2 sets under `retained/template-scoring/`. D1 retains the exact verified text/report and complete serialized provider response. Successful fixtures and retained responses survive retries. A response captured before an interrupted finalization is published without a new provider request. Cancellation and replacement operations reject late writes. Provider retry times and the three-attempt limit are enforced inside the guarded command transaction.
+
+Every finished attempt retains its own immutable qualification report, including missing/failing fixtures. Complete provider results can finish successfully while withholding the designation. Operational failures remain retryable within the original budget. Retried fixtures may report different identities; the gate withholds a designation for incompatible sets rather than combining them. New qualification runs remain an explicit action.
+
+The existing fixed-pack inspector and exact saved-template page link to the Paper-designed review. It shows each canonical input, all six independent results and dimensional findings, exact text, actual PDFs, downloadable artifacts, complete raw responses, report identities and attempt history. Selecting a past attempt stays pinned during polling. Current list badges require the current fixture set and policy; older passing reports are labeled historical qualifications. Local validation and export remain available during scoring outages. External agents have no template scoring commands; artifact downloads require an Owner session.
+
+Restore discovery now includes the four hashed files of every retained scoring fixture. No scoring-provider configuration is changed by this milestone.
+
+## Current verification
+
+All **132 Workers tests in 24 files pass**, including nine new template scoring cases: atomic capture/idempotency, Owner and revision restrictions, retained artifact proof, full qualification, partial-result recovery, once-only submission, cancellation/budget enforcement, corruption and artifact loss, shared capacity/rate limits, withheld failing or unidentified results, and finalization recovery without resubmission. Test scores are explicitly synthetic and are isolated from the application database.
+
+All six workspace type and lint checks pass. The staging build passes. Migration 0026 is applied locally. Browser inspection covers the fixed Classic inspector’s unavailable/empty state in both light and dark themes at desktop size. Real-provider success, populated review browser journeys, mobile review and hosted qualification remain open. Logs: `/tmp/river-template-score-all-workers.log`, `/tmp/river-template-score-types.log`, `/tmp/river-template-score-lint.log`, `/tmp/river-template-score-build.log`, `/tmp/river-template-score-migrate.log`.
+
+Next: deploy the additive schema and Workflow to River staging; after the separate ATS deployment approval, verify the live identity endpoint, enable scoring and complete actual synthetic fixture runs and their browser review. No live scoring or current production designation is claimed.

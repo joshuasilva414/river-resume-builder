@@ -37,6 +37,7 @@ import type {
   WordingProposal,
 } from "@river/domain";
 import type {
+  AtsFixtureSet,
   TemplateAiInput,
   TemplateAiProfile,
   TemplateBase,
@@ -68,6 +69,7 @@ import type {
   ScoringObservation,
   ScoringResult,
 } from "./scoring-types";
+import type { TemplateScoringDocument, TemplateScoringReport } from "./template-scoring-types";
 import type {
   TemplateDependency,
   TemplateFixtureResult,
@@ -186,6 +188,7 @@ export const operations = sqliteTable(
         | { type: "source-refinement-accept"; taskId: string }
         | { type: "database-backup"; date: string }
         | { type: "checkpoint-score"; runId: string }
+        | { type: "template-score"; runId: string }
       >()
       .notNull(),
     artifacts: text("artifacts", { mode: "json" }).$type<ArtifactManifest>(),
@@ -1263,3 +1266,78 @@ export const templateAiProposals = sqliteTable("template_ai_proposals", {
   reviewedAt: integer("reviewed_at"),
   previewCleanedAt: integer("preview_cleaned_at"),
 });
+
+export const templateScoringRuns = sqliteTable(
+  "template_scoring_runs",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id),
+    base: text("base", { mode: "json" }).$type<TemplateBase>().notNull(),
+    graph: text("graph", { mode: "json" }).$type<TemplateGraph>().notNull(),
+    graphDigest: text("graph_digest").notNull(),
+    fixtureSet: text("fixture_set", { mode: "json" }).$type<AtsFixtureSet>().notNull(),
+    profile: text("profile", { mode: "json" }).$type<ScoringProfile>().notNull(),
+    operationId: text("operation_id")
+      .notNull()
+      .references(() => operations.id),
+    revision: integer("revision").notNull().default(0),
+    attempts: integer("attempts").notNull().default(1),
+    createdAt: integer("created_at").notNull(),
+    completedAt: integer("completed_at"),
+  },
+  (table) => [
+    index("template_scoring_history").on(table.ownerId, table.graphDigest, table.createdAt),
+  ],
+);
+
+export const templateScoringAttempts = sqliteTable(
+  "template_scoring_attempts",
+  {
+    operationId: text("operation_id")
+      .primaryKey()
+      .references(() => operations.id),
+    runId: text("run_id")
+      .notNull()
+      .references(() => templateScoringRuns.id),
+    ordinal: integer("ordinal").notNull(),
+    report: text("report", { mode: "json" }).$type<TemplateScoringReport>(),
+    reportDigest: text("report_digest"),
+    failure: text("failure", { mode: "json" }).$type<ScoringFailure>(),
+    createdAt: integer("created_at").notNull(),
+    completedAt: integer("completed_at"),
+  },
+  (table) => [uniqueIndex("template_scoring_attempt_ordinal").on(table.runId, table.ordinal)],
+);
+
+export const templateScoringFixtures = sqliteTable(
+  "template_scoring_fixtures",
+  {
+    runId: text("run_id")
+      .notNull()
+      .references(() => templateScoringRuns.id),
+    fixtureId: text("fixture_id").notNull(),
+    document: text("document", { mode: "json" }).$type<TemplateScoringDocument>(),
+    documentDigest: text("document_digest"),
+    rawResponseJson: text("raw_response_json"),
+    resultDigest: text("result_digest"),
+    resultOperationId: text("result_operation_id").references(() => operations.id),
+    receivedAt: integer("received_at"),
+  },
+  (table) => [primaryKey({ columns: [table.runId, table.fixtureId] })],
+);
+
+export const templateScoringFixtureAttempts = sqliteTable(
+  "template_scoring_fixture_attempts",
+  {
+    operationId: text("operation_id")
+      .notNull()
+      .references(() => templateScoringAttempts.operationId),
+    fixtureId: text("fixture_id").notNull(),
+    observation: text("observation", { mode: "json" }).$type<ScoringObservation>(),
+    submittedAt: integer("submitted_at"),
+    failure: text("failure", { mode: "json" }).$type<ScoringFailure>(),
+  },
+  (table) => [primaryKey({ columns: [table.operationId, table.fixtureId] })],
+);

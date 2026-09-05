@@ -16,8 +16,8 @@ export const scoringCapacity = (db: Database, ownerId: string) =>
     db,
     sql`(
   SELECT count(*) FROM scoring_runs r JOIN operations o ON o.id=r.operation_id
-  WHERE r.owner_id=${ownerId} AND o.state IN ('Pending','Running')) < 2`,
-    "Two scoring runs are already active. Wait or cancel before starting another.",
+  WHERE r.owner_id=${ownerId} AND o.state IN ('Pending','Running')) + (SELECT count(*) FROM template_scoring_runs t JOIN operations o ON o.id=t.operation_id WHERE t.owner_id=${ownerId} AND o.state IN ('Pending','Running')) < 2`,
+    "Two checkpoint or template scoring runs are already active. Wait or cancel before starting another.",
   );
 
 /** Shared transaction plan supports an existing checkpoint or one captured in the same batch. */

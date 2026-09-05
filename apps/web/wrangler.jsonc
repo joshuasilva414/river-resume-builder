@@ -52,6 +52,11 @@
       "class_name": "ScoringWorkflow"
     },
     {
+      "binding": "TEMPLATE_SCORING_WORKFLOW",
+      "name": "river-local-template-scoring",
+      "class_name": "TemplateScoringWorkflow"
+    },
+    {
       "binding": "BACKUP_WORKFLOW",
       "name": "river-local-backups",
       "class_name": "BackupWorkflow"
@@ -137,6 +142,11 @@
           "binding": "SCORING_WORKFLOW",
           "name": "river-staging-scoring",
           "class_name": "ScoringWorkflow"
+        },
+        {
+          "binding": "TEMPLATE_SCORING_WORKFLOW",
+          "name": "river-staging-template-scoring",
+          "class_name": "TemplateScoringWorkflow"
         },
         {
           "binding": "BACKUP_WORKFLOW",

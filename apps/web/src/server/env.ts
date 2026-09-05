@@ -38,6 +38,7 @@ export interface Env extends Configuration {
   SOURCE_REFINEMENT_WORKFLOW?: Workflow<{ operationId: string }>;
   WORDING_WORKFLOW?: Workflow<{ operationId: string }>;
   BACKUP_WORKFLOW?: Workflow<{ operationId: string }>;
+  TEMPLATE_SCORING_WORKFLOW?: Workflow<{ operationId: string }>;
   SCORING_WORKFLOW?: Workflow<{ operationId: string }>;
   DOCUMENTS: { run: (job: DocumentJob) => Promise<DocumentResult> };
   EMAIL?: SendEmail;

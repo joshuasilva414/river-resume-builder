@@ -155,6 +155,21 @@ export function retainedObjects(db) {
         for (const field of ["pdf", "tex", "text", "report"]) add(artifacts[field], null, field);
     }
   }
+  if (
+    db
+      .prepare(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='template_scoring_fixtures'",
+      )
+      .get()
+  ) {
+    for (const row of db
+      .prepare("SELECT document FROM template_scoring_fixtures WHERE document IS NOT NULL")
+      .all()) {
+      const artifacts = JSON.parse(row.document).artifacts;
+      for (const field of ["pdf", "tex", "text", "report"])
+        add(artifacts[field], artifacts.objectDigests?.[field], field);
+    }
+  }
   return [...references.values()].sort((left, right) =>
     left.key < right.key ? -1 : left.key > right.key ? 1 : 0,
   );

@@ -23,6 +23,7 @@ import { TemplateAiQueue } from "~/components/templates/ai-queue";
 import { TemplateAiReview } from "~/components/templates/ai-review";
 import { TemplateEditor } from "~/components/templates/editor";
 import { TemplateMixer } from "~/components/templates/mix";
+import { TemplateScoring } from "~/components/templates/scoring";
 import {
   CodePayload,
   GraphView,
@@ -252,6 +253,12 @@ function TemplatesPage() {
                   }}
                 />
                 <TemplateValidation detail={detail.data} />
+                <TemplateScoring
+                  key={detail.data.revision.id}
+                  base={{ kind: "saved", revisionId: detail.data.revision.id }}
+                  reviewRevision={detail.data.revision.reviewRevision}
+                  eligible={["Validated", "Approved"].includes(detail.data.revision.state)}
+                />
                 <details>
                   <summary className="cursor-pointer text-sm font-semibold">
                     Captured component origins
@@ -422,6 +429,12 @@ function TemplatesPage() {
         >
           <div className="space-y-5">
             <GraphView graph={validateGraph(fixedPack(builtin))} />
+            <TemplateScoring
+              key={builtin}
+              base={{ kind: "fixed", theme: builtin }}
+              reviewRevision={null}
+              eligible
+            />
             <Button
               onClick={() => {
                 setEditor({ base: { kind: "fixed", theme: builtin } });

@@ -190,5 +190,6 @@ export * from "./library";
 export * from "./refinement";
 export * from "./scoring";
 export * from "./source-ai";
+export * from "./template-scoring";
 export * from "./template-studio";
 export * from "./wording";

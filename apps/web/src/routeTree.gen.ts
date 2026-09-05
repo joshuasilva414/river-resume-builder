@@ -36,6 +36,7 @@ import { Route as ApiV1JobsJobIdRouteImport } from './routes/api/v1/jobs.$jobId'
 import { Route as ApiV1SourcesSourceIdRouteImport } from './routes/api/v1/sources.$sourceId'
 import { Route as ApiTemplateArtifactsValidationIdFixtureIdKindRouteImport } from './routes/api/template-artifacts/$validationId.$fixtureId.$kind'
 import { Route as ApiTemplateProposalsTaskIdOperationIdKindRouteImport } from './routes/api/template-proposals/$taskId.$operationId.$kind'
+import { Route as ApiTemplateScoresRunIdFixtureIdKindRouteImport } from './routes/api/template-scores/$runId.$fixtureId.$kind'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -175,6 +176,12 @@ const ApiTemplateProposalsTaskIdOperationIdKindRoute =
     path: '/api/template-proposals/$taskId/$operationId/$kind',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiTemplateScoresRunIdFixtureIdKindRoute =
+  ApiTemplateScoresRunIdFixtureIdKindRouteImport.update({
+    id: '/api/template-scores/$runId/$fixtureId/$kind',
+    path: '/api/template-scores/$runId/$fixtureId/$kind',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -204,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/sources/$sourceId': typeof ApiV1SourcesSourceIdRoute
   '/api/template-artifacts/$validationId/$fixtureId/$kind': typeof ApiTemplateArtifactsValidationIdFixtureIdKindRoute
   '/api/template-proposals/$taskId/$operationId/$kind': typeof ApiTemplateProposalsTaskIdOperationIdKindRoute
+  '/api/template-scores/$runId/$fixtureId/$kind': typeof ApiTemplateScoresRunIdFixtureIdKindRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -233,6 +241,7 @@ export interface FileRoutesByTo {
   '/api/v1/sources/$sourceId': typeof ApiV1SourcesSourceIdRoute
   '/api/template-artifacts/$validationId/$fixtureId/$kind': typeof ApiTemplateArtifactsValidationIdFixtureIdKindRoute
   '/api/template-proposals/$taskId/$operationId/$kind': typeof ApiTemplateProposalsTaskIdOperationIdKindRoute
+  '/api/template-scores/$runId/$fixtureId/$kind': typeof ApiTemplateScoresRunIdFixtureIdKindRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -263,6 +272,7 @@ export interface FileRoutesById {
   '/api/v1/sources/$sourceId': typeof ApiV1SourcesSourceIdRoute
   '/api/template-artifacts/$validationId/$fixtureId/$kind': typeof ApiTemplateArtifactsValidationIdFixtureIdKindRoute
   '/api/template-proposals/$taskId/$operationId/$kind': typeof ApiTemplateProposalsTaskIdOperationIdKindRoute
+  '/api/template-scores/$runId/$fixtureId/$kind': typeof ApiTemplateScoresRunIdFixtureIdKindRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -294,6 +304,7 @@ export interface FileRouteTypes {
     | '/api/v1/sources/$sourceId'
     | '/api/template-artifacts/$validationId/$fixtureId/$kind'
     | '/api/template-proposals/$taskId/$operationId/$kind'
+    | '/api/template-scores/$runId/$fixtureId/$kind'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -323,6 +334,7 @@ export interface FileRouteTypes {
     | '/api/v1/sources/$sourceId'
     | '/api/template-artifacts/$validationId/$fixtureId/$kind'
     | '/api/template-proposals/$taskId/$operationId/$kind'
+    | '/api/template-scores/$runId/$fixtureId/$kind'
   id:
     | '__root__'
     | '/'
@@ -352,6 +364,7 @@ export interface FileRouteTypes {
     | '/api/v1/sources/$sourceId'
     | '/api/template-artifacts/$validationId/$fixtureId/$kind'
     | '/api/template-proposals/$taskId/$operationId/$kind'
+    | '/api/template-scores/$runId/$fixtureId/$kind'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -379,6 +392,7 @@ export interface RootRouteChildren {
   ApiArtifactsOperationIdKindRoute: typeof ApiArtifactsOperationIdKindRoute
   ApiTemplateArtifactsValidationIdFixtureIdKindRoute: typeof ApiTemplateArtifactsValidationIdFixtureIdKindRoute
   ApiTemplateProposalsTaskIdOperationIdKindRoute: typeof ApiTemplateProposalsTaskIdOperationIdKindRoute
+  ApiTemplateScoresRunIdFixtureIdKindRoute: typeof ApiTemplateScoresRunIdFixtureIdKindRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -572,6 +586,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTemplateProposalsTaskIdOperationIdKindRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/template-scores/$runId/$fixtureId/$kind': {
+      id: '/api/template-scores/$runId/$fixtureId/$kind'
+      path: '/api/template-scores/$runId/$fixtureId/$kind'
+      fullPath: '/api/template-scores/$runId/$fixtureId/$kind'
+      preLoaderRoute: typeof ApiTemplateScoresRunIdFixtureIdKindRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -638,6 +659,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiTemplateArtifactsValidationIdFixtureIdKindRoute,
   ApiTemplateProposalsTaskIdOperationIdKindRoute:
     ApiTemplateProposalsTaskIdOperationIdKindRoute,
+  ApiTemplateScoresRunIdFixtureIdKindRoute:
+    ApiTemplateScoresRunIdFixtureIdKindRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
