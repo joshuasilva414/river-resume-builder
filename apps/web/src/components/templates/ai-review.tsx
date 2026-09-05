@@ -5,7 +5,7 @@ import type {
 } from "@river/contracts";
 import { scopedTemplate, templateFixtures } from "@river/templates";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EvidenceDialog, Failure, unwrap } from "~/components/evidence/shared";
 import { PdfPreview } from "~/components/pdf-preview";
 import { Alert, AlertDescription } from "~/components/ui/alert";
@@ -30,6 +30,26 @@ export function TemplateAiReview({
   onClose: () => void;
   onDraft: (id: string) => void;
 }) {
+  return (
+    <EvidenceDialog
+      title="Review template proposal"
+      description="Inspect the complete candidate graph and the synthetic preview for this exact proposal."
+      onClose={onClose}
+      className="sm:max-w-[min(1280px,calc(100vw-3rem))]"
+    >
+      <TemplateAiInspection id={id} onDraft={onDraft} />
+    </EvidenceDialog>
+  );
+}
+export function TemplateAiInspection({
+  id,
+  onDraft,
+  onAccepted,
+}: {
+  id: string;
+  onDraft: (id: string) => void;
+  onAccepted?: (id: string) => void;
+}) {
   const query = useQuery({
     queryKey: ["templates", "ai", "detail", id],
     queryFn: async () => unwrap(await getTemplateAiTask({ data: { id } })),
@@ -39,24 +59,28 @@ export function TemplateAiReview({
         : 30000,
   });
   return (
-    <EvidenceDialog
-      title="Review template proposal"
-      description="Inspect the complete candidate graph and the synthetic preview for this exact proposal."
-      onClose={onClose}
-      className="sm:max-w-[min(1280px,calc(100vw-3rem))]"
-    >
+    <>
       <Failure error={query.error} />
       {query.isPending && <p role="status">Loading saved proposal…</p>}
-      {query.data && <TemplateAiReviewBody key={id} current={query.data} onDraft={onDraft} />}
-    </EvidenceDialog>
+      {query.data && (
+        <TemplateAiReviewBody
+          key={id}
+          current={query.data}
+          onDraft={onDraft}
+          onAccepted={onAccepted}
+        />
+      )}
+    </>
   );
 }
 function TemplateAiReviewBody({
   current,
   onDraft,
+  onAccepted,
 }: {
   current: Detail;
   onDraft: (id: string) => void;
+  onAccepted?: ((id: string) => void) | undefined;
 }) {
   const client = useQueryClient();
   // A completed preview stays pinned while it is being reviewed; polling only reports changes.
@@ -83,13 +107,16 @@ function TemplateAiReviewBody({
       expired ||
       !artifacts?.validationPassed ||
       current.staleReasons.length > 0;
+  useEffect(() => {
+    if (rejected) setReviewed(null);
+  }, [rejected]);
   const decision = useTemplateCommand(
     async (input: Omit<ReviewTemplateAiRequest, "idempotencyKey">, key) =>
       unwrap(await decideTemplateAi({ data: { ...input, idempotencyKey: key } })),
     (result) => {
       setReviewed(null);
       client.removeQueries({ queryKey: ["templates", "ai-artifact", task.id] });
-      if (result.revisionId) onDraft(result.revisionId);
+      if (result.revisionId) (onAccepted ?? onDraft)(result.revisionId);
     },
   );
   const retry = useTemplateCommand(

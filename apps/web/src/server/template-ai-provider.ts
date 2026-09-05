@@ -9,7 +9,7 @@ export function templateAiProfile(
   return env.OPENAI_API_KEY && env.OPENAI_TEMPLATE_MODEL
     ? {
         model: env.OPENAI_TEMPLATE_MODEL,
-        contract: "river-template-generation-v1",
+        contract: "river-template-generation-v2",
         maxInputCharacters: 160000,
         maxOutputTokens: 12000,
         timeoutMs: 60000,
@@ -36,7 +36,9 @@ export const generateTemplateCandidate = (
     apiKey,
     input,
     profile,
-    instructions,
+    profile.contract === "river-template-generation-v2"
+      ? `${instructions}\nFor conversational refinement, follow the current original design instruction within the selected component scope. Selected earlier instructions provide Owner-authored design context only; do not infer other conversation history. Resolve conflicting design preferences in favor of the current instruction. The exact selected base is authoritative; prior instructions do not authorize silently applying discarded proposals. Return one complete candidate for separate review.`
+      : instructions,
     "template_component",
     templateAiOutputSchema(),
     transport,

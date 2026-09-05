@@ -4,6 +4,7 @@ import {
   StartTemplateAiRequest,
   TemplateAiIdentity,
   TemplateAiList,
+  TemplateConversationRequest,
 } from "@river/contracts";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
@@ -14,11 +15,17 @@ import {
   inspectTemplateAi,
   listTemplateAi,
   previewTemplateAi,
+  readTemplateConversation,
   retryTemplateAi,
   reviewTemplateAi,
   startTemplateAi,
 } from "./template-ai";
 import { cleanRejectedTemplatePreviews } from "./template-ai-cleanup";
+export const getTemplateConversation = createServerFn({ method: "GET" })
+  .validator(Schema.decodeUnknownSync(TemplateConversationRequest))
+  .handler(({ data }) =>
+    execute(bindings(), getRequestHeaders(), readTemplateConversation(bindings(), data)),
+  );
 
 export const getTemplateAiTasks = createServerFn({ method: "GET" })
   .validator(Schema.decodeUnknownSync(TemplateAiList))

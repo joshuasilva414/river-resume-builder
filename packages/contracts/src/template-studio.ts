@@ -65,6 +65,14 @@ export const StartTemplateAiRequest = Schema.Struct({
   base: TemplateBase,
   scope: TemplateScope,
   brief: TemplateBrief,
+  conversation: Schema.optional(
+    Schema.Struct({
+      id: RecordId,
+      revision: Revision,
+      instruction: Schema.NonEmptyString.check(Schema.isMaxLength(8000)),
+      priorTaskIds: Schema.Array(RecordId).check(Schema.isMaxLength(100)),
+    }),
+  ),
 });
 export type StartTemplateAiRequest = typeof StartTemplateAiRequest.Type;
 export const ReviewTemplateAiRequest = Schema.Struct({
@@ -90,3 +98,9 @@ export const RetryTemplateAiRequest = Schema.Struct({
   idempotencyKey: CommandKey,
 });
 export type RetryTemplateAiRequest = typeof RetryTemplateAiRequest.Type;
+export const TemplateConversationRequest = Schema.Struct({
+  id: RecordId,
+  before: Schema.NullOr(Revision),
+  scope: TemplateScope,
+});
+export type TemplateConversationRequest = typeof TemplateConversationRequest.Type;

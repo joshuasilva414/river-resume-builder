@@ -24,13 +24,15 @@ import { aiCapacityGuard } from "./ai-capacity";
 import { conditionGuard, createCommands, type Guard, type Write } from "./commands";
 import type { Database } from "./index";
 import * as s from "./schema";
+import { createTemplateConversationRepository } from "./template-conversations";
 import type { TemplateDependency } from "./template-types";
 import { createTemplateRepository, requireTemplateOwner } from "./templates";
 
 /** Template generation can read templates and canonical fixtures only, never workspace content. */
 export function createTemplateAiRepository(db: Database) {
   const commands = createCommands(db),
-    templates = createTemplateRepository(db);
+    templates = createTemplateRepository(db),
+    conversations = createTemplateConversationRepository(db);
   const taskById = async (ownerId: string, id: string) => {
     const task = (
       await db
@@ -136,10 +138,12 @@ export function createTemplateAiRepository(db: Database) {
         code: "InvalidInput",
         message: "A new template has no existing revision.",
       });
+    const turn = await conversations.prepareTemplateTurn(ownerId, request);
     const input: TemplateAiInput = {
       type: "template-generation",
       scope: request.scope,
       brief: request.brief,
+      conversation: turn.input,
       baseGraph: base.graph,
       destination: {
         id: request.reservedDesignId,
@@ -159,6 +163,7 @@ export function createTemplateAiRepository(db: Database) {
       destinationId: request.id,
       destinationRevision: request.revision,
       name: request.name,
+      turn,
     };
   }
   const operationWrites = (
@@ -225,20 +230,26 @@ export function createTemplateAiRepository(db: Database) {
           const id = newId(),
             operationId = newId(),
             inputDigest = await fingerprint(canonicalJson(captured.input));
+          const { turn, ...taskInput } = captured;
           return {
             result: { id, revision: 0, revisionId: operationId },
-            guards: [...inputGuards(captured), aiCapacityGuard(db, actor.ownerId)],
+            guards: [
+              ...inputGuards(captured),
+              captured.turn.guard,
+              aiCapacityGuard(db, actor.ownerId),
+            ],
             writes: [
               ...operationWrites(actor.ownerId, operationId, id, false),
               db.insert(s.templateAiTasks).values({
                 id,
                 ownerId: actor.ownerId,
-                ...captured,
+                ...taskInput,
                 inputDigest,
                 profile,
                 latestOperationId: operationId,
                 createdAt: Date.now(),
               }),
+              ...turn.writes(id),
             ],
             history: [
               {
@@ -249,6 +260,8 @@ export function createTemplateAiRepository(db: Database) {
                   operationId,
                   base: request.base,
                   scope: request.scope,
+                  conversationId: captured.turn.input.id,
+                  turn: captured.turn.input.turn,
                 },
               },
             ],
@@ -308,10 +321,15 @@ export function createTemplateAiRepository(db: Database) {
             number | null
           >`json_extract(${s.templateAiProposals.previewArtifacts},'$.expiresAt')`,
           resultRevisionId: s.templateAiProposals.resultRevisionId,
+          conversationId: s.templateConversationTurns.conversationId,
         })
         .from(s.templateAiTasks)
         .innerJoin(s.operations, eq(s.operations.id, s.templateAiTasks.latestOperationId))
         .leftJoin(s.templateAiProposals, eq(s.templateAiProposals.taskId, s.templateAiTasks.id))
+        .leftJoin(
+          s.templateConversationTurns,
+          eq(s.templateConversationTurns.taskId, s.templateAiTasks.id),
+        )
         .where(
           and(
             eq(s.templateAiTasks.ownerId, ownerId),
@@ -373,7 +391,8 @@ export function createTemplateAiRepository(db: Database) {
               });
           } else if (
             !profile ||
-            canonicalJson(profile) !== canonicalJson(task.profile) ||
+            canonicalJson({ ...profile, contract: task.profile.contract }) !==
+              canonicalJson(task.profile) ||
             task.attempts >= 3
           )
             throw new ApplicationError({

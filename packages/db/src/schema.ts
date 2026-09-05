@@ -1032,6 +1032,30 @@ export const templateAiTasks = sqliteTable(
     index("template_ai_destination").on(table.destinationId),
   ],
 );
+export const templateConversations = sqliteTable("template_conversations", {
+  id: text("id").primaryKey(),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => user.id),
+  revision: integer("revision").notNull().default(0),
+  createdAt: integer("created_at").notNull(),
+});
+export const templateConversationTurns = sqliteTable(
+  "template_conversation_turns",
+  {
+    taskId: text("task_id")
+      .primaryKey()
+      .references(() => templateAiTasks.id),
+    conversationId: text("conversation_id")
+      .notNull()
+      .references(() => templateConversations.id),
+    position: integer("position").notNull(),
+    instruction: text("instruction").notNull(),
+  },
+  (table) => [
+    uniqueIndex("template_conversation_position").on(table.conversationId, table.position),
+  ],
+);
 export const templateAiProposals = sqliteTable("template_ai_proposals", {
   id: text("id").primaryKey(),
   taskId: text("task_id")

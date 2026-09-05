@@ -4,7 +4,7 @@ Template proposal execution and review are implemented and deployed to staging. 
 
 The Owner selects a complete immutable base graph, one of fourteen component scopes, density, visual character, and generic constraints. Preflight shows the exact complete input and SHA-256 digest. A reserved design identity keeps preflight and launch identical. Launch rejects changes to that reviewed input. The provider receives only this brief, template graph, destination identity, and four canonical synthetic fixtures. The template service never queries evidence, jobs, or résumé content.
 
-The server profile is `river-template-generation-v1`, model `gpt-5.4-mini-2026-03-17`, input limit 160,000 UTF-16 units, output limit 12,000 tokens, and 60-second provider timeout. Responses use strict JSON Schema, disabled truncation/storage/streaming, and no SDK retries. River validates the complete selected source and typed overrides against the closed grammar, assigns identity, and preserves the other thirteen components. Generated explanations are advisory.
+New tasks use profile `river-template-generation-v2`, model `gpt-5.4-mini-2026-03-17`, input limit 160,000 UTF-16 units, output limit 12,000 tokens, and 60-second provider timeout. Existing v1 tasks retain their original prompt contract on retry when the configured model and limits still match. Responses use strict JSON Schema, disabled truncation/storage/streaming, and no SDK retries. River validates the complete selected source and typed overrides against the closed grammar, assigns identity, and preserves the other thirteen components. Generated explanations are advisory.
 
 ## Persistence and recovery
 
@@ -32,4 +32,12 @@ Local browser fixtures are explicitly synthetic, not live model responses. The s
 
 Local accepted candidate task: `01a07188-ec68-7456-8f4a-1a14db80139e`; preview Operation: `01a07189-9feb-7187-ac49-a87c419b6439`; resulting Draft revision: `01a0718c-8007-70ce-a6f2-38f5d81ec3e6`. Test receipt: `test-results/template-ai-browser-fixture.json`.
 
-Conversational iteration still needs its dedicated Paper design and implementation; independent brief submissions are not a complete AI chat. Live generation remains unverified because `OPENAI_API_KEY` is absent. The application hides new generation but preserves manual editing and saved review/preview recovery. No fake provider key or generated candidate evidence is deployed.
+## Conversational iteration
+
+Paper boards 91/92 are implemented locally. Migration 0017 indexes existing tasks into stable design-scoped conversations without changing their immutable captured inputs. New turns atomically commit the ordered turn, original instruction, exact input, Operation, dispatch, audit and idempotency outcome. A competing turn makes preflight stale and prevents all dependent writes.
+
+The composer pins an explicit full-graph base and selected component scope. Continuing from an accepted result selects that exact Draft; acceptance itself does not move the composer. Selecting a different component scope creates a separate scoped design in the same conversation. Prior Accepted instructions for the same exact scope default on; explicit selections survive background refresh. Only selected original instruction texts and identities enter the immutable next input, ordered chronologically. Rejected generated explanations are never copied into conversation records. History uses a stable position cursor with 20 turns per page. The composer permits an 8,000-character instruction and up to 100 selected prior instructions; the complete 160,000-unit preflight still blocks overflow without omission.
+
+Three conversation tests cover ordered input snapshots, rejected-input selection, owner isolation, concurrent turns, permanent replay, cursor pagination and overflow. All 86 Workers tests, workspace type checks/lint and the staging build pass. Local browser review confirms explicit continuation, original-instruction preflight and a real model response. Live task `01a071c2-93f5-7e18-a94e-51bb3235671f` produced a valid 11-point candidate but its preview exposed a missing offline `size11.clo` resource. The saved candidate remains Pending; compiler-resource repair and preview retry are in progress.
+
+The Owner supplied both credentials and explicitly approved installing them on the personal staging Worker. Token access to the pinned D1 database and OpenAI model was verified without exposing values. Staging secrets are installed; hosted AI and backup acceptance checks remain open.

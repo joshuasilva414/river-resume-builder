@@ -36,7 +36,8 @@ export class TemplateAiWorkflow extends WorkflowEntrypoint<Env, { operationId: s
           if (
             !profile ||
             !this.env.OPENAI_API_KEY ||
-            canonicalJson(profile) !== canonicalJson(detail.task.profile)
+            canonicalJson({ ...profile, contract: detail.task.profile.contract }) !==
+              canonicalJson(detail.task.profile)
           )
             throw new Error("Template profile unavailable");
           await repository.updateOperation(id, {
@@ -46,7 +47,7 @@ export class TemplateAiWorkflow extends WorkflowEntrypoint<Env, { operationId: s
           const output = await generateTemplateCandidate(
             this.env.OPENAI_API_KEY,
             detail.task.input,
-            profile,
+            detail.task.profile,
           );
           await repository.publishTemplateCandidate(operation.ownerId, detail.task.id, id, output);
         },

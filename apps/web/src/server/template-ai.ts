@@ -3,6 +3,7 @@ import type {
   ReviewTemplateAiRequest,
   StartTemplateAiRequest,
   TemplateAiList,
+  TemplateConversationRequest,
 } from "@river/contracts";
 import { Effect } from "effect";
 import type { Env } from "./env";
@@ -58,5 +59,12 @@ export const listTemplateAi = (env: Env, input: TemplateAiList) =>
     const actor = yield* Actor,
       store = yield* Store;
     const value = yield* attempt(() => store.listTemplateAi(actor.ownerId, input));
+    return { ...value, configured: Boolean(env.TEMPLATE_AI_WORKFLOW && templateAiProfile(env)) };
+  });
+export const readTemplateConversation = (env: Env, input: TemplateConversationRequest) =>
+  Effect.gen(function* () {
+    const actor = yield* Actor,
+      store = yield* Store;
+    const value = yield* attempt(() => store.readTemplateConversation(actor.ownerId, input));
     return { ...value, configured: Boolean(env.TEMPLATE_AI_WORKFLOW && templateAiProfile(env)) };
   });

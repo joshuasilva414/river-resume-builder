@@ -119,6 +119,233 @@ async function fixture() {
   };
   return { repository, actor, request, start, candidate, preview, review };
 }
+it("preserves ordered conversation inputs, explicitly selected rejected instructions and independent accepted bases", async () => {
+  const f = await fixture();
+  const first = await f.candidate();
+  await f.preview(first.id, first.operationId);
+  const accepted = await f.repository.reviewTemplateAi(f.actor, await f.review(first.id));
+  if (!accepted.revisionId) throw Error("Missing accepted base");
+  const root = await f.repository.inspectTemplate(f.actor.id, accepted.revisionId);
+  const read = (scope = f.request.scope) =>
+    f.repository.readTemplateConversation(f.actor.id, { id: root.design.id, before: null, scope });
+  expect((await read()).defaultTaskIds).toEqual([first.id]);
+  const originalInstruction = (await read()).items[0]?.instruction;
+  const secondInput: StartTemplateAiRequest = {
+    ...f.request,
+    id: root.design.id,
+    revision: root.design.revision,
+    base: { kind: "saved", revisionId: root.revision.id },
+    reservedDesignId: root.design.id,
+    idempotencyKey: "second-turn",
+    conversation: {
+      id: root.design.id,
+      revision: 1,
+      instruction: "Try more space above sections.",
+      priorTaskIds: [first.id],
+    },
+  };
+  const second = await f.candidate(secondInput);
+  const captured = (await f.repository.inspectTemplateAi(f.actor.id, second.id)).task.input;
+  expect(captured.conversation).toMatchObject({
+    turn: 2,
+    instruction: secondInput.conversation?.instruction,
+    priorInstructions: [{ taskId: first.id, instruction: originalInstruction }],
+  });
+  expect(canonicalJson(captured)).not.toContain(output.explanation);
+  expect(captured.baseGraph).toEqual(root.revision.graph);
+  await f.repository.reviewTemplateAi(f.actor, {
+    ...(await f.review(second.id)),
+    decision: "Rejected",
+    idempotencyKey: "reject-turn-two",
+  });
+  const history = await read();
+  expect(history.items.map((item) => [item.position, item.state])).toEqual([
+    [2, "Rejected"],
+    [1, "Accepted"],
+  ]);
+  expect(history.defaultTaskIds).toEqual([first.id]);
+  expect(canonicalJson(history)).not.toContain(output.explanation);
+  expect((await read({ level: "block", type: "skill" })).defaultTaskIds).toEqual([]);
+  const thirdInput: StartTemplateAiRequest = {
+    ...secondInput,
+    idempotencyKey: "third-turn",
+    conversation: {
+      id: root.design.id,
+      revision: 2,
+      instruction: "Use the earlier spacing instruction as context only.",
+      priorTaskIds: [second.id, first.id],
+    },
+  };
+  const third = await f.start(thirdInput);
+  const thirdCaptured = (await f.repository.inspectTemplateAi(f.actor.id, third.id)).task.input;
+  expect(thirdCaptured.conversation?.priorInstructions.map((item) => item.taskId)).toEqual([
+    first.id,
+    second.id,
+  ]);
+  expect(thirdCaptured.conversation?.priorInstructions[1]?.instruction).toBe(
+    secondInput.conversation?.instruction,
+  );
+  expect(thirdCaptured.baseGraph).toEqual(root.revision.graph);
+  expect(
+    (await f.repository.inspectTemplateAi(f.actor.id, second.id)).proposal?.payload,
+  ).toBeNull();
+  await expect(
+    f.repository.readTemplateConversation(newId(), {
+      id: root.design.id,
+      before: null,
+      scope: f.request.scope,
+    }),
+  ).rejects.toMatchObject({ code: "NotFound" });
+  const other = await fixture();
+  const otherTask = await other.start();
+  if (!thirdInput.conversation) throw Error("Missing conversation input");
+  await expect(
+    f.repository.previewTemplateAi(f.actor, {
+      ...thirdInput,
+      conversation: { ...thirdInput.conversation, revision: 3, priorTaskIds: [otherTask.id] },
+    }),
+  ).rejects.toMatchObject({ code: "InvalidInput" });
+  await expect(
+    f.repository.previewTemplateAi(f.actor, {
+      ...f.request,
+      reservedDesignId: other.request.reservedDesignId,
+      conversation: {
+        id: other.request.reservedDesignId,
+        revision: 0,
+        instruction: "Attempt a foreign input preview",
+        priorTaskIds: [otherTask.id],
+      },
+    }),
+  ).rejects.toMatchObject({ code: "NotFound" });
+});
+it("commits one concurrent conversation turn and prevents stale preflight from writing an operation or receipt", async () => {
+  const f = await fixture();
+  const first = await f.start();
+  await f.repository.db
+    .update(schema.operations)
+    .set({ state: "Failed" })
+    .where(eq(schema.operations.id, first.operationId));
+  const input: StartTemplateAiRequest = {
+    ...f.request,
+    idempotencyKey: "parallel-turn",
+    conversation: {
+      id: f.request.reservedDesignId,
+      revision: 1,
+      instruction: "Keep the margins and change the font.",
+      priorTaskIds: [],
+    },
+  };
+  const preview = await f.repository.previewTemplateAi(f.actor, input);
+  const request = { ...input, expectedInputDigest: preview.digest };
+  const results = await Promise.allSettled([
+    f.repository.startTemplateAi(f.actor, request, profile),
+    f.repository.startTemplateAi(
+      f.actor,
+      { ...request, idempotencyKey: "parallel-other" },
+      profile,
+    ),
+  ]);
+  expect(results.filter((item) => item.status === "fulfilled")).toHaveLength(1);
+  expect(
+    (
+      await f.repository.readTemplateConversation(f.actor.id, {
+        id: f.request.reservedDesignId,
+        before: null,
+        scope: input.scope,
+      })
+    ).items.map((item) => item.position),
+  ).toEqual([2, 1]);
+  const operations = await f.repository.db
+    .select()
+    .from(schema.operations)
+    .where(eq(schema.operations.ownerId, f.actor.id));
+  expect(operations).toHaveLength(2);
+  const winnerRequest =
+    results[0]?.status === "fulfilled" ? request : { ...request, idempotencyKey: "parallel-other" };
+  expect(await f.repository.startTemplateAi(f.actor, winnerRequest, null)).toEqual(
+    results.find((item) => item.status === "fulfilled")?.value,
+  );
+  await expect(
+    f.repository.startTemplateAi(
+      f.actor,
+      { ...request, idempotencyKey: "obsolete-preflight" },
+      profile,
+    ),
+  ).rejects.toMatchObject({ code: "Conflict" });
+  expect(
+    await f.repository.db
+      .select()
+      .from(schema.receipts)
+      .where(
+        and(eq(schema.receipts.actorId, f.actor.id), eq(schema.receipts.key, "obsolete-preflight")),
+      ),
+  ).toHaveLength(0);
+});
+it("paginates prior turns and blocks complete over-limit input without truncating selected instructions", async () => {
+  const f = await fixture();
+  const ids: string[] = [];
+  for (let index = 0; index < 22; index++) {
+    const task = await f.start({
+      ...f.request,
+      idempotencyKey: `history-${index}`,
+      conversation: {
+        id: f.request.reservedDesignId,
+        revision: index,
+        instruction: `${index}: ${"Layout instruction. ".repeat(399)}`,
+        priorTaskIds: [],
+      },
+    });
+    ids.push(task.id);
+    await f.repository.db
+      .update(schema.operations)
+      .set({ state: "Failed" })
+      .where(eq(schema.operations.id, task.operationId));
+  }
+  const firstPage = await f.repository.readTemplateConversation(f.actor.id, {
+    id: f.request.reservedDesignId,
+    before: null,
+    scope: f.request.scope,
+  });
+  expect(firstPage.items).toHaveLength(20);
+  expect(firstPage.nextBefore).toBe(3);
+  const earlier = await f.repository.readTemplateConversation(f.actor.id, {
+    id: f.request.reservedDesignId,
+    before: firstPage.nextBefore,
+    scope: f.request.scope,
+  });
+  expect(earlier.items.map((item) => item.position)).toEqual([2, 1]);
+  const request: StartTemplateAiRequest = {
+    ...f.request,
+    idempotencyKey: "over-limit-turn",
+    conversation: {
+      id: f.request.reservedDesignId,
+      revision: 22,
+      instruction: "Keep every selected instruction in context.",
+      priorTaskIds: ids,
+    },
+  };
+  const preview = await f.repository.previewTemplateAi(f.actor, request);
+  expect(preview.characters).toBe(canonicalJson(preview.input).length);
+  expect(preview.characters).toBeGreaterThan(160000);
+  expect(preview.allowed).toBe(false);
+  expect(preview.input.conversation?.priorInstructions).toHaveLength(22);
+  await expect(
+    f.repository.startTemplateAi(
+      f.actor,
+      { ...request, expectedInputDigest: preview.digest },
+      profile,
+    ),
+  ).rejects.toMatchObject({ code: "InvalidInput" });
+  expect(
+    (
+      await f.repository.readTemplateConversation(f.actor.id, {
+        id: f.request.reservedDesignId,
+        before: null,
+        scope: f.request.scope,
+      })
+    ).revision,
+  ).toBe(22);
+});
 it("captures only template inputs and synthetic fixtures, persists before rendering, and requires exact preview before atomic Draft acceptance", async () => {
   const f = await fixture(),
     task = await f.candidate();

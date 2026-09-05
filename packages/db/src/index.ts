@@ -23,6 +23,7 @@ import * as schema from "./schema";
 import { createSourceAiRepository } from "./source-ai";
 import { createSourceRepository } from "./sources";
 import { createTemplateAiRepository } from "./template-ai";
+import { createTemplateConversationRepository } from "./template-conversations";
 import { createTemplateRepository } from "./templates";
 import { createWordingRepository } from "./wording";
 
@@ -65,6 +66,7 @@ export function createRepository(binding: D1Database) {
     ...createWordingRepository(db),
     ...createTemplateRepository(db),
     ...createTemplateAiRepository(db),
+    ...createTemplateConversationRepository(db),
     db,
     getOperation,
     async listOperations(ownerId: string) {

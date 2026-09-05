@@ -18,6 +18,7 @@ import {
 } from "~/components/evidence/shared";
 import { PdfPreview } from "~/components/pdf-preview";
 import { TemplateAiBrief } from "~/components/templates/ai-brief";
+import { TemplateAiConversation } from "~/components/templates/ai-conversation";
 import { TemplateAiQueue } from "~/components/templates/ai-queue";
 import { TemplateAiReview } from "~/components/templates/ai-review";
 import { TemplateEditor } from "~/components/templates/editor";
@@ -43,6 +44,7 @@ export const Route = createFileRoute("/templates")({
     revisionId: typeof search.revisionId === "string" ? search.revisionId : undefined,
     proposals: search.proposals === true || search.proposals === "true" ? true : undefined,
     proposalId: typeof search.proposalId === "string" ? search.proposalId : undefined,
+    conversationId: typeof search.conversationId === "string" ? search.conversationId : undefined,
     designId: typeof search.designId === "string" ? search.designId : undefined,
   }),
   beforeLoad: async () => {
@@ -81,11 +83,33 @@ function TemplatesPage() {
   });
   const select = (id?: string) =>
     void navigate({
-      search: { revisionId: id, proposals: undefined, proposalId: undefined, designId: undefined },
+      search: {
+        revisionId: id,
+        proposals: undefined,
+        proposalId: undefined,
+        designId: undefined,
+        conversationId: undefined,
+      },
     });
   const proposals = (designId?: string) =>
     void navigate({
-      search: { revisionId: undefined, proposals: true, designId, proposalId: undefined },
+      search: {
+        revisionId: undefined,
+        proposals: true,
+        designId,
+        proposalId: undefined,
+        conversationId: undefined,
+      },
+    });
+  const conversation = (id: string, revisionId?: string) =>
+    void navigate({
+      search: {
+        conversationId: id,
+        revisionId,
+        proposals: undefined,
+        proposalId: undefined,
+        designId: undefined,
+      },
     });
   const proposal = (id?: string) => void navigate({ search: { ...search, proposalId: id } });
   const saved = (id: string) => {
@@ -101,22 +125,26 @@ function TemplatesPage() {
         <div className="flex flex-wrap items-center justify-between gap-5">
           <div>
             <h1 className="page-heading">
-              {search.proposals
-                ? "Review the design."
-                : search.revisionId
-                  ? "Shape the template."
-                  : "A form for your work."}
+              {search.conversationId
+                ? "Refine the design."
+                : search.proposals
+                  ? "Review the design."
+                  : search.revisionId
+                    ? "Shape the template."
+                    : "A form for your work."}
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              {search.proposals
-                ? "Inspect saved candidates and their review decisions."
-                : search.revisionId
-                  ? "Inspect an exact saved graph and its validation history."
-                  : "Choose a reviewed theme pack or shape a new one."}
+              {search.conversationId
+                ? "Original instructions, exact saved bases and reviewed outcomes."
+                : search.proposals
+                  ? "Inspect saved candidates and their review decisions."
+                  : search.revisionId
+                    ? "Inspect an exact saved graph and its validation history."
+                    : "Choose a reviewed theme pack or shape a new one."}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            {search.revisionId || search.proposals ? (
+            {search.revisionId || search.proposals || search.conversationId ? (
               <Button variant="outline" onClick={() => select()}>
                 <ArrowLeft />
                 Back to templates
@@ -138,27 +166,42 @@ function TemplatesPage() {
           <Button variant="outline" onClick={() => proposals(detail.data?.design.id)}>
             Saved proposals
           </Button>
-          {ai.data?.configured && (
+          {detail.data && !search.conversationId && (
             <Button
               variant="outline"
-              onClick={() =>
-                setBrief(
-                  detail.data
-                    ? {
-                        base: { kind: "saved", revisionId: detail.data.revision.id },
-                        detail: detail.data,
-                      }
-                    : { base: { kind: "fixed", theme: "classic" } },
-                )
-              }
+              onClick={() => {
+                if (detail.data) conversation(detail.data.design.id, detail.data.revision.id);
+              }}
             >
-              {detail.data ? "Refine with AI" : "Describe a template"}
+              Open refinement conversation
+            </Button>
+          )}
+          {ai.data?.configured && !search.conversationId && !detail.data && (
+            <Button
+              variant="outline"
+              onClick={() => setBrief({ base: { kind: "fixed", theme: "classic" } })}
+            >
+              Describe a template
             </Button>
           )}
         </div>
       </header>
-      {search.proposals ? (
-        <TemplateAiQueue initialDesignId={search.designId} onSelect={proposal} onDraft={select} />
+      {search.conversationId ? (
+        <TemplateAiConversation
+          key={search.conversationId}
+          id={search.conversationId}
+          initialBase={
+            search.revisionId ? { kind: "saved", revisionId: search.revisionId } : undefined
+          }
+          onDraft={select}
+        />
+      ) : search.proposals ? (
+        <TemplateAiQueue
+          initialDesignId={search.designId}
+          onSelect={proposal}
+          onDraft={select}
+          onConversation={conversation}
+        />
       ) : search.revisionId ? (
         <div className="space-y-5 px-5 py-6 md:px-8">
           <Failure error={detail.error} />
@@ -361,6 +404,7 @@ function TemplatesPage() {
                 proposalId: id,
                 revisionId: undefined,
                 designId: brief.detail?.design.id,
+                conversationId: undefined,
               },
             });
           }}

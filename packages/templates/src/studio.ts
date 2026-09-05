@@ -40,7 +40,7 @@ export interface TemplateOrigin {
 }
 export const TemplateAiProfile = Schema.Struct({
   model: Schema.NonEmptyString,
-  contract: Schema.Literal("river-template-generation-v1"),
+  contract: Schema.Literals(["river-template-generation-v1", "river-template-generation-v2"]),
   maxInputCharacters: Schema.Literal(160000),
   maxOutputTokens: Schema.Literal(12000),
   timeoutMs: Schema.Literal(60000),
@@ -50,6 +50,15 @@ export interface TemplateAiInput {
   readonly type: "template-generation";
   readonly scope: TemplateScope;
   readonly brief: TemplateBrief;
+  readonly conversation?: {
+    readonly id: string;
+    readonly turn: number;
+    readonly instruction: string;
+    readonly priorInstructions: readonly {
+      readonly taskId: string;
+      readonly instruction: string;
+    }[];
+  };
   readonly baseGraph: TemplateGraph;
   readonly destination: {
     readonly id: string;

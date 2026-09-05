@@ -12,10 +12,12 @@ export function TemplateAiQueue({
   initialDesignId,
   onSelect,
   onDraft,
+  onConversation,
 }: {
   initialDesignId?: string;
   onSelect: (id: string) => void;
   onDraft: (id: string) => void;
+  onConversation: (id: string) => void;
 }) {
   const [designId, setDesignId] = useState<string | null>(initialDesignId ?? null),
     [state, setState] = useState<TemplateAiList["state"]>(null),
@@ -131,6 +133,16 @@ export function TemplateAiQueue({
               <Button variant="outline" onClick={() => onSelect(item.id)}>
                 {item.state === "Rejected" ? "Inspect decision" : "Inspect proposal"}
               </Button>
+              {item.conversationId && (
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    if (item.conversationId) onConversation(item.conversationId);
+                  }}
+                >
+                  Continue conversation
+                </Button>
+              )}
               {item.resultRevisionId && (
                 <Button
                   variant="link"
