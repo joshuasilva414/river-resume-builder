@@ -1,6 +1,6 @@
 # Reviewed source proposals and clarification
 
-Updated 2026-09-05. Phase 2 source-to-claim review is implemented. The Owner-approved staging provider key is installed. Live hosted generation, individual Draft creation and rejection now pass using an explicitly fictional source. The earlier local fixtures below were synthetic responses; neither set establishes Owner facts.
+Updated 2026-09-05. Phase 2 source-to-claim review is implemented. The Owner-approved staging provider key is installed. Live hosted generation, individual Draft creation, rejection and source-backed clarification now pass using explicitly fictional sources. The earlier local fixtures below were synthetic responses; neither set establishes Owner facts.
 
 ## Input and execution
 
@@ -29,7 +29,7 @@ The dedicated Paper agent completed the source launch and individual review desi
 - Seven source service tests cover exact citation resolution, individual acceptance/replay, rejected-content removal, stale source/context rollback, independent manual origin, source-backed clarification, whole-batch validation, empty results, cancellation/retry bounds, cross-owner denial, concurrent acceptance, preflight limits, and stored-extraction integrity.
 - All **64 Workers service tests** passed in one complete run. All six workspace type checks and lint passed; the staging build passed.
 - Local browser intake produced a real extracted source. Synthetic proposals were then inserted only into the local fixture database. Review accepted one candidate, rejected a sibling, created an independent manual Draft from another, and preserved two Pending candidates. Reprocessing the source disabled their acceptance. The clarification flow added a real source, cited it in a new Draft revision, and recorded the explicit answer without verification.
-- Desktop review was inspected at 1280px. Source queue and clarification review were inspected at 621px in dark appearance with document width equal to viewport width. The hosted configured launch and live generation were subsequently exercised below; live clarification generation remains unverified.
+- Desktop review was inspected at 1280px. Source queue and clarification review were inspected at 621px in dark appearance with document width equal to viewport width. The hosted configured launch, live generation and clarification answer were subsequently exercised below.
 
 Reproduce service checks with `pnpm --filter @river/web exec vitest run test/source-ai.test.ts`; the complete service suite uses `pnpm --filter @river/web test`. Apply migrations with `pnpm db:migrate:local`. Staging uses migration `0012_fast_shadowcat.sql` and workflow `river-staging-source-claims` in the personal Cloudflare account.
 
@@ -57,3 +57,34 @@ Launch displayed the complete extraction, zero selected contexts and 1,243 seria
 - Neither candidate proposed a clarification question. This run does not verify live clarification authoring or repeated-occurrence selection by the provider.
 
 The accepted fictional Draft was subsequently used for reviewed job ranking and duplicate-comparison QA, then archived through the normal claim command. Default active evidence search excludes it. Its source, exact material revision, accepted candidate and comparison history remain retained. No verification decision was submitted.
+
+## Hosted clarification journey
+
+Web version `6713b49e-c25b-428f-a27a-2059f83bee44` completed a second live source run with intentionally incomplete fictional attribution. Both source records explicitly state that Sample Candidate and Project Lantern are invented and do not describe the Owner. No candidate qualifications were inferred.
+
+The launch captured 1,351 UTF-16 units, zero contexts and input SHA-256 `2c19171c7d3577790951ed4a2e84aa601f992328643fde30267e967ec5d77db2`. Profile `river-source-claims-v1` / `gpt-5.4-mini-2026-03-17` succeeded on attempt one of three.
+
+- The contribution candidate quoted line 2 at offsets 102–187 and asked what the fictional candidate contributed. Individual acceptance created one Draft and preserved this question against its original Evidence Revision.
+- The team-metric candidate quoted line 3 at offsets 188–300 and asked about measurement period, baseline and counting method. Individual rejection removed its payload, including all three questions, while preserving its digest and decision. A read-only D1 query confirmed the payload is null and no claim was created.
+- The question's answer control was disabled before a new cited revision. Supporting-source intake retained a fictional contribution answer. Editing the claim added its exact line-2 passage at offsets 102–230 while preserving the original citation. Saving created a second immutable Evidence Revision and left the claim Draft.
+- The answer control remained disabled until the answering source was explicitly selected. Recording the answer and reloading preserved its original question/assertion, answering source and answering revision. Both revision inspection controls showed the correct assertion and citations.
+- Archival removed the fictional claim from default active search. D1 confirmed two material revisions, an answered question, Draft state and zero verification decisions. The aggregate reached revision 2 through the material edit and archival; answering the question updated its own revision.
+
+| Record | Identity |
+| --- | --- |
+| Original source | `01a0737c-bbae-718a-a6b4-d1795b544ab4` |
+| Captured extraction | `01a0737c-bbae-718b-9d95-8740c3f15849` |
+| Source task | `01a0737d-80ba-7d2e-a1f7-cbb13b91d707` |
+| Generation Operation | `01a0737d-80ba-7ad3-988d-3c073fcd6a14` |
+| Accepted candidate | `01a0737d-a1ae-7e26-9208-0e1a8b8a6ed9` |
+| Rejected candidate | `01a0737d-a1ae-71c3-b87e-faf8a8ce11b1` |
+| Archived Draft Claim | `01a0737e-72df-703c-99f2-bf8f7d3af898` |
+| Original Evidence Revision | `01a0737e-72df-7c8c-8cd0-fe8918b259b4` |
+| Clarification question | `01a0737e-72fe-745e-a9da-628e5e6f544a` |
+| Answering source | `01a07383-97ea-7ca3-a6f1-47769d38a06a` |
+| Answering extraction | `01a07383-97ea-7ffb-896a-053e17c12843` |
+| Answering Evidence Revision | `01a07384-83ab-7601-88d6-890c3913f917` |
+
+This is a hosted provider and persistence check of the existing implementation. No application code changed and no service tests were rerun for this documentation update. The latest complete Workers suite remains the 141-test upload-recovery run.
+
+A subsequent 72-table/88-object isolated restore preserved the answered question, both Evidence Revisions, exact answering citation, archived Draft state and rejected payload removal. Seven citations and the exported checkpoint passed full artifact verification. See `recovery.md` for the immutable snapshot and report identities.

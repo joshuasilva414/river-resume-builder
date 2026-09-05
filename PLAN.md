@@ -189,7 +189,7 @@ Exit: all three packs render representative fixtures and real owner content with
 Depends on M1–M5.
 
 - [ ] Verify critical journeys with Playwright: sign in, add sources/evidence, review a job, compose, resolve a conflict, inspect warnings, and export.
-- [ ] Verify authorization, stale proposal rejection, idempotent retry, partial background failure, and immutable historical outputs with focused integration tests.
+- [x] Verify authorization, stale proposal rejection, idempotent retry, partial background failure, and immutable historical outputs with focused integration tests. The reviewed 141-test Workers run covers these contracts; hosted provider/credential gates remain separate. See `docs/implementation/release-gates.md`.
 - [x] Configure D1 Time Travel and daily D1 exports to a private R2 backup location; preserve immutable source objects.
 - [x] Perform a restore drill into isolated resources and verify source/provenance links and retained exports.
 - [x] Document deployment, migrations, secrets, rollback constraints, background-job diagnosis, backup and restore procedures.
@@ -204,7 +204,7 @@ Exit: the Owner can complete the core loop; failures are diagnosable; data can b
 - [x] Add bounded AI duplicate comparisons to the existing manual comparison and disposition workflow.
 Duplicate comparison services, Paper review/history UI, and atomic optional disposition attribution are deployed. Live hosted generation, independent acknowledgment, attributed Keep separate and both-claim history pass. The fictional claims are archived. An inconsistent AI explanation is retained and explicitly identified in the review rationale. See `docs/implementation/duplicate-comparison.md`.
 
-Source proposal services, Paper UI, and clarification tracking are deployed. Live hosted generation, exact citation inspection, individual Draft creation and sibling rejection pass. The fictional Draft is archived; live clarification generation remains open. See `docs/implementation/source-proposals.md`.
+Source proposal services, Paper UI, and clarification tracking are deployed. Live hosted generation, exact citation inspection, individual Draft creation, sibling rejection and source-backed clarification answers pass. Original and answering Evidence Revisions remain inspectable after reload and archival. The fictional Drafts are archived; no evidence was verified. See `docs/implementation/source-proposals.md`.
 - [x] Add the keyword rewrite queue with original/proposed wording, supporting evidence, meaning-change explanation, individual acceptance, and stale-input checks.
 Wording assistance is implemented and deployed. Live local and hosted provider requests, placement acceptance, session undo and retained PDF state pass; local redo also passes. All browser data in these checks is synthetic. See `docs/implementation/wording.md`.
 

@@ -32,7 +32,7 @@ The sole Owner is created and verified. Two authenticated hosted Classic compila
 
 The source migration and source UI/services are deployed to staging. Hosted source intake passed: a clearly labeled synthetic fixture was uploaded, extracted with repeated text and Unicode, inspected, and downloaded. Both the source listing and concrete original return 401 without authentication. The local browser created a synthetic source containing repeated text and Unicode, reprocessed it, and inspected its preserved first extraction. Local synthetic fixtures are explicitly labeled and are not Owner evidence.
 
-GitHub OAuth remains unconfigured. The Owner-approved OpenAI and daily backup credentials are installed on staging; hosted template generation, source proposals, requirement extraction, ranking, duplicate comparison, inline wording and a daily backup restore drill passed. Hosted password-reset completion and live clarification generation remain unverified.
+GitHub OAuth remains unconfigured. The Owner-approved OpenAI and daily backup credentials are installed on staging; hosted template generation, source proposals, clarification answers, requirement extraction, ranking, duplicate comparison, inline wording and a daily backup restore drill passed. Hosted password-reset completion remains unverified.
 
 ## Next acceptance work
 
@@ -54,7 +54,7 @@ Scoring includes atomic Save & score, bounded attempts, exact retained input, si
 
 Both approved staging secrets are installed. Hosted template generation/conversation, complete synthetic validation, retained daily backup and a fresh isolated 58-table/30-object restore drill passed at migration 0018. The generated template stays Validated pending separate Owner visual approval. See `template-generation.md` and `recovery.md`.
 
-The latest current-schema restore drill also passed: 71 base tables, exact FTS equality, foreign keys, four citations, 52 retained objects and the original exported checkpoint. Restored source/job/duplicate proposal tables include the new hosted reviews, archived fixtures and rejected payload removal. The restored database is local and unpublished. Its scoring tables are empty, so it does not prove populated scoring recovery. Hosted history was checked in both themes and preserves the labeled r0 checkpoint after the independent draft advances.
+The latest current-schema restore drill also passed: 72 base tables, exact FTS equality, foreign keys, seven citations, 88 retained objects and the original exported checkpoint. Restored proposal and clarification tables preserve hosted decisions, exact answering-source/revision links, archived fixtures and rejected payload removal. The restored database is local and unpublished. Its scoring tables are empty, so it does not prove populated scoring recovery. Hosted history was checked in both themes and preserves the labeled r0 checkpoint after the independent draft advances.
 
 Paper board 77's inline wording launch/review and session undo are deployed. Local real generation, complete review, acceptance, undo/redo and real PDF refresh preserve an unrelated name edit. A hosted name-formatting proposal changed only the supplied synthetic name; acceptance saved r3, undo restored its original binding at r4, both PDFs rendered, and the accepted r3 proposal remained in history. Both journeys used `gpt-5.4-mini-2026-03-17` and retained 75% PDF zoom. No candidate evidence was created. See `wording.md` for exact identities and verification limits.
 
@@ -68,13 +68,15 @@ Upload reconciliation now rotates its bounded 50-source scan and isolates indivi
 
 Actual 390 × 844 Chrome checks now cover Sources, light/dark history and wording review, exact content and both retained PDFs, backup status and earlier failures, scoring availability and retained PDF download. A confirmed wording-dialog focus loss is fixed and verified locally and hosted. No page design changed. The viewport was reset. GitHub OAuth registration is prepared in the personal account but remains unsubmitted pending credential-creation approval. See `mobile-review.md`.
 
+Live clarification now passes the complete hosted path: first-attempt provider questions, individual Draft creation, immutable supporting-source intake, a new cited Evidence Revision, explicit answer-source selection and retained answer after reload. Original and answering revisions remain inspectable. The metric sibling was rejected with its payload removed. The fictional Draft is archived; D1 confirms zero verification decisions. No code changed or tests were rerun for this journey. See `source-proposals.md`.
+
 ## Remaining V1 work
 
 - Complete explicitly approved source acceptance/publication, export, structured return and template promotion journeys.
 - Deploy and verify ATS identity after approval, enable River scoring, and prove successful/failed runs, cache identity and exact finding review.
 - Complete live-provider verification of template scoring qualification and Paper’s fixture review. The canonical set, qualification gate, four-table persistence, bounded Workflow, Owner services and review UI are deployed to personal staging through migration 0026. All 132 Workers tests, workspace types/lint and the staging build pass; local unavailable/empty states are reviewed in both themes, and hosted authenticated Classic inspection and anonymous artifact denial pass. The new 71-table staging snapshot passed an isolated restore with 50 retained objects. Actual hosted provider runs and populated/mobile browser review remain open. Award `ATS Screener tested` only after a complete retained compatible passing report. See `template-scoring.md`.
 - Complete mobile review with populated scoring/qualification results after enabling the provider. Actual 390-pixel wording, history, PDF comparison, backup recovery and retained download checks now pass; see `mobile-review.md`.
-- Finish hosted clarification generation, password recovery and authenticated Agent Credential journeys; required GitHub configuration remains unverified.
+- Finish hosted password recovery and authenticated Agent Credential journeys; required GitHub configuration remains unverified.
 - Complete the real Owner tailoring session, production resources/domain and release gates. No MVP or V1 release is claimed.
 
 Synthetic documents and acceptance fixtures are not candidate evidence. Pending approvals do not authorize recording an Owner attestation or deploying the ATS checkout through an alternative path.
