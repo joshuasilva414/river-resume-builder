@@ -15,7 +15,7 @@ The prescribed architecture remains intact. No selected component was replaced.
 - Owner auth mutations use the Better Auth REST handler, which directly propagates Set-Cookie. The TanStack cookie plugin is unnecessary for this path. Session reads remain request-scoped.
 - Vite needs an explicit `~` alias for the development Worker; relying only on tsconfig paths did not work in the runtime proof.
 
-`dependencies.json` contains resolved package versions; installed dependencies are authoritative in the workspace manifests and lockfile. Optional GitHub OAuth credentials and OpenAI task/model configuration are not yet available.
+`dependencies.json` contains resolved package versions; installed dependencies are authoritative in the workspace manifests and lockfile. Required GitHub OAuth registration remains pending approval. The Owner-approved OpenAI credential and pinned task/model profiles are installed on staging; subsequent live workflow proofs are recorded in their implementation documents.
 
 ## Document resources
 

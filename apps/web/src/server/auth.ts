@@ -44,6 +44,7 @@ export function createAuth(env: Env, deliver?: (message: AuthMail) => Promise<vo
       enabled: true,
       requireEmailVerification: true,
       minPasswordLength: 12,
+      revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) =>
         send({
           to: user.email,

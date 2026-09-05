@@ -4,11 +4,11 @@ Updated 2026-09-05. V1 is not released. This maps the remaining plan gates to co
 
 ## Service and persistence gate
 
-The complete Workers run recorded in `/tmp/river-upload-recovery-full-tests-green.log` passed 141 tests in 25 files at code commit `9c1b54b`. Later commit `61c0ac9` changed dialog focus restoration and passed focused types/lint/build plus local and hosted keyboard checks. The following existing assertions satisfy M6's focused integration-test gate; hosted credential and provider acceptance remain separate.
+The complete Workers run recorded in `/tmp/river-auth-recovery-full-tests.log` passed 142 tests in 25 files, including the password-reset session-revocation correction and earlier dialog focus fix. All workspace type/lint checks and the staging build passed. The following assertions satisfy M6's focused integration-test gate; hosted credential and provider acceptance remain separate.
 
 | Contract | Verification |
 | --- | --- |
-| Owner allowlist, verified sessions and immediate logout | `apps/web/test/auth.test.ts` uses the real Better Auth adapter and D1. Unauthorized commands fail after revocation. |
+| Owner allowlist, verified sessions, logout and password recovery | `apps/web/test/auth.test.ts` uses the real Better Auth adapter and D1. Password reset invalidates two existing sessions; old passwords and used/expired tokens fail. See `authentication.md`. |
 | Agent scopes, hash-only storage, expiry and revocation | `credentials.test.ts` and `mcp.test.ts` exercise authentication and the actual MCP handler. A read scope cannot mutate, repeated commands return one result, and revoked credentials fail immediately. |
 | Atomic revision guards and permanent idempotency | `persistence.test.ts` races four creates, checks one Operation/dispatch/audit, rejects fingerprint reuse, and checks no dependent writes after a stale revision or a later SQL failure. |
 | Stale and concurrent AI acceptance | `job-ai.test.ts`, `source-ai.test.ts` and `wording.test.ts` preserve Pending proposals and unchanged aggregates/indexes/audits when captured inputs change or a competing decision wins. |
