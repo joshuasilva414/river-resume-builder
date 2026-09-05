@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "river-documents-local",
+  "account_id": "a91c30d69981b341efe3b656a263f6da",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "containers": [
+    {
+      "class_name": "DocumentContainer",
+      "image": "../../Dockerfile.documents",
+      "max_instances": 1,
+      "instance_type": "basic"
+    }
+  ],
+  "durable_objects": { "bindings": [{ "name": "CONTAINER", "class_name": "DocumentContainer" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DocumentContainer"] }],
+  "env": {
+    "staging": {
+      "name": "river-documents-staging",
+      "containers": [
+        {
+          "class_name": "DocumentContainer",
+          "image": "../../Dockerfile.documents",
+          "max_instances": 1,
+          "instance_type": "basic"
+        }
+      ],
+      "durable_objects": {
+        "bindings": [{ "name": "CONTAINER", "class_name": "DocumentContainer" }]
+      }
+    }
+  }
+}

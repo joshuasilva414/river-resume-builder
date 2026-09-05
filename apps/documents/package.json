@@ -1,0 +1,26 @@
+{
+  "name": "@river/documents",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "check": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
+    "lint": "biome check .",
+    "test": "vitest run --passWithNoTests",
+    "dev": "wrangler dev --port 8788"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "0.3.7",
+    "@river/contracts": "workspace:*",
+    "@river/domain": "workspace:*",
+    "@river/templates": "workspace:*",
+    "effect": "4.0.0-rc.112",
+    "mammoth": "1.12.2",
+    "pdfjs-dist": "6.3.289"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260905.1",
+    "esbuild": "0.28.2",
+    "wrangler": "4.129.0"
+  }
+}

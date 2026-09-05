@@ -1,0 +1,10 @@
+packages:
+  - apps/*
+  - packages/*
+
+saveExact: true
+onlyBuiltDependencies:
+  - '@biomejs/biome'
+  - esbuild
+  - workerd
+  - sharp

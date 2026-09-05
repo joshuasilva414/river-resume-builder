@@ -1,0 +1,16 @@
+import { InspectLibraryRequest, LibrarySearch, SaveLibraryRequest } from "@river/contracts";
+import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeaders } from "@tanstack/react-start/server";
+import { Schema } from "effect";
+import { bindings } from "./env";
+import { inspectLibrary, saveLibrary, searchLibrary } from "./library";
+import { execute } from "./services";
+export const getLibrary = createServerFn({ method: "GET" })
+  .validator(Schema.decodeUnknownSync(LibrarySearch))
+  .handler(({ data }) => execute(bindings(), getRequestHeaders(), searchLibrary(data)));
+export const getLibraryDetail = createServerFn({ method: "GET" })
+  .validator(Schema.decodeUnknownSync(InspectLibraryRequest))
+  .handler(({ data }) => execute(bindings(), getRequestHeaders(), inspectLibrary(data)));
+export const mutateLibrary = createServerFn({ method: "POST" })
+  .validator(Schema.decodeUnknownSync(SaveLibraryRequest))
+  .handler(({ data }) => execute(bindings(), getRequestHeaders(), saveLibrary(data)));

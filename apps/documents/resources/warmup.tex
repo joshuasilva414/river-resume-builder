@@ -1,0 +1,41 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage{fontspec}
+\setmainfont{Latin Modern Roman}
+\usepackage[margin=0.65in]{geometry}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+\setlist[itemize]{leftmargin=12pt,itemsep=2pt,topsep=2pt,label={}}
+\titleformat{\section}{\large\bfseries}{}{0pt}{}
+\titlespacing*{\section}{0pt}{ 9pt }{4pt}
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+\begin{document}
+{\LARGE\bfseries Alex Morgan }\par
+Sample City | alex@example.com | portfolio.example\par
+\section*{ Summary }
+\textbf{  }\par
+\par
+Software engineer building thoughtful web applications with TypeScript, React, and relational data.\par
+
+\section*{ Projects }
+\textbf{ Fieldnotes }\par
+Web application\par
+
+\begin{itemize}
+\item Built a typed React editor with reusable content blocks and persistent drafts.
+\item Designed REST endpoints for storing and retrieving versioned documents.
+\end{itemize}
+\section*{ Education }
+\textbf{ Sample University }\par
+B.S. Computer Science\par
+Concentration in Software Engineering\par
+
+\section*{ Technical skills }
+\textbf{  }\par
+\par
+TypeScript, JavaScript, React, SQL, Git, REST APIs\par
+
+\end{document}

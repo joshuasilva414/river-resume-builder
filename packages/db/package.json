@@ -1,0 +1,25 @@
+{
+  "name": "@river/db",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "check": "tsc --noEmit",
+    "lint": "biome check .",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.2",
+    "effect": "4.0.0-rc.112",
+    "@river/domain": "workspace:*",
+    "@river/contracts": "workspace:*",
+    "@river/templates": "workspace:*"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.10",
+    "@cloudflare/workers-types": "5.20260905.1"
+  }
+}

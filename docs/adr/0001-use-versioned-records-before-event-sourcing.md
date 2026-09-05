@@ -1,0 +1,3 @@
+# Use versioned records before event sourcing
+
+Resume Builder will use stable domain identities with immutable revisions and snapshots instead of deriving state from a full event store. Evidence Claims, Resume Content Items, Resume Blocks, Resume Sections, Requirement Maps, and Templates evolve through immutable revisions; job postings and resumes preserve immutable snapshots and checkpoints. This provides deterministic provenance, reusable composition, and history with less operational and modeling complexity for V1. Full event sourcing remains a V2 design possibility if audit, synchronization, or temporal-query requirements later justify the additional complexity.

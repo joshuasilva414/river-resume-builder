@@ -1,0 +1,181 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "river-local",
+  "account_id": "a91c30d69981b341efe3b656a263f6da",
+  "main": "src/server.ts",
+  "compatibility_date": "2026-08-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "ENVIRONMENT": "development",
+    "APP_URL": "http://127.0.0.1:3000",
+    "OWNER_EMAIL": "joshuasilva414@gmail.com",
+    "EMAIL_FROM": "River <hello@river.jilva.dev>",
+    "OPENAI_REQUIREMENTS_MODEL": "gpt-5.4-mini-2026-03-17",
+    "OPENAI_RANKING_MODEL": "gpt-5.4-mini-2026-03-17",
+    "OPENAI_WORDING_MODEL": "gpt-5.4-mini-2026-03-17",
+    "OPENAI_SOURCE_CLAIMS_MODEL": "gpt-5.4-mini-2026-03-17",
+    "OPENAI_DUPLICATE_MODEL": "gpt-5.4-mini-2026-03-17",
+    "OPENAI_TEMPLATE_MODEL": "gpt-5.4-mini-2026-03-17"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "river-local",
+      "database_id": "river-local",
+      "migrations_dir": "../../packages/db/migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ARTIFACTS",
+      "bucket_name": "river-local-artifacts"
+    }
+  ],
+  "workflows": [
+    {
+      "binding": "DOCUMENT_WORKFLOW",
+      "name": "river-local-documents",
+      "class_name": "DocumentWorkflow"
+    },
+    {
+      "binding": "JOB_AI_WORKFLOW",
+      "name": "river-local-job-analysis",
+      "class_name": "JobAiWorkflow"
+    },
+    {
+      "binding": "BACKUP_WORKFLOW",
+      "name": "river-local-backups",
+      "class_name": "BackupWorkflow"
+    },
+    {
+      "binding": "WORDING_WORKFLOW",
+      "name": "river-local-wording",
+      "class_name": "WordingWorkflow"
+    },
+    {
+      "binding": "SOURCE_AI_WORKFLOW",
+      "name": "river-local-source-claims",
+      "class_name": "SourceAiWorkflow"
+    },
+    {
+      "binding": "DUPLICATE_AI_WORKFLOW",
+      "name": "river-local-duplicate-comparison",
+      "class_name": "DuplicateAiWorkflow"
+    },
+    {
+      "binding": "TEMPLATE_VALIDATION_WORKFLOW",
+      "name": "river-local-template-validation",
+      "class_name": "TemplateValidationWorkflow"
+    },
+    {
+      "binding": "TEMPLATE_AI_WORKFLOW",
+      "name": "river-local-template-ai",
+      "class_name": "TemplateAiWorkflow"
+    }
+  ],
+  "services": [
+    {
+      "binding": "DOCUMENTS",
+      "service": "river-documents-local",
+      "entrypoint": "DocumentService"
+    }
+  ],
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  },
+  "env": {
+    "staging": {
+      "name": "river-staging",
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "BACKUP_ACCOUNT_ID": "a91c30d69981b341efe3b656a263f6da",
+        "BACKUP_DATABASE_ID": "1b837147-de99-4aaa-a4ad-386b826412b0",
+        "BACKUP_BUCKET_NAME": "river-staging-artifacts",
+        "APP_URL": "https://river-staging.jilva.workers.dev",
+        "OWNER_EMAIL": "joshuasilva414@gmail.com",
+        "EMAIL_FROM": "River <hello@river.jilva.dev>",
+        "OPENAI_REQUIREMENTS_MODEL": "gpt-5.4-mini-2026-03-17",
+        "OPENAI_RANKING_MODEL": "gpt-5.4-mini-2026-03-17",
+        "OPENAI_WORDING_MODEL": "gpt-5.4-mini-2026-03-17",
+        "OPENAI_SOURCE_CLAIMS_MODEL": "gpt-5.4-mini-2026-03-17",
+        "OPENAI_DUPLICATE_MODEL": "gpt-5.4-mini-2026-03-17",
+        "OPENAI_TEMPLATE_MODEL": "gpt-5.4-mini-2026-03-17"
+      },
+      "r2_buckets": [
+        {
+          "binding": "ARTIFACTS",
+          "bucket_name": "river-staging-artifacts"
+        }
+      ],
+      "workflows": [
+        {
+          "binding": "DOCUMENT_WORKFLOW",
+          "name": "river-staging-documents",
+          "class_name": "DocumentWorkflow"
+        },
+        {
+          "binding": "JOB_AI_WORKFLOW",
+          "name": "river-staging-job-analysis",
+          "class_name": "JobAiWorkflow"
+        },
+        {
+          "binding": "BACKUP_WORKFLOW",
+          "name": "river-staging-backups",
+          "class_name": "BackupWorkflow"
+        },
+        {
+          "binding": "WORDING_WORKFLOW",
+          "name": "river-staging-wording",
+          "class_name": "WordingWorkflow"
+        },
+        {
+          "binding": "SOURCE_AI_WORKFLOW",
+          "name": "river-staging-source-claims",
+          "class_name": "SourceAiWorkflow"
+        },
+        {
+          "binding": "DUPLICATE_AI_WORKFLOW",
+          "name": "river-staging-duplicate-comparison",
+          "class_name": "DuplicateAiWorkflow"
+        },
+        {
+          "binding": "TEMPLATE_VALIDATION_WORKFLOW",
+          "name": "river-staging-template-validation",
+          "class_name": "TemplateValidationWorkflow"
+        },
+        {
+          "binding": "TEMPLATE_AI_WORKFLOW",
+          "name": "river-staging-template-ai",
+          "class_name": "TemplateAiWorkflow"
+        }
+      ],
+      "services": [
+        {
+          "binding": "DOCUMENTS",
+          "service": "river-documents-staging",
+          "entrypoint": "DocumentService"
+        }
+      ],
+      "send_email": [
+        {
+          "name": "EMAIL",
+          "allowed_destination_addresses": ["joshuasilva414@gmail.com"]
+        }
+      ],
+      "triggers": {
+        "crons": ["*/5 * * * *"]
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "river-staging",
+          "database_id": "1b837147-de99-4aaa-a4ad-386b826412b0",
+          "migrations_dir": "../../packages/db/migrations"
+        }
+      ]
+    }
+  }
+}

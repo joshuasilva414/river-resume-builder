@@ -1,0 +1,147 @@
+@import "tailwindcss";
+@import "@fontsource-variable/newsreader";
+@import "@fontsource-variable/instrument-sans";
+@import "@fontsource/ibm-plex-mono/400.css";
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #111318;
+  --card: #ffffff;
+  --card-foreground: #111318;
+  --popover: #ffffff;
+  --popover-foreground: #111318;
+  --primary: #1e5eff;
+  --primary-foreground: #ffffff;
+  --secondary: #f6f7f9;
+  --secondary-foreground: #111318;
+  --muted: #f6f7f9;
+  --muted-foreground: #5b6270;
+  --accent: #eef3ff;
+  --accent-foreground: #1e5eff;
+  --destructive: #b42318;
+  --border: #d9dde3;
+  --input: #d9dde3;
+  --ring: #1e5eff;
+  --radius: 0.25rem;
+  --approved: #16794a;
+  --highlight: #ffe56b;
+  --color-paper: var(--background);
+  --color-editor: var(--primary);
+}
+.dark {
+  --background: #0b0d12;
+  --foreground: #f4f6fa;
+  --card: #141821;
+  --card-foreground: #f4f6fa;
+  --popover: #141821;
+  --popover-foreground: #f4f6fa;
+  --primary: #5b8cff;
+  --primary-foreground: #0b0d12;
+  --secondary: #141821;
+  --secondary-foreground: #f4f6fa;
+  --muted: #141821;
+  --muted-foreground: #a8afbd;
+  --accent: #182749;
+  --accent-foreground: #83a7ff;
+  --destructive: #ff8b83;
+  --border: #303746;
+  --input: #303746;
+  --ring: #5b8cff;
+  --approved: #45c58a;
+  --highlight: #ffc857;
+}
+@theme inline {
+  --font-sans: "Instrument Sans Variable", sans-serif;
+  --font-editorial: "Newsreader Variable", Georgia, serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-approved: var(--approved);
+  --color-highlight: var(--highlight);
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    margin: 0;
+    font-size: 14px;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-editorial);
+    letter-spacing: -0.025em;
+    font-weight: 600;
+  }
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:not(:disabled),
+  a {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  ::selection {
+    background: var(--highlight);
+    color: #111318;
+  }
+}
+@layer components {
+  .evidence-dialog {
+    @apply flex max-h-[90dvh] flex-col gap-5 overflow-y-auto text-left;
+  }
+  @media (max-width: 639px) {
+    .evidence-dialog {
+      @apply inset-0 h-dvh max-h-dvh max-w-full translate-x-0 translate-y-0 rounded-none p-5;
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+    }
+    .evidence-dialog input,
+    .evidence-dialog textarea {
+      font-size: 16px;
+    }
+    .evidence-dialog button {
+      min-height: 44px;
+    }
+  }
+  .eyebrow {
+    @apply text-muted-foreground font-mono text-[11px] tracking-[.045em] uppercase;
+  }
+  .page-heading {
+    @apply font-editorial text-[28px] leading-8 md:text-[36px] md:leading-10;
+  }
+  .grain {
+    background-image: url("https://app.paper.design/file-assets/01M1PCGGJYH2EC4YRJNZSPRDZK/4HSKKZMDE0VCZDK54FR8YMG8Z6.png");
+    background-size: cover;
+    background-position: center;
+  }
+}

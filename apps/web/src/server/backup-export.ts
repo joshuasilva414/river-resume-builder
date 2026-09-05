@@ -1,0 +1,183 @@
+import { createHash } from "node:crypto";
+import { type BackupObject, fingerprint } from "@river/domain";
+import { Schema } from "effect";
+import type { Env } from "./env";
+
+export const backupResources = {
+  accountId: "a91c30d69981b341efe3b656a263f6da",
+  databaseId: "1b837147-de99-4aaa-a4ad-386b826412b0",
+  database: "river-staging",
+  bucket: "river-staging-artifacts",
+} as const;
+
+export function backupConfigured(env: Env) {
+  return (
+    env.ENVIRONMENT === "staging" &&
+    Boolean(env.D1_EXPORT_API_TOKEN && env.BACKUP_WORKFLOW) &&
+    env.BACKUP_ACCOUNT_ID === backupResources.accountId &&
+    env.BACKUP_DATABASE_ID === backupResources.databaseId &&
+    env.BACKUP_BUCKET_NAME === backupResources.bucket
+  );
+}
+
+const ExportResponse = Schema.Struct({
+  success: Schema.Boolean,
+  result: Schema.Struct({
+    success: Schema.Boolean,
+    status: Schema.String,
+    at_bookmark: Schema.optional(Schema.String),
+    result: Schema.optional(Schema.Struct({ signed_url: Schema.optional(Schema.String) })),
+  }),
+});
+const MAX_SQL_BYTES = 64 * 1024 * 1024;
+
+/** Hash while streaming. SQL never becomes Workflow step output or a large in-memory string. */
+async function hashStoredObject(bucket: R2Bucket, key: string): Promise<BackupObject | null> {
+  const object = await bucket.get(key);
+  if (!object) return null;
+  const hash = createHash("sha256");
+  let bytes = 0;
+  for await (const chunk of object.body) {
+    bytes += chunk.byteLength;
+    if (bytes > MAX_SQL_BYTES) throw new Error("Database backup exceeds its 64 MiB limit.");
+    hash.update(chunk);
+  }
+  if (!bytes) throw new Error("Database backup is empty.");
+  return { key, bytes, sha256: hash.digest("hex") };
+}
+
+export async function exportDatabase({
+  token,
+  tables,
+  key,
+  bucket,
+  transport = fetch,
+  pause = (ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
+}: {
+  token: string;
+  tables: readonly string[];
+  key: string;
+  bucket: R2Bucket;
+  transport?: typeof fetch;
+  pause?: (ms: number) => Promise<void>;
+}): Promise<BackupObject> {
+  const existing = await hashStoredObject(bucket, key);
+  if (existing) return existing;
+  if (!tables.length || tables.some((table) => !/^[a-z_]+$/.test(table)))
+    throw new Error("Invalid database table catalog.");
+  const endpoint = `https://api.cloudflare.com/client/v4/accounts/${backupResources.accountId}/d1/database/${backupResources.databaseId}/export`;
+  let bookmark: string | undefined;
+  for (let attempt = 0; attempt < 60; attempt++) {
+    let result: (typeof ExportResponse.Type)["result"];
+    try {
+      const response = await transport(endpoint, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          output_format: "polling",
+          dump_options: { no_schema: true, no_data: false, tables },
+          ...(bookmark ? { current_bookmark: bookmark } : {}),
+        }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!response.ok) throw new Error("Export request failed");
+      const parsed = Schema.decodeUnknownSync(ExportResponse)(await response.json());
+      if (!parsed.success || !parsed.result.success) throw new Error("Export request failed");
+      result = parsed.result;
+    } catch {
+      // API diagnostics can include SQL, credentials, or signed URLs. Deliberately omit the original error.
+      throw new Error(
+        "The D1 export request failed. Check the dedicated token and personal staging resources.",
+      );
+    }
+    if (result.status === "complete") {
+      try {
+        const url = new URL(result.result?.signed_url ?? "");
+        if (url.protocol !== "https:" || url.username || url.password)
+          throw new Error("Invalid download URL");
+        const response = await transport(url, {
+          redirect: "error",
+          headers: { "Accept-Encoding": "identity" },
+          signal: AbortSignal.timeout(30_000),
+        });
+        if (!response.ok || !response.body) throw new Error("Backup download failed");
+        const expectedBytes = Number(response.headers.get("content-length"));
+        if (
+          !Number.isSafeInteger(expectedBytes) ||
+          expectedBytes <= 0 ||
+          expectedBytes > MAX_SQL_BYTES
+        )
+          throw new Error("Backup download has no valid bounded length");
+        let bytes = 0;
+        const hash = createHash("sha256");
+        const body = response.body.pipeThrough(
+          new TransformStream<Uint8Array, Uint8Array>({
+            transform(chunk, controller) {
+              bytes += chunk.byteLength;
+              if (bytes > MAX_SQL_BYTES) throw new Error("Backup exceeds byte limit");
+              hash.update(chunk);
+              controller.enqueue(chunk);
+            },
+            flush() {
+              if (!bytes) throw new Error("Empty backup");
+            },
+          }),
+        );
+        // R2 requires a known-length stream. A transform alone loses the upstream HTTP length.
+        const fixed = new FixedLengthStream(expectedBytes),
+          abort = new AbortController();
+        const transferred = body.pipeTo(fixed.writable, { signal: abort.signal }).then(
+          () => true,
+          () => false,
+        );
+        try {
+          const object = await bucket.put(key, fixed.readable, {
+            onlyIf: { etagDoesNotMatch: "*" },
+            httpMetadata: { contentType: "application/sql" },
+          });
+          if (!object) {
+            abort.abort();
+            const raced = await hashStoredObject(bucket, key);
+            if (!raced) throw new Error("Concurrent backup write missing");
+            return raced;
+          }
+          if (!(await transferred) || bytes !== expectedBytes)
+            throw new Error("Incomplete backup download");
+          return { key, bytes, sha256: hash.digest("hex") };
+        } finally {
+          abort.abort();
+          await transferred;
+        }
+      } catch {
+        throw new Error(
+          "The database backup download or immutable upload failed. No backup completion was recorded.",
+        );
+      }
+    }
+    if (result.status === "error" || !result.at_bookmark)
+      throw new Error("D1 could not complete the database export.");
+    bookmark = result.at_bookmark;
+    await pause(1000);
+  }
+  throw new Error("D1 export exceeded its 60-poll limit.");
+}
+
+export async function retainBackupManifest(
+  bucket: R2Bucket,
+  key: string,
+  content: string,
+): Promise<BackupObject> {
+  const bytes = new TextEncoder().encode(content),
+    sha256 = await fingerprint(bytes);
+  const object = await bucket.put(key, bytes, {
+    onlyIf: { etagDoesNotMatch: "*" },
+    httpMetadata: { contentType: "application/json" },
+    customMetadata: { sha256 },
+  });
+  if (!object) {
+    const previous = await bucket.get(key);
+    if (!previous || (await fingerprint(new Uint8Array(await previous.arrayBuffer()))) !== sha256)
+      throw new Error("The immutable backup manifest differs from this execution.");
+  }
+  return { key, sha256, bytes: bytes.byteLength };
+}
