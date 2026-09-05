@@ -83,27 +83,23 @@ it("sanitizes malformed output and bounds the actual body stream", async () => {
     },
     cancel: cancelled,
   });
-  const transport = vi
-    .fn<typeof fetch>()
-    .mockResolvedValue(
-      new Response(body, {
-        headers: { "content-type": "application/json", "content-length": "1" },
-      }),
-    );
+  const transport = vi.fn<typeof fetch>().mockResolvedValue(
+    new Response(body, {
+      headers: { "content-type": "application/json", "content-length": "1" },
+    }),
+  );
   await expect(
     scoreCheckpointText(profile, input, syntheticScoringVersion, transport),
   ).rejects.toMatchObject({ code: "InvalidResponse" });
   expect(cancelled).toHaveBeenCalledTimes(1);
 });
 it("does not follow redirects or retry a rate-limited request before its recorded deadline", async () => {
-  const redirect = vi
-    .fn<typeof fetch>()
-    .mockResolvedValue(
-      new Response("private provider detail", {
-        status: 302,
-        headers: { Location: "https://unrelated.example.test" },
-      }),
-    );
+  const redirect = vi.fn<typeof fetch>().mockResolvedValue(
+    new Response("private provider detail", {
+      status: 302,
+      headers: { Location: "https://unrelated.example.test" },
+    }),
+  );
   await expect(
     scoreCheckpointText(profile, input, syntheticScoringVersion, redirect),
   ).rejects.toMatchObject({ code: "Unavailable" });
