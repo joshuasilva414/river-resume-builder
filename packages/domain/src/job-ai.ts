@@ -13,7 +13,11 @@ export const JobAiTask = Schema.Literals(["extract-requirements", "rank-evidence
 export type JobAiTask = typeof JobAiTask.Type;
 export const AiProfile = Schema.Struct({
   model: Schema.NonEmptyString.check(Schema.isMaxLength(100)),
-  contract: Schema.Literals(["river-job-analysis-v1", "river-job-analysis-v2"]),
+  contract: Schema.Literals([
+    "river-job-analysis-v1",
+    "river-job-analysis-v2",
+    "river-job-analysis-v3",
+  ]),
   maxInputCharacters: Schema.Literal(160000),
   maxOutputTokens: Schema.Literal(12000),
   timeoutMs: Schema.Literal(60000),
@@ -68,6 +72,7 @@ export const JobAiInput = Schema.Struct({
   posting: Schema.String,
   // Missing only on the retained v1 contract and ranking inputs.
   postingAnchors: Schema.optionalKey(Schema.Array(PostingAnchor)),
+  rankingPolicy: Schema.optionalKey(Schema.Literal("substantive-support-with-gaps-v1")),
   workspace: JobWorkspace,
   requirementId: Schema.NullOr(RecordId),
   candidateQuery: Schema.String,
@@ -206,6 +211,14 @@ export function validateJobProposal(input: JobAiInput, output: unknown): JobAiPr
       invalid("The ranking contains an invalid gap identity.");
     gapIds.add(gap.requirementId);
   }
+  if (input.rankingPolicy)
+    for (const result of decoded.results)
+      if (
+        result.requirementId &&
+        result.support === "Partial support" &&
+        !gapIds.has(result.requirementId)
+      )
+        invalid("Every partial match must explain the remaining requirement gap.");
   for (const requirement of input.workspace.requirements.filter(
     (item) => !input.requirementId || item.id === input.requirementId,
   ))

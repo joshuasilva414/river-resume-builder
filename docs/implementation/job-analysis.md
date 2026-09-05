@@ -10,7 +10,7 @@ Task, Operation, dispatch, audit, and idempotency outcome persist atomically. Di
 
 Contract `river-job-analysis-v2` captures indexed posting passages for requirement extraction before dispatch. Every nonempty line occurrence receives a stable index, snapshot ID, exact quote, and UTF-16 offsets. Lines longer than 4,000 units use successive bounded spans without splitting a surrogate pair. The model returns one to five distinct passage indexes per requirement; River resolves only those selected indexes against the captured input and rechecks each quote against the immutable posting. Unknown or repeated indexes fail. The original posting and complete index both count toward the existing serialized input budget; neither is truncated. Review and accepted maps retain the same full passage contract as manual requirements.
 
-Historical v1 inputs and proposals keep their offset-based interpretation. Changing the task contract requires a new capture; retries cannot silently adopt a different profile. Ranking keeps its existing exact evidence-reference output.
+Historical v1 inputs and proposals keep their offset-based interpretation. Changing the task contract requires a new capture; retries cannot silently adopt a different profile. Ranking keeps its exact evidence-reference output. New ranking tasks use `river-job-analysis-v3` and capture policy `substantive-support-with-gaps-v1`: partial matches require an explicit gap for that requirement before publication. The provider instructions reserve results for substantive overlap and put unsupported requirements only in gaps. This structural rule does not replace human review of relevance.
 
 Validated output persists as one Pending proposal before the Operation succeeds. New requirement UUIDv7 identities are assigned at proposal persistence and retained at acceptance. Generated output is not a Workflow step result. Rejection clears the sole generated payload in D1, clears browser detail caches, and keeps only minimal decision metadata in permanent receipts and audit. Input snapshots and accepted domain history remain. Backup copies expire through retention.
 
@@ -21,8 +21,8 @@ Ranking acceptance records review only. The Owner then opens the existing eviden
 ## Configuration and bounds
 
 - Server secret: `OPENAI_API_KEY`. Never place the key in D1, browser state, or source control.
-- Task settings: `OPENAI_REQUIREMENTS_MODEL` and `OPENAI_RANKING_MODEL`, currently pinned to `gpt-5.4-mini-2026-03-17` in Wrangler. The installed OpenAI SDK recognizes this identity. The Owner-approved staging key is installed; a live job-analysis provider call remains unverified.
-- Prompt/schema contract: `river-job-analysis-v2` for new tasks; retained v1 history remains readable. OpenAI SDK `7.10.0`.
+- Task settings: `OPENAI_REQUIREMENTS_MODEL` and `OPENAI_RANKING_MODEL`, currently pinned to `gpt-5.4-mini-2026-03-17` in Wrangler. The Owner-approved staging key is installed. Hosted extraction passed with v2; ranking quality checks are described below.
+- Prompt/schema contracts: `river-job-analysis-v2` for requirement extraction and `river-job-analysis-v3` for ranking; retained v1/v2 history remains readable. OpenAI SDK `7.10.0`.
 - Maximum serialized input: 160,000 UTF-16 units; provider output budget: 12,000 tokens; maximum stored proposal: 200,000 UTF-16 units.
 - Maximum generated map: 30 requirements; ranking: 60 associations, 100 gap explanations, 30 candidates.
 - Provider timeout: 60 seconds; Workflow generation/validation/persistence step: 90 seconds, no automatic retry. Two active AI tasks per Owner; three explicit attempts per task.
@@ -47,4 +47,12 @@ Hosted fictional job `01a07317-0c52-7545-b111-8a05135624a8` produced two failed 
 
 The v2 contract replaces model-calculated offsets with explicit selection of captured passage indexes. Repeating the same fictional provider input with that contract passed schema and citation validation. No diagnostic request wrote application records. Temporary diagnostic code was removed.
 
-Two added service tests exercise second-occurrence selection through actual provider serialization, proposal persistence and map acceptance; invalid/duplicate/empty selections; Unicode passage boundaries; and full input-budget refusal before task writes. All 136 Workers tests across 24 files, workspace type/lint checks and the staging build pass. Hosted v2 extraction and ranking review remain the next acceptance checks.
+Two added service tests exercise second-occurrence selection through actual provider serialization, proposal persistence and map acceptance; invalid/duplicate/empty selections; Unicode passage boundaries; and full input-budget refusal before task writes. All 136 Workers tests across 24 files, workspace type/lint checks and the staging build passed for the citation fix.
+
+Hosted v2 task `01a07325-8848-75f7-bfce-bb6b5bba3d11` then succeeded on its first attempt on web version `ad2c4046-65d3-424b-8aa4-365a28147626` (commit `d89a5b8`). Full review showed three requirements, two Required and one Preferred, with exact line 2/3/4 passages at offsets 55–135, 136–204 and 205–262. Proposal `01a07325-a527-771c-9b05-f66ed4fb7af5` was accepted into map `01a07326-0f2a-7ef4-bd96-ddf21a878558` at job revision 1. The two failed v1 attempts remain intact.
+
+### Ranking quality correction
+
+First-attempt v2 ranking task `01a07326-6ba9-78ab-afd3-4851a630db50` inspected one active fictional Draft Claim. It returned a direct accessibility match but also assigned Partial support to TypeScript and PostgreSQL without gap entries. Its own database explanation admitted there was no relevant evidence. The complete ranking was rejected; no evidence selection was made.
+
+The v3 ranking policy now requires a gap alongside every partial requirement match, and its instructions exclude associations based only on generic software context. The focused service test first failed for the missing captured policy, then verified rejection before proposal persistence, acceptance of a result with its explicit gap, unchanged selections, and preserved legacy behavior. Ten focused job tests, workspace types/lint and the staging build pass. Hosted v3 ranking review remains unverified until the next deployment check.

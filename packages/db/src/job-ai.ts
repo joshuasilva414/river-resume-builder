@@ -220,8 +220,11 @@ export function createJobAiRepository(db: Database) {
           details: detail.job.details,
           posting: detail.snapshot.text,
           ...(request.task === "extract-requirements" &&
-          profile.contract === "river-job-analysis-v2"
+          profile.contract !== "river-job-analysis-v1"
             ? { postingAnchors: indexPostingPassages(detail.snapshot.text, detail.snapshot.id) }
+            : {}),
+          ...(request.task === "rank-evidence" && profile.contract === "river-job-analysis-v3"
+            ? { rankingPolicy: "substantive-support-with-gaps-v1" as const }
             : {}),
           workspace: detail.workspace.data,
           requirementId: request.requirementId,

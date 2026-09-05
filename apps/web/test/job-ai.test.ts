@@ -407,6 +407,34 @@ it("bounds ranking references, preserves explicit selection, and invalidates cha
   expect(
     (await store.inspectJob(actor.id, { id: created.id })).workspace.data.selections,
   ).toHaveLength(0);
+  const strict = await store.startJobAi(
+    actor,
+    { ...request, task: "rank-evidence", revision: 1, idempotencyKey: "rank-with-gaps" },
+    { ...profile, contract: "river-job-analysis-v3" },
+  );
+  if (!strict.revisionId) throw Error("Missing operation");
+  const strictDetail = await store.inspectJobAi(actor.id, strict.id);
+  expect(strictDetail.task.input.rankingPolicy).toBe("substantive-support-with-gaps-v1");
+  await expect(
+    store.publishJobAi(actor.id, strict.id, strict.revisionId, output),
+  ).rejects.toMatchObject({ code: "InvalidInput" });
+  expect((await store.inspectJobAi(actor.id, strict.id)).proposal).toBeNull();
+  await store.publishJobAi(actor.id, strict.id, strict.revisionId, {
+    ...output,
+    gaps: [
+      {
+        requirementId: output.results[0]?.requirementId,
+        explanation: "The Draft claim does not establish the full requirement.",
+      },
+    ],
+  });
+  expect((await store.inspectJobAi(actor.id, strict.id)).proposal?.payload).toMatchObject({
+    type: "ranking",
+    gaps: [expect.anything()],
+  });
+  expect(
+    (await store.inspectJob(actor.id, { id: created.id })).workspace.data.selections,
+  ).toHaveLength(0);
   const next = await store.startJobAi(
     actor,
     { ...request, task: "rank-evidence", revision: 1, idempotencyKey: "rank-again" },
