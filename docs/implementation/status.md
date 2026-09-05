@@ -44,7 +44,7 @@ GitHub OAuth remains unconfigured. The Owner-approved OpenAI and daily backup cr
 
 ## Latest deployed milestone
 
-Staging is through migration `0027_source_upload_checks.sql`. Web commit `dc27521` is deployed as `230d70d0-0600-4020-818c-e46daf72f84a`; exact document/image identities are in `deployment.json`. The latest change revokes Owner sessions when a password reset completes. All 142 Workers tests, workspace types/lint and the staging build pass. This release changes neither the schema nor the Container. Source refinement, checkpoint scoring and template scoring Workflows remain bound.
+Staging is through migration `0027_source_upload_checks.sql`. Web commit `a797477` is deployed as `8362a12e-d080-42fb-8588-1a4c157b2dd0`; exact document/image identities are in `deployment.json`. Backups now validate and retain separate staging/production resource identities. All 149 Workers tests, workspace types/lint, both environment builds and production dry runs pass. The clean release bundle excludes duplicate generated output files found during upload inspection. This release changes neither staging’s schema nor its Container. Existing Owner sessions, both approved secrets and the completed daily backup are preserved.
 
 Explicit labeled checkpoints, chronology, independent restoration branches and pinned full content/PDF comparisons are deployed. The hosted synthetic fixture restored and rendered a new branch, captured a labeled checkpoint and displayed both actual PDFs with independent zoom. The original exported checkpoint remains unchanged. Local concurrent-tab checks keep the selected older revision until explicit refresh. Exact cross-checkpoint score selectors and reviewed template replacement during source regeneration are implemented. See `history.md`.
 
@@ -73,6 +73,8 @@ Live clarification now passes the complete hosted path: first-attempt provider q
 The release audit then reproduced a password-recovery gap: successful resets left existing sessions authenticated. The fix enables Better Auth's explicit revocation option. Isolated tests prove Owner-only mail, the actual callback, two-session revocation, new-password sign-in and used/expired-token rejection. The deployed setting leaves current sessions intact until a reset completes. Hosted Owner password entry remains pending; no Owner password was changed. See `authentication.md` and the consolidated `release-gates.md`.
 
 A uniquely filtered hosted probe now records an actual canceled Worker invocation during the identity/D1 path. A subsequent expected 401 and authenticated synthetic compilation pass; the latter retained its artifacts and rendered the actual PDF with correct text. The sampled request-lifetime gate is complete. Its reproducible command uses no real credential. The temporary staging Agent Credential form is prepared for six source/evidence/job read/write scopes and seven-day expiry but remains unsubmitted pending approval. See `request-lifetime.md`.
+
+Production D1 `river-production` and private R2 `river-production-artifacts` now exist in the personal account. All 28 migrations applied to the empty database, and a fresh 72-table backup/restore passed. The updated recovery scripts also restored the populated staging backup with 88 retained objects, seven citations and one export. Production Worker/Container/Workflow declarations and the final-domain route pass dry runs, but no production application, secrets or domain have been published. See `production.md`.
 
 ## Remaining V1 work
 

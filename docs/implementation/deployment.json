@@ -4,7 +4,7 @@
   "applicationUrl": "https://river-staging.jilva.workers.dev",
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
-  "webVersion": "230d70d0-0600-4020-818c-e46daf72f84a",
+  "webVersion": "8362a12e-d080-42fb-8588-1a4c157b2dd0",
   "documentWorkerVersion": "8ad4cf9e-bb6e-4a1d-8fbc-7107e78f818f",
   "containerImageDigest": "sha256:a35ce74287fdce2c7a7152e2afd107ac2d9b736bd31b8f9eb8b42bdf5cec3a2f",
   "database": "river-staging",
@@ -161,7 +161,7 @@
     "validation": "All four fixtures rendered twice and passed; Validated, awaiting separate Owner visual approval.",
     "conversationId": "01a071e6-f217-7952-93c0-b97743159fc3"
   },
-  "deployedWebCommit": "dc27521",
+  "deployedWebCommit": "a797477",
   "requestLifetimeProof": {
     "webVersion": "230d70d0-0600-4020-818c-e46daf72f84a",
     "report": "test-results/runtime/river-lifetime-4c7f4b67-b5c5-4ed2-b735-86101a834fc2/report.json",
@@ -323,6 +323,10 @@
       "citations": 0,
       "exportedCheckpoints": 0
     },
-    "stagingCompatibilityReport": "test-results/recovery/drill-7b510481-1ba0-4fd1-8688-76110d94b38b/report.json"
+    "stagingCompatibilityReport": "test-results/recovery/drill-7b510481-1ba0-4fd1-8688-76110d94b38b/report.json",
+    "commit": "a797477",
+    "stagingWebVersion": "8362a12e-d080-42fb-8588-1a4c157b2dd0",
+    "supersededStagingWebVersion": "b3ef72dc-a8f8-468e-8dcc-2fdffb2244d3",
+    "cleanGeneratedOutput": true
   }
 }
