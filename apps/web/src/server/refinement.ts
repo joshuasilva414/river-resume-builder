@@ -1,10 +1,17 @@
 import type {
   RetrySourceRefinementRequest,
+  ReturnToStructuredRequest,
   ReviewSourceRefinementRequest,
   SourceRefinementList,
   StartSourceRefinementRequest,
 } from "@river/contracts";
 import { ApplicationError } from "@river/domain";
+import {
+  compareSourceCandidate,
+  compareSourceFields,
+  completeTextDiff,
+  structuredSourceFields,
+} from "@river/templates/source-refinement";
 import { Effect } from "effect";
 import type { Env } from "./env";
 import { readRefinementBase } from "./refinement-artifacts";
@@ -91,6 +98,20 @@ export const inspectSourceRefinement = (env: Env, id: string) =>
     const detail = yield* attempt(() => store.inspectSourceRefinement(actor.ownerId, id));
     return {
       ...detail,
+      sourceReview: detail.proposal?.payload
+        ? {
+            source:
+              detail.proposal.comparison?.source ??
+              completeTextDiff(
+                detail.task.input.checkpoint.source,
+                detail.proposal.payload.source,
+                "source",
+              ),
+            fields:
+              detail.proposal.comparison?.fields ??
+              compareSourceFields(detail.task.input.checkpoint.fields, detail.proposal.payload),
+          }
+        : null,
       configured: Boolean(env.SOURCE_REFINEMENT_WORKFLOW && sourceRefinementProfile(env)),
       runtimeConfigured: Boolean(env.SOURCE_REFINEMENT_WORKFLOW),
     };
@@ -105,4 +126,57 @@ export const listSourceRefinements = (env: Env, input: SourceRefinementList) =>
       configured: Boolean(env.SOURCE_REFINEMENT_WORKFLOW && sourceRefinementProfile(env)),
       runtimeConfigured: Boolean(env.SOURCE_REFINEMENT_WORKFLOW),
     };
+  });
+
+export const inspectStructuredReturn = (env: Env, checkpointId: string) =>
+  Effect.gen(function* () {
+    const actor = yield* Actor,
+      store = yield* Store;
+    const detail = yield* attempt(() => store.inspectStructuredReturn(actor.ownerId, checkpointId));
+    const [original, accepted] = yield* attempt(() =>
+      Promise.all([
+        store.inspectCheckpoint(actor.ownerId, detail.base.id),
+        store.inspectCheckpoint(actor.ownerId, checkpointId),
+      ]),
+    );
+    const baseOperation = original.operation,
+      acceptedOperation = accepted.operation,
+      baseArtifacts = baseOperation?.artifacts,
+      acceptedArtifacts = acceptedOperation?.artifacts;
+    if (!baseOperation || !acceptedOperation || !baseArtifacts || !acceptedArtifacts)
+      return yield* Effect.fail(
+        new ApplicationError({
+          code: "Unavailable",
+          message:
+            "Both retained artifact sets are required to review the complete return-to-editor comparison.",
+        }),
+      );
+    const [base, current] = yield* attempt(() =>
+      Promise.all([
+        readRefinementBase(env.ARTIFACTS, baseOperation.id, baseArtifacts),
+        readRefinementBase(env.ARTIFACTS, acceptedOperation.id, acceptedArtifacts),
+      ]),
+    );
+    const comparison = compareSourceCandidate(
+      { ...base, fields: structuredSourceFields(detail.base.data, detail.base.graph) },
+      {
+        source: detail.source.source,
+        fields: detail.source.fields,
+        meaning: [],
+        explanation: "All changes relative to the original structured checkpoint.",
+      },
+      current.extractedText,
+    );
+    return {
+      ...detail,
+      comparison,
+      baseOperationId: baseOperation.id,
+      acceptedOperationId: acceptedOperation.id,
+    };
+  });
+export const returnToStructured = (input: ReturnToStructuredRequest) =>
+  Effect.gen(function* () {
+    const actor = yield* Actor,
+      store = yield* Store;
+    return yield* attempt(() => store.returnToStructured(actor, input));
   });

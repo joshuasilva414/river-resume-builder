@@ -110,7 +110,7 @@ export function captureSourceCandidate(
   const prior = new Map(base.map((field) => [field.locator, field])),
     seen = new Set<string>(),
     allowed = new Set(allowedEvidence.map((ref) => `${ref.claimId}/${ref.revisionId}`));
-  const fields = value.fields.map((item, index): SourceField => {
+  const fields: SourceFields = value.fields.map((item, index): SourceField => {
     const original = item.baseLocator === null ? undefined : prior.get(item.baseLocator);
     if (item.baseLocator !== null && (!original || seen.has(item.baseLocator)))
       fail("Each retained field must identify an exact base locator once.");
@@ -198,14 +198,10 @@ export function completeTextDiff(
   };
 }
 
-export function compareSourceCandidate(
-  base: { source: string; fields: SourceFields; extractedText: string },
-  candidate: SourceRefinementCandidate,
-  extractedText: string,
-) {
-  const previous = new Map(base.fields.map((field, index) => [field.locator, { field, index }])),
+export function compareSourceFields(base: SourceFields, candidate: SourceRefinementCandidate) {
+  const previous = new Map(base.map((field, index) => [field.locator, { field, index }])),
     next = new Map(candidate.fields.map((field, index) => [field.locator, { field, index }]));
-  const fields = [...new Set([...previous.keys(), ...next.keys()])].map((locator) => {
+  return [...new Set([...previous.keys(), ...next.keys()])].map((locator) => {
     const left = previous.get(locator),
       right = next.get(locator);
     const meaning = candidate.meaning.find((item) => item.locator === locator) ?? null;
@@ -233,6 +229,13 @@ export function compareSourceCandidate(
       meaning,
     } as const;
   });
+}
+export function compareSourceCandidate(
+  base: { source: string; fields: SourceFields; extractedText: string },
+  candidate: SourceRefinementCandidate,
+  extractedText: string,
+) {
+  const fields = compareSourceFields(base.fields, candidate);
   const intendedUnchanged = canonicalJson(base.fields) === canonicalJson(candidate.fields),
     extractedUnchanged = base.extractedText === extractedText;
   return {

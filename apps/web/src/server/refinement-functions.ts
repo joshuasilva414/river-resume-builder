@@ -1,5 +1,6 @@
 import {
   RetrySourceRefinementRequest,
+  ReturnToStructuredRequest,
   ReviewSourceRefinementRequest,
   SourceRefinementIdentity,
   SourceRefinementList,
@@ -11,13 +12,24 @@ import { Schema } from "effect";
 import { bindings } from "./env";
 import {
   inspectSourceRefinement,
+  inspectStructuredReturn,
   listSourceRefinements,
   retrySourceRefinement,
+  returnToStructured,
   reviewSourceRefinement,
   startSourceRefinement,
 } from "./refinement";
 import { cleanRejectedSourceRefinements } from "./refinement-cleanup";
 import { dispatchPending, execute } from "./services";
+
+export const getStructuredReturn = createServerFn({ method: "GET" })
+  .validator(Schema.decodeUnknownSync(SourceRefinementIdentity))
+  .handler(({ data }) =>
+    execute(bindings(), getRequestHeaders(), inspectStructuredReturn(bindings(), data.id)),
+  );
+export const createStructuredBranch = createServerFn({ method: "POST" })
+  .validator(Schema.decodeUnknownSync(ReturnToStructuredRequest))
+  .handler(({ data }) => execute(bindings(), getRequestHeaders(), returnToStructured(data)));
 
 export const getSourceRefinement = createServerFn({ method: "GET" })
   .validator(Schema.decodeUnknownSync(SourceRefinementIdentity))

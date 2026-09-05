@@ -257,6 +257,7 @@ export function createSourceRefinementRepository(db: Database) {
           revision: s.sourceRefinementTasks.revision,
           state: s.sourceRefinementProposals.state,
           operationId: s.sourceRefinementTasks.latestOperationId,
+          stage: sql<string>`coalesce((SELECT stage FROM operations WHERE id=${s.sourceRefinementProposals.acceptanceOperationId}), (SELECT stage FROM operations WHERE id=${s.sourceRefinementTasks.latestOperationId}))`,
           resultCheckpointId: s.sourceRefinementProposals.resultCheckpointId,
         })
         .from(s.sourceRefinementTasks)
@@ -268,6 +269,9 @@ export function createSourceRefinementRepository(db: Database) {
           and(
             eq(s.sourceRefinementTasks.ownerId, ownerId),
             eq(s.sourceRefinementTasks.baseCheckpointId, input.checkpointId),
+            input.state
+              ? sql`coalesce(${s.sourceRefinementProposals.state},'Pending')=${input.state}`
+              : undefined,
           ),
         )
         .orderBy(desc(s.sourceRefinementTasks.createdAt), desc(s.sourceRefinementTasks.id))

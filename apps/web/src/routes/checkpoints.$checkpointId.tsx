@@ -1,7 +1,11 @@
 import type { AcknowledgeCheckpointRequest } from "@river/contracts";
 import { ValidationReport } from "@river/contracts";
 import { blockDefinitions } from "@river/domain";
-import { CUSTOM_RENDERER_VERSION, RENDERER_VERSION } from "@river/templates";
+import {
+  CUSTOM_RENDERER_VERSION,
+  RENDERER_VERSION,
+  SOURCE_RENDERER_VERSION,
+} from "@river/templates";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Schema } from "effect";
@@ -10,6 +14,8 @@ import { CheckpointHistory } from "~/components/composition/checkpoints";
 import { EvidenceDialog, Failure, MaterialSummary, unwrap } from "~/components/evidence/shared";
 import { EvidenceLinks } from "~/components/library/evidence-links";
 import { PdfPreview } from "~/components/pdf-preview";
+import { SourceRefinements } from "~/components/refinement/launch";
+import { StructuredReturn } from "~/components/refinement/structured-return";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { WorkspaceShell } from "~/components/workspace-shell";
@@ -60,6 +66,8 @@ function Review({ detail }: { detail: Detail }) {
   const client = useQueryClient(),
     { checkpoint, state, report, operation, exported } = detail;
   const [history, setHistory] = useState(false),
+    [refinements, setRefinements] = useState(false),
+    [structuredReturn, setStructuredReturn] = useState(false),
     [acknowledge, setAcknowledge] = useState(false),
     [search, setSearch] = useState("");
   const [request, setRequest] = useState<{
@@ -121,7 +129,11 @@ function Review({ detail }: { detail: Detail }) {
   ).length;
   const matchingRuntime =
     operation?.artifacts?.rendererVersion ===
-      (checkpoint.templateGraph ? CUSTOM_RENDERER_VERSION : RENDERER_VERSION) &&
+      (detail.source
+        ? SOURCE_RENDERER_VERSION
+        : checkpoint.templateGraph
+          ? CUSTOM_RENDERER_VERSION
+          : RENDERER_VERSION) &&
     operation?.artifacts?.templateIdentity === checkpoint.templateIdentity;
   const ready =
     operation?.state === "Succeeded" &&
@@ -150,6 +162,14 @@ function Review({ detail }: { detail: Detail }) {
           <Button variant="outline" onClick={() => setHistory(true)}>
             Export history
           </Button>
+          <Button variant="outline" onClick={() => setRefinements(true)}>
+            Source refinements
+          </Button>
+          {detail.source && (
+            <Button variant="outline" onClick={() => setStructuredReturn(true)}>
+              Return to structured editing
+            </Button>
+          )}
         </div>
         <p className="text-sm text-muted-foreground">
           {checkpoint.data.name} · Captured from draft revision {checkpoint.draftRevision} ·{" "}
@@ -251,7 +271,8 @@ function Review({ detail }: { detail: Detail }) {
                   Cancel document job
                 </Button>
               )}
-              {!active &&
+              {!detail.source &&
+                !active &&
                 !exported &&
                 ["Failed", "Cancelled"].includes(operation.state) &&
                 operation.artifacts?.validationPassed !== false && (
@@ -337,6 +358,19 @@ function Review({ detail }: { detail: Detail }) {
                 stays available.
               </p>
             </div>
+          )}
+          {detail.source && (
+            <section className="space-y-3 border-t pt-5">
+              <h3 className="text-xl">Accepted source checkpoint</h3>
+              <p className="text-sm">
+                This document has a reviewed source override. Its original structured tree is
+                retained separately.
+              </p>
+              <p className="break-all font-mono text-xs">
+                Base {detail.source.baseCheckpointId} · Original structured base{" "}
+                {detail.source.structuredBaseId}
+              </p>
+            </section>
           )}
           <details>
             <summary className="cursor-pointer text-sm text-primary">
@@ -480,6 +514,10 @@ function Review({ detail }: { detail: Detail }) {
           )}
         </aside>
       </div>
+      {refinements && <SourceRefinements detail={detail} onClose={() => setRefinements(false)} />}
+      {structuredReturn && (
+        <StructuredReturn checkpointId={checkpoint.id} onClose={() => setStructuredReturn(false)} />
+      )}
       {history && (
         <CheckpointHistory draftId={checkpoint.draftId} onClose={() => setHistory(false)} />
       )}

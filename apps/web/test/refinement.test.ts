@@ -2,7 +2,13 @@ import { applyD1Migrations } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import type { ArtifactManifest, ReviewSourceRefinementRequest } from "@river/contracts";
 import { type RefinementBaseArtifacts, schema } from "@river/db";
-import { canonicalJson, newId, type Principal } from "@river/domain";
+import {
+  canonicalJson,
+  compositionReferences,
+  newId,
+  type Principal,
+  renderComposition,
+} from "@river/domain";
 import {
   compose,
   expectedText,
@@ -221,6 +227,95 @@ async function fixture() {
     acceptance,
   };
 }
+
+it("returns to the original structured checkpoint in one independent branch and retries preview without duplicating it", async () => {
+  const f = await fixture(),
+    r = f.repository;
+  const changed = "Source-only revised wording.";
+  await f.candidate({
+    ...f.output,
+    source: f.output.source.replace("Original synthetic wording.", changed),
+    fields: f.output.fields.map((field) =>
+      field.text === "Original synthetic wording." ? { ...field, text: changed } : field,
+    ),
+  });
+  const publishing = await f.acceptance();
+  const saved = await r.finalizeSourceRefinement(
+    f.actor.ownerId,
+    f.started.id,
+    publishing.operationId,
+    publishing.retained,
+  );
+  const inspected = await r.inspectStructuredReturn(f.actor.ownerId, saved.id);
+  const request = {
+    checkpointId: saved.id,
+    structuredBaseId: f.captured.id,
+    candidateDigest: inspected.source.candidateDigest,
+    name: "Structured return",
+    regenerationConfirmed: true,
+    idempotencyKey: "return-structured",
+  };
+  await expect(
+    r.returnToStructured(f.actor, { ...request, regenerationConfirmed: false }),
+  ).rejects.toMatchObject({ code: "InvalidInput" });
+  await expect(
+    r.returnToStructured(f.actor, { ...request, candidateDigest: "wrong" }),
+  ).rejects.toMatchObject({ code: "Conflict" });
+  await expect(
+    r.returnToStructured(
+      { kind: "agent", id: newId(), ownerId: f.actor.ownerId, scopes: [] },
+      request,
+    ),
+  ).rejects.toMatchObject({ code: "Forbidden" });
+  await expect(r.inspectStructuredReturn(newId(), saved.id)).rejects.toMatchObject({
+    code: "NotFound",
+  });
+  await r.saveResume(f.actor, {
+    id: f.draft.id,
+    revision: 1,
+    data: { ...f.data, name: "Newer work preserved" },
+    idempotencyKey: "newer-before-return",
+  });
+  const branch = await r.returnToStructured(f.actor, request);
+  expect(await r.returnToStructured(f.actor, request)).toEqual(branch);
+  const draft = await r.inspectResume(f.actor.ownerId, branch.id);
+  expect(draft.draft).toMatchObject({
+    branchOf: f.draft.id,
+    branchRevision: 1,
+    revision: 0,
+    snapshotId: inspected.base.snapshotId,
+  });
+  expect(draft.draft.data.name).toBe("Structured return");
+  expect(compositionReferences(draft.draft.data)).toEqual(
+    compositionReferences(inspected.base.data),
+  );
+  expect(draft.draft.data.sections[0]?.id).not.toBe(inspected.base.data.sections[0]?.id);
+  const words = expectedText(renderComposition(draft.draft.data, draft.graph));
+  expect(words).toContain("Original synthetic wording.");
+  expect(words).not.toContain(changed);
+  expect((await r.getResume(f.actor.ownerId, f.draft.id))?.data.name).toBe("Newer work preserved");
+  expect((await r.inspectCheckpoint(f.actor.ownerId, saved.id)).source?.source).toContain(changed);
+  expect(
+    await r.db
+      .select()
+      .from(schema.resumeCheckpointBranches)
+      .where(eq(schema.resumeCheckpointBranches.draftId, branch.id)),
+  ).toEqual([{ draftId: branch.id, fromCheckpointId: saved.id, structuredBaseId: f.captured.id }]);
+  const preview = await r.previewResume(f.actor, {
+    id: branch.id,
+    revision: 0,
+    idempotencyKey: "return-preview",
+  });
+  await r.updateOperation(preview.id, { state: "Failed", stage: "Synthetic compile failure" });
+  const retry = await r.previewResume(f.actor, {
+    id: branch.id,
+    revision: 0,
+    idempotencyKey: "return-preview-retry",
+  });
+  expect(retry.id).not.toBe(preview.id);
+  expect(await r.returnToStructured(f.actor, request)).toEqual(branch);
+  expect((await r.listResumes(f.actor.ownerId, { jobId: null, offset: 0 })).items).toHaveLength(2);
+});
 
 it("captures complete immutable input and exact dependencies, keeps permanent replay, and denies Agent mutation", async () => {
   const f = await fixture(),

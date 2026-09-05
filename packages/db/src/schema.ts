@@ -724,6 +724,17 @@ export const checkpoints = sqliteTable(
   },
   (table) => [index("checkpoint_draft_history").on(table.ownerId, table.draftId, table.createdAt)],
 );
+export const resumeCheckpointBranches = sqliteTable("resume_checkpoint_branches", {
+  draftId: text("draft_id")
+    .primaryKey()
+    .references(() => resumeDrafts.id),
+  fromCheckpointId: text("from_checkpoint_id")
+    .notNull()
+    .references(() => checkpoints.id),
+  structuredBaseId: text("structured_base_id")
+    .notNull()
+    .references(() => checkpoints.id),
+});
 /** Source overrides are immutable siblings of the retained structured checkpoint data. */
 export const checkpointSources = sqliteTable("checkpoint_source_overrides", {
   checkpointId: text("checkpoint_id")

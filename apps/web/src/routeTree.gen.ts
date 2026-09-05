@@ -22,6 +22,7 @@ import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as CheckpointsCheckpointIdRouteImport } from './routes/checkpoints.$checkpointId'
 import { Route as JobsJobIdRouteImport } from './routes/jobs_.$jobId'
 import { Route as ResumesResumeIdRouteImport } from './routes/resumes.$resumeId'
+import { Route as SourceRefinementsTaskIdRouteImport } from './routes/source-refinements.$taskId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiV1ContextsRouteImport } from './routes/api/v1/contexts'
 import { Route as ApiV1DuplicatesRouteImport } from './routes/api/v1/duplicates'
@@ -99,6 +100,11 @@ const JobsJobIdRoute = JobsJobIdRouteImport.update({
 const ResumesResumeIdRoute = ResumesResumeIdRouteImport.update({
   id: '/resumes/$resumeId',
   path: '/resumes/$resumeId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SourceRefinementsTaskIdRoute = SourceRefinementsTaskIdRouteImport.update({
+  id: '/source-refinements/$taskId',
+  path: '/source-refinements/$taskId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/checkpoints/$checkpointId': typeof CheckpointsCheckpointIdRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/resumes/$resumeId': typeof ResumesResumeIdRoute
+  '/source-refinements/$taskId': typeof SourceRefinementsTaskIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/contexts': typeof ApiV1ContextsRoute
   '/api/v1/duplicates': typeof ApiV1DuplicatesRoute
@@ -212,6 +219,7 @@ export interface FileRoutesByTo {
   '/checkpoints/$checkpointId': typeof CheckpointsCheckpointIdRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/resumes/$resumeId': typeof ResumesResumeIdRoute
+  '/source-refinements/$taskId': typeof SourceRefinementsTaskIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/contexts': typeof ApiV1ContextsRoute
   '/api/v1/duplicates': typeof ApiV1DuplicatesRoute
@@ -241,6 +249,7 @@ export interface FileRoutesById {
   '/checkpoints/$checkpointId': typeof CheckpointsCheckpointIdRoute
   '/jobs_/$jobId': typeof JobsJobIdRoute
   '/resumes/$resumeId': typeof ResumesResumeIdRoute
+  '/source-refinements/$taskId': typeof SourceRefinementsTaskIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/contexts': typeof ApiV1ContextsRoute
   '/api/v1/duplicates': typeof ApiV1DuplicatesRoute
@@ -271,6 +280,7 @@ export interface FileRouteTypes {
     | '/checkpoints/$checkpointId'
     | '/jobs/$jobId'
     | '/resumes/$resumeId'
+    | '/source-refinements/$taskId'
     | '/api/auth/$'
     | '/api/v1/contexts'
     | '/api/v1/duplicates'
@@ -299,6 +309,7 @@ export interface FileRouteTypes {
     | '/checkpoints/$checkpointId'
     | '/jobs/$jobId'
     | '/resumes/$resumeId'
+    | '/source-refinements/$taskId'
     | '/api/auth/$'
     | '/api/v1/contexts'
     | '/api/v1/duplicates'
@@ -327,6 +338,7 @@ export interface FileRouteTypes {
     | '/checkpoints/$checkpointId'
     | '/jobs_/$jobId'
     | '/resumes/$resumeId'
+    | '/source-refinements/$taskId'
     | '/api/auth/$'
     | '/api/v1/contexts'
     | '/api/v1/duplicates'
@@ -356,6 +368,7 @@ export interface RootRouteChildren {
   CheckpointsCheckpointIdRoute: typeof CheckpointsCheckpointIdRoute
   JobsJobIdRoute: typeof JobsJobIdRoute
   ResumesResumeIdRoute: typeof ResumesResumeIdRoute
+  SourceRefinementsTaskIdRoute: typeof SourceRefinementsTaskIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiV1ContextsRoute: typeof ApiV1ContextsRoute
   ApiV1DuplicatesRoute: typeof ApiV1DuplicatesRoute
@@ -459,6 +472,13 @@ declare module '@tanstack/react-router' {
       path: '/resumes/$resumeId'
       fullPath: '/resumes/$resumeId'
       preLoaderRoute: typeof ResumesResumeIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/source-refinements/$taskId': {
+      id: '/source-refinements/$taskId'
+      path: '/source-refinements/$taskId'
+      fullPath: '/source-refinements/$taskId'
+      preLoaderRoute: typeof SourceRefinementsTaskIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -605,6 +625,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckpointsCheckpointIdRoute: CheckpointsCheckpointIdRoute,
   JobsJobIdRoute: JobsJobIdRoute,
   ResumesResumeIdRoute: ResumesResumeIdRoute,
+  SourceRefinementsTaskIdRoute: SourceRefinementsTaskIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiV1ContextsRoute: ApiV1ContextsRoute,
   ApiV1DuplicatesRoute: ApiV1DuplicatesRoute,

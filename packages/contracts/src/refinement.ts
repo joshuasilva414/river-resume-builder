@@ -12,6 +12,7 @@ export type StartSourceRefinementRequest = typeof StartSourceRefinementRequest.T
 export const SourceRefinementIdentity = Schema.Struct({ id: RecordId });
 export const SourceRefinementList = Schema.Struct({
   checkpointId: RecordId,
+  state: Schema.optional(Schema.Literals(["Pending", "Accepted", "Rejected"])),
   offset: Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 1000000 })),
 });
 export type SourceRefinementList = typeof SourceRefinementList.Type;
@@ -31,3 +32,13 @@ export const ReviewSourceRefinementRequest = Schema.Struct({
   coverageConfirmed: Schema.Boolean,
 });
 export type ReviewSourceRefinementRequest = typeof ReviewSourceRefinementRequest.Type;
+
+export const ReturnToStructuredRequest = Schema.Struct({
+  idempotencyKey: CommandKey,
+  checkpointId: RecordId,
+  structuredBaseId: RecordId,
+  candidateDigest: Schema.NonEmptyString,
+  name: Schema.NonEmptyString.check(Schema.isMaxLength(160)),
+  regenerationConfirmed: Schema.Boolean,
+});
+export type ReturnToStructuredRequest = typeof ReturnToStructuredRequest.Type;

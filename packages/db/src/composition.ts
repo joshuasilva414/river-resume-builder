@@ -5,6 +5,7 @@ import type {
   CreateResumeRequest,
   PreviewResumeRequest,
   ResumeSearch,
+  ReturnToStructuredRequest,
   SaveResumeRequest,
 } from "@river/contracts";
 import {
@@ -22,7 +23,7 @@ import {
   validateComposition,
 } from "@river/domain";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import { createCommands, type Guard, type Write } from "./commands";
+import { conditionGuard, createCommands, type Guard, type Write } from "./commands";
 import type { Database } from "./index";
 import { createLibraryRepository } from "./library";
 import * as s from "./schema";
@@ -162,11 +163,128 @@ export function createCompositionRepository(db: Database) {
       ...referenceWrites(id, validated),
     ];
   };
+  const structuredReturnBase = async (ownerId: string, checkpointId: string) => {
+    const source = (
+      await db
+        .select({ checkpoint: s.checkpoints, source: s.checkpointSources })
+        .from(s.checkpoints)
+        .innerJoin(s.checkpointSources, eq(s.checkpointSources.checkpointId, s.checkpoints.id))
+        .where(and(eq(s.checkpoints.ownerId, ownerId), eq(s.checkpoints.id, checkpointId)))
+        .limit(1)
+    )[0];
+    if (!source)
+      throw new ApplicationError({
+        code: "NotFound",
+        message: "An accepted source checkpoint is required.",
+      });
+    const original = (
+      await db
+        .select({ base: s.checkpoints, jobId: s.jobSnapshots.jobId })
+        .from(s.checkpoints)
+        .innerJoin(s.jobSnapshots, eq(s.jobSnapshots.id, s.checkpoints.snapshotId))
+        .where(
+          and(
+            eq(s.checkpoints.id, source.source.structuredBaseId),
+            eq(s.checkpoints.ownerId, ownerId),
+            sql`NOT EXISTS (SELECT 1 FROM checkpoint_source_overrides WHERE checkpoint_id=${s.checkpoints.id})`,
+          ),
+        )
+        .limit(1)
+    )[0];
+    if (!original)
+      throw new ApplicationError({
+        code: "NotFound",
+        message: "The original structured checkpoint is unavailable.",
+      });
+    return { ...source, ...original };
+  };
   return {
     getResume,
     observeResume: observe,
     resumeGuard: guard,
     resumeUpdateWrites: updateWrites,
+    inspectStructuredReturn: structuredReturnBase,
+    /** Recreate the original structured checkpoint as a new draft; source-only edits never enter its tree. */
+    async returnToStructured(actor: Principal, input: ReturnToStructuredRequest) {
+      owner(actor);
+      return commands.commit(
+        actor,
+        "return-to-structured",
+        input.idempotencyKey,
+        input,
+        async () => {
+          const { source, base, jobId } = await structuredReturnBase(
+            actor.ownerId,
+            input.checkpointId,
+          );
+          if (!input.regenerationConfirmed || !input.name.trim())
+            throw new ApplicationError({
+              code: "InvalidInput",
+              message:
+                "Name the new branch and confirm which source-only changes regeneration excludes.",
+            });
+          if (
+            source.candidateDigest !== input.candidateDigest ||
+            base.id !== input.structuredBaseId
+          )
+            throw new ApplicationError({
+              code: "Conflict",
+              message: "Review the exact accepted source checkpoint and original structured base.",
+            });
+          const data = {
+              ...base.data,
+              name: input.name.trim(),
+              sections: base.data.sections.map(copySection),
+            },
+            template = await templates.compositionTemplate(actor.ownerId, data),
+            validated = await validate(actor, data),
+            id = newId(),
+            now = Date.now();
+          return {
+            result: { id, revision: 0, revisionId: null },
+            guards: [
+              ...template.guards,
+              conditionGuard(
+                db,
+                sql`EXISTS (SELECT 1 FROM checkpoint_source_overrides WHERE checkpoint_id=${input.checkpointId} AND structured_base_id=${base.id} AND candidate_digest=${input.candidateDigest})`,
+                "The accepted source checkpoint identity changed.",
+              ),
+            ],
+            writes: [
+              db.insert(s.resumeDrafts).values({
+                id,
+                ownerId: actor.ownerId,
+                jobId,
+                snapshotId: base.snapshotId,
+                data,
+                branchOf: base.draftId,
+                branchRevision: base.draftRevision,
+                createdAt: now,
+                updatedAt: now,
+              }),
+              ...referenceWrites(id, validated),
+              db.insert(s.resumeCheckpointBranches).values({
+                draftId: id,
+                fromCheckpointId: input.checkpointId,
+                structuredBaseId: base.id,
+              }),
+            ],
+            history: [
+              {
+                entityId: id,
+                after: {
+                  fromCheckpointId: input.checkpointId,
+                  structuredBaseId: base.id,
+                  candidateDigest: input.candidateDigest,
+                  regenerationConfirmed: true,
+                  data,
+                },
+              },
+            ],
+          };
+        },
+      );
+    },
     async listResumes(ownerId: string, input: ResumeSearch) {
       const rows = await db
         .select({
