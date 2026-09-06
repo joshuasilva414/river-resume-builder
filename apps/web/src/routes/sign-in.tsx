@@ -69,13 +69,17 @@ function SignIn() {
             <p className="eyebrow">Personal workspace</p>
             <h1 className="font-editorial text-4xl leading-10">
               {mode === "create"
-                ? "Make it your own."
+                ? "Create your River account."
                 : mode === "recover"
-                  ? "Find your way back."
+                  ? "Reset your password."
                   : "Open your workspace."}
             </h1>
             <p className="text-[15px] leading-[21px] text-muted-foreground">
-              Sign in to access your evidence, job targets, and résumé history.
+              {mode === "create"
+                ? "Use your workspace owner email to create your account."
+                : mode === "recover"
+                  ? "Enter your account email to request a password reset link."
+                  : "Sign in to continue tailoring your résumés."}
             </p>
           </div>
           {githubEnabled && mode === "sign-in" && (
@@ -178,7 +182,7 @@ function SignIn() {
           </p>
         </div>
         <footer className="flex flex-col gap-3">
-          <p className="eyebrow">Evidence → Content → Résumé</p>
+          <p className="eyebrow">Tailor → Review → Export</p>
           <p className="text-muted-foreground">Your words. Your decisions.</p>
         </footer>
       </section>
@@ -186,12 +190,13 @@ function SignIn() {
         <p className="eyebrow">Your next chapter</p>
         <div className="flex flex-col gap-6">
           <h2 className="max-w-lg font-editorial text-6xl leading-[1.07]">
-            Build from
+            From job post
             <br />
-            your evidence.
+            to ready-to-send.
           </h2>
           <p className="max-w-md text-lg leading-7 text-muted-foreground">
-            A place for what you’ve done, what you’ve learned, and where you want to go next.
+            Bring together your experience, tailor your résumé to the job, and review the final PDF
+            before you send it.
           </p>
           <div className="mt-8 h-px w-20 bg-primary" />
         </div>

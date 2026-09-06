@@ -124,7 +124,7 @@ export function LibraryEditor({
       {([values, dirty]) => (
         <EvidenceDialog
           title={`${detail ? "Edit" : "New"} ${kindLabels[kind].toLowerCase()}`}
-          description="Saving creates an immutable reusable revision. Existing résumé placements keep their pinned values."
+          description="Save a new library revision. Résumés using an earlier revision keep their current content."
           onClose={onClose}
           dirty={dirty || canonicalJson(data) !== canonicalJson(original)}
           pending={mutation.isPending}

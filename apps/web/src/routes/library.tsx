@@ -55,7 +55,8 @@ function LibraryPage() {
         <div>
           <h1 className="page-heading">Content library</h1>
           <p className="mt-2 text-muted-foreground">
-            Reusable wording, typed Blocks, and Sections. Each revision keeps its evidence.
+            Save wording, blocks, and sections to reuse across résumés. Keep supporting evidence
+            linked to your content.
           </p>
         </div>
         <Button onClick={() => setEditor({ kind })}>

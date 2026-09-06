@@ -132,16 +132,16 @@ function TemplatesPage() {
                   ? "Review the design."
                   : search.revisionId
                     ? "Shape the template."
-                    : "A form for your work."}
+                    : "Choose a template for your résumé."}
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
               {search.conversationId
-                ? "Original instructions, exact saved bases and reviewed outcomes."
+                ? "Request design changes and review each proposal before accepting it."
                 : search.proposals
-                  ? "Inspect saved candidates and their review decisions."
+                  ? "Review proposed template changes and your previous decisions."
                   : search.revisionId
-                    ? "Inspect an exact saved graph and its validation history."
-                    : "Choose a reviewed theme pack or shape a new one."}
+                    ? "Review this template revision and its test results."
+                    : "Use a reviewed template pack or create your own."}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -317,7 +317,7 @@ function TemplatesPage() {
                 <TabsTrigger value="all">All</TabsTrigger>
               </TabsList>
             </Tabs>
-            <p className="eyebrow">Previews use synthetic content</p>
+            <p className="eyebrow">Previews use fictional sample content</p>
           </div>
           <div className="space-y-6 px-5 py-7 md:px-8">
             <Failure error={list.error} />
@@ -423,7 +423,7 @@ function TemplatesPage() {
       {builtin && (
         <EvidenceDialog
           title={`${builtin[0]?.toUpperCase()}${builtin.slice(1)} · fixed revision 1`}
-          description="This complete built-in graph uses pinned document resources. Editing creates a separate custom Draft."
+          description="This built-in template includes all required components. Editing creates a separate custom draft."
           onClose={() => setBuiltin(null)}
           wide
         >

@@ -157,7 +157,7 @@ function Review({ detail }: { detail: Detail }) {
           {detail.posting?.details.role} / Review & export · Checkpoint {checkpoint.id.slice(-8)}
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="page-heading">Review this saved checkpoint.</h1>
+          <h1 className="page-heading">Review your résumé before export.</h1>
           <Link
             className="text-sm text-primary underline"
             to="/resumes/$resumeId"
@@ -169,7 +169,7 @@ function Review({ detail }: { detail: Detail }) {
             History
           </Button>
           <Button variant="outline" onClick={() => setRefinements(true)}>
-            Source refinements
+            Refine final document
           </Button>
           <Button variant="outline" onClick={() => setScores(true)}>
             Scores

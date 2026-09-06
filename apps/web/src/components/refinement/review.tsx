@@ -125,7 +125,7 @@ export function SourceReview({ detail }: { detail: Detail }) {
       <header className="space-y-4 border-b pb-6">
         <p className="eyebrow">Final-document refinement · {task.id.slice(-8)}</p>
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="page-heading">Review every source change.</h1>
+          <h1 className="page-heading">Review proposed document changes.</h1>
           <Badge variant="outline">{p?.state ?? "No candidate yet"}</Badge>
         </div>
         <div className="flex flex-wrap items-center gap-4">
@@ -141,8 +141,8 @@ export function SourceReview({ detail }: { detail: Detail }) {
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Source, intended fields, extracted text and rendered output belong to one saved candidate.
-          Acceptance publishes a new checkpoint.
+          Compare the proposed wording, LaTeX, extracted text, and PDF. Accepting saves the changes
+          as a new checkpoint.
         </p>
       </header>
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">

@@ -1,6 +1,6 @@
-# Production preparation
+# Production activation
 
-Updated 2026-09-05. Production storage exists in the personal Cloudflare account, but the application is unpublished. No production Worker, Workflow, Container, Owner account, secret installation or custom-domain activation is claimed. Staging records were not copied into production. ACM UTSA remains excluded.
+Updated 2026-09-05. The Owner approved production publication and then explicitly approved registering the personal GitHub River OAuth app, generating its client secret and installing it on river-production. The private document Worker and Container are deployed. The web application, final-domain authentication and acceptance remain pending GitHub's Owner confirmation before secret generation. Production data remains separate from staging; ACM UTSA is excluded.
 
 ## Resource identities
 
@@ -57,3 +57,12 @@ A Paper subagent first updated production Job targets `NG-0` (header `NH-0`, nav
 Eight isolated auth/credential/checkpoint tests, web type/lint checks, staging build and production build/dry run pass. The production rejection checks use an authenticated Owner and verify no extra document operation is created. Hosted staging Worker `491fc65f-90e8-4793-8654-1d40d4e7c112` passes `/` → Job targets, Active/Archived filtering, `/runtime` navigation and logo → Job targets. Browser checks cover 1280px desktop, the 782px runtime reference and 390px mobile navigation. The mobile document width is exactly 390px; screenshots show both removed labels absent and no clipping in the landing screen. No application console warnings/errors were reported. Light/dark appearance was inspected and the temporary viewport/theme changes were reset.
 
 Logs: `/tmp/river-runtime-access-tests.log`, `/tmp/river-runtime-types-final.log`, `/tmp/river-runtime-lint.log`, `/tmp/river-runtime-build.log`, `/tmp/river-runtime-deploy.log`, `/tmp/river-runtime-production-build.log` and `/tmp/river-runtime-production-dry-run.log`. The shared build directory now contains production output. These production checks upload nothing; final-domain browser acceptance remains pending publication approval. No production resources or credentials were activated.
+
+
+## Approved activation in progress — 2026-09-05
+
+Production approval is received. New uncommitted UI/copy edits were present in the main workspace, so release commands use the isolated detached checkout `/tmp/river-production-release-c006a46` at tested commit `c006a46` (application code `316c2b5`). Those unrelated edits remain untouched. Frozen offline dependency installation, the production web build and its Wrangler dry run pass. The generated bundle pins the personal account, production D1/R2, 11 production Workflows, final domain and private document service. Logs: `/tmp/river-production-release-{install,build,dry-run}.log`.
+
+The private document deployment completed: Worker `river-documents-production`, version `02f4fe23-a7f4-4897-966a-192a4f4897c5`; Container application `a03812b3-f348-4754-a11a-f89ee4ab21b8`, image `sha256:1aa23e49fbe6e678fb0247e8a9c08bbc691d42ed9cdf417a845ec9b25ae6e807`. It has one basic instance maximum and no public route. Log: `/tmp/river-production-release-documents.log`. A successful deployment does not yet prove a production document job.
+
+Automatic approval review initially rejected OAuth registration as insufficiently specific. The Owner then explicitly approved registration, secret generation and production installation. GitHub created personal OAuth app **River**, application `3839803`, client ID `Ov23liZjSClopimWF5Jz`, with the exact homepage and callback above. Wildcard matching and device flow remain disabled. GitHub requires Owner passkey/authenticator confirmation before generating the client secret; that user step is pending. No secret value is recorded in Git. Web publication and final-domain acceptance follow credential completion. Earlier unpublished-resource statements in this document describe the pre-approval preparation history.

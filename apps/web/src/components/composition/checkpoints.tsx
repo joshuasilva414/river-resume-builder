@@ -63,8 +63,8 @@ export function CaptureCheckpoint({
     <section className="mt-6 space-y-4 border-t pt-5">
       <h3 className="font-editorial text-2xl">Save checkpoint</h3>
       <p className="text-sm text-muted-foreground">
-        Capture the exact saved composition, evidence, contact, context and template references.
-        Document preparation continues after the checkpoint is saved.
+        Save a checkpoint to preserve this résumé and its supporting information. River prepares its
+        export files after saving.
       </p>
       <p className="eyebrow">
         Draft revision {revision} ·{" "}

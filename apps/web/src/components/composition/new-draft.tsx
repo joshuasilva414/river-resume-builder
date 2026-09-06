@@ -155,7 +155,7 @@ function NewDraft({ detail, onClose }: { detail: JobDetail; onClose: () => void 
       {(dirty) => (
         <EvidenceDialog
           title="Create résumé draft"
-          description="This draft is tailored to the selected job and its exact posting snapshot."
+          description="Start a résumé for this job using the saved posting. Choose a template, then add your content."
           onClose={onClose}
           dirty={dirty || base.kind === "saved" || base.theme !== "classic"}
           pending={mutation.isPending}
@@ -193,7 +193,7 @@ function NewDraft({ detail, onClose }: { detail: JobDetail; onClose: () => void 
             />
             <BindingInspection base={base} />
             <p className="text-sm text-muted-foreground">
-              This exact complete graph will be pinned to the new draft.
+              Your draft will use this template revision, even if the template changes later.
             </p>
             {!eligible && selected.data && (
               <p role="status" className="text-sm text-destructive">

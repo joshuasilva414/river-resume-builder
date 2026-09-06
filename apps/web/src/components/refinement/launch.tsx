@@ -55,18 +55,16 @@ export function SourceRefinements({
     <EvidenceDialog
       wide
       className="sm:max-w-[1200px]"
-      title="Source refinement"
-      description="Refine one exact checkpoint. Resume its saved review."
+      title="Refine the final document"
+      description="Request changes to this résumé’s wording or layout, or continue reviewing a saved proposal."
       onClose={onClose}
       dirty={!!goal}
       pending={start.isPending}
     >
       <div className="grid gap-6 lg:grid-cols-[.9fr_1.1fr]">
         <section className="min-w-0 space-y-5 rounded-md border p-5 md:p-6">
-          <h2 className="text-[28px] leading-[34px]">Request source refinement</h2>
-          <Badge variant="outline">
-            {ready ? "Successful base checkpoint" : "Input unavailable"}
-          </Badge>
+          <h2 className="text-[28px] leading-[34px]">Request document changes</h2>
+          <Badge variant="outline">{ready ? "Ready to refine" : "Document unavailable"}</Badge>
           <p className="text-lg font-semibold">{detail.checkpoint.data.name}</p>
           <p className="eyebrow">
             Checkpoint {detail.checkpoint.id.slice(-8)} · Draft revision{" "}
@@ -83,7 +81,7 @@ export function SourceRefinements({
           </details>
           {!ready && (
             <p className="border-l-2 border-highlight bg-highlight/10 p-4">
-              Finish or retry this checkpoint’s document job before generating a source proposal.
+              Wait for this checkpoint’s PDF to finish preparing, or retry if preparation failed.
             </p>
           )}
           {query.data?.configured ? (
@@ -106,16 +104,15 @@ export function SourceRefinements({
               </FormField>
               <p className="text-xs text-muted-foreground">{goal.length} / 4,000 characters</p>
               <p className="text-sm text-muted-foreground">
-                The candidate may change source and wording. Every change remains visible before
-                acceptance.
+                Review the proposed wording, LaTeX changes, and PDF before accepting.
               </p>
               <Failure error={start.error} />
               <Button type="submit" disabled={!ready || !goal.trim() || start.isPending}>
                 {start.isPending
                   ? "Saving request…"
                   : start.error
-                    ? "Retry exact request"
-                    : "Generate source proposal"}
+                    ? "Retry request"
+                    : "Suggest document changes"}
               </Button>
               {start.error && (
                 <Button

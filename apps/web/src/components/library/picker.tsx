@@ -33,7 +33,7 @@ export function LibraryPicker({
   return (
     <EvidenceDialog
       title={`Choose ${kindLabels[kind].toLowerCase()}`}
-      description="Inspect an exact reusable revision. Existing placements stay pinned when the library changes."
+      description="Choose a library revision to use in your résumé. Later library changes do not update your résumé automatically."
       onClose={onClose}
       wide
     >

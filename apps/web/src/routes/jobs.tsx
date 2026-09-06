@@ -41,10 +41,10 @@ function JobsPage() {
         <div className="flex flex-wrap items-center justify-between gap-5">
           <div>
             <h1 className="font-editorial text-[40px] font-semibold leading-[44px] tracking-tight">
-              Your next chapter.
+              Tailor your résumé to your next role.
             </h1>
             <p className="mt-2 text-[15px] text-muted-foreground">
-              Choose a role. Build a résumé grounded in your work.
+              Add a job posting or open a saved target to continue your résumé.
             </p>
           </div>
           <Button onClick={() => setAdding(true)}>
@@ -89,7 +89,7 @@ function JobsPage() {
           <>
             <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-5 border-y border-t-foreground py-3 sm:grid-cols-[minmax(0,1fr)_130px_140px_24px]">
               <span className="eyebrow">Role / Company</span>
-              <span className="eyebrow hidden sm:block">Workspace</span>
+              <span className="eyebrow hidden sm:block">Status</span>
               <span className="eyebrow hidden sm:block">Last edited</span>
               <span />
             </div>
@@ -108,7 +108,7 @@ function JobsPage() {
                   </p>
                 </div>
                 <Badge variant="outline" className="hidden sm:inline-flex">
-                  {job.archivedAt ? "Archived" : "Manual tailoring"}
+                  {job.archivedAt ? "Archived" : "Active"}
                 </Badge>
                 <time
                   className="hidden text-[13px] text-muted-foreground sm:block"
@@ -134,7 +134,7 @@ function JobsPage() {
                       ? "Try a different role, company, or location."
                       : archived
                         ? "Archived targets keep their posting history and selected evidence."
-                        : "Save the complete posting, record its requirements, and choose the evidence that supports your application."}
+                        : "Add the job description, review its requirements, and choose relevant experience for your résumé."}
                   </EmptyDescription>
                 </EmptyHeader>
                 {!query && !archived && (

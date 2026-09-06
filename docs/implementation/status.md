@@ -48,8 +48,8 @@ The latest complete suite passes 158 Workers tests in 26 files. Five domain test
 
 ## Remaining release work
 
-- Obtain separate production credential/publication approval and complete final-domain acceptance. Current production build/dry-run proof passes; scoring is configured for the verified provider origin.
+- Complete the approved production activation and final-domain acceptance. The private document service is deployed; GitHub requires Owner confirmation before generating the production OAuth client secret. The isolated production web build/dry run passes.
 
-Production has isolated, empty D1/R2 resources and a passing empty-schema restore. It has no published application, installed secrets, Owner account or active custom domain. See [production preparation](production.md).
+Production has isolated, empty D1/R2 resources and a passing empty-schema restore. Its private document Worker and Container are deployed. Web publication, secret installation, Owner bootstrap and final-domain acceptance remain pending. See [production activation](production.md).
 
 The Owner authorizes overriding staging UI decisions for testing. Test acknowledgments and lifecycle approvals must remain identified as tests. This does not establish evidence verification or production approval. The optional complete-Owner-résumé AI rerun remains pending explicit transfer permission; synthetic v2 verification is complete and the optional rerun is not a release gate.

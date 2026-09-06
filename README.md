@@ -1,8 +1,8 @@
 # River
 
-Private, evidence-first résumé tailoring for Joshua Silva. Product behavior lives in [SPEC.md](SPEC.md); architecture and delivery gates live in [PLAN.md](PLAN.md).
+A private workspace for Joshua Silva to turn job postings and experience into tailored résumés, ready to review and export. Product behavior lives in [SPEC.md](SPEC.md); architecture and delivery gates live in [PLAN.md](PLAN.md).
 
-**Implementation status:** authenticated PDF output, access management, immutable source intake, and the evidence bank work locally and on staging. Claims include exact citations, pinned contexts, review decisions, history, archive/restore, and reviewed duplicate merges. REST and MCP share scoped application services. Manual job targets, posting snapshots, requirement maps, and pinned evidence selections also work. Seven reusable content types and the structured editor now support exact library revisions, local wording, copy, explicit promotion, conflict branches, and real PDF previews. Exact saved checkpoints, individual evidence acknowledgments, three fixed template packs, retained export files, and basic export history work on staging. Reviewed job-analysis proposals are implemented; live OpenAI generation still needs a configured key and provider acceptance check. Reviewed placement wording is also implemented, with exact-input checks and local acceptance. Source claim proposals and source-backed clarification tracking are implemented with independent Draft acceptance and exact citations. Advisory duplicate comparisons support independent review, optional manual-decision attribution, and history through both claims. Template refinement and ATS scoring remain unfinished. This is not the MVP.
+**Implementation status:** V1 is implemented on personal staging and remains unreleased. See the [implementation status](docs/implementation/status.md) for current capabilities and verification, and the [release gates](docs/implementation/release-gates.md) for remaining acceptance and production deployment work.
 
 ## Run locally
 

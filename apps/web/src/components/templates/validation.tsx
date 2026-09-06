@@ -40,12 +40,12 @@ export function TemplateValidation({ detail }: { detail: TemplateDetail }) {
   return (
     <section className="space-y-4 border-t pt-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-sans text-sm font-semibold">Synthetic fixture validation</h3>
+        <h3 className="font-sans text-sm font-semibold">Test with sample résumés</h3>
         <Badge variant="outline">{detail.revision.state}</Badge>
       </div>
       <p className="text-sm leading-6 text-muted-foreground">
-        Every fixture renders twice with this complete graph. Text integrity, repeatability, and
-        exact runtime resources must pass before visual approval.
+        River renders each sample twice to check text accuracy, consistent output, and required
+        document resources. These checks must pass before you review and approve the sample PDFs.
       </p>
       <Failure error={start.error} />
       {detail.revision.state === "Draft" && detail.validationConfigured && (
@@ -62,7 +62,7 @@ export function TemplateValidation({ detail }: { detail: TemplateDetail }) {
             ? "Validation in progress"
             : detail.revision.validationAttempts
               ? `Retry validation · ${3 - detail.revision.validationAttempts} attempts left`
-              : "Validate synthetic fixtures"}
+              : "Test with sample résumés"}
         </Button>
       )}
       {detail.revision.state === "Approved" && (
@@ -72,7 +72,7 @@ export function TemplateValidation({ detail }: { detail: TemplateDetail }) {
       )}
       {detail.revision.state === "Retired" && (
         <p className="text-sm text-muted-foreground">
-          Existing saved bindings and checkpoints retain this graph. It is unavailable for new
+          Existing résumés and checkpoints keep this template revision. It is unavailable for new
           selections.
         </p>
       )}
@@ -141,8 +141,8 @@ function ValidationReview({ id, onClose }: { id: string; onClose: () => void }) 
   const path = fixture ? `/api/template-artifacts/${id}/${fixture.fixtureId}` : null;
   return (
     <EvidenceDialog
-      title="Review synthetic fixtures"
-      description="Inspect the exact saved graph, rendered PDFs, extracted text, and validation reports before approval."
+      title="Review sample PDFs"
+      description="Review this template revision, every required sample PDF, extracted text, and test results before approving."
       onClose={onClose}
       pending={approve.isPending || cancel.isPending}
       className="sm:max-w-[min(1280px,calc(100vw-3rem))]"
@@ -259,8 +259,8 @@ function ValidationReview({ id, onClose }: { id: string; onClose: () => void }) 
                   checked={visual}
                   onChange={(event) => setVisual(event.target.checked)}
                 />
-                I reviewed every required rendered fixture and its layout warnings for this exact
-                graph and validation report.
+                I reviewed every required sample PDF and its layout warnings for this template
+                revision and validation report.
               </label>
               <Button
                 disabled={!visual || approve.isPending}
@@ -275,16 +275,16 @@ function ValidationReview({ id, onClose }: { id: string; onClose: () => void }) 
                     });
                 }}
               >
-                Approve this complete graph
+                Approve this template revision
               </Button>
             </div>
           )}
           {!active && !eligible && (
             <p className="text-sm text-muted-foreground">
               {detail.template.revision.state === "Approved"
-                ? "This exact graph is Approved."
+                ? "This template revision is approved."
                 : detail.template.revision.state === "Retired"
-                  ? "This graph is Retired. The historical report remains available."
+                  ? "This template revision is retired. Its validation report remains available."
                   : "Approval requires the current complete successful report. Correct the Draft or retry an interrupted validation."}
             </p>
           )}
@@ -303,7 +303,7 @@ function RetireTemplate({ detail, onClose }: { detail: TemplateDetail; onClose: 
   return (
     <EvidenceDialog
       title="Retire template revision"
-      description="Existing saved bindings and checkpoints keep this exact graph. New selections will exclude it."
+      description="Existing résumés and checkpoints keep this template revision. It will no longer be available for new selections."
       onClose={onClose}
       dirty={Boolean(rationale)}
       pending={retire.isPending}
