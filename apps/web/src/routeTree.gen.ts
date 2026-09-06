@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DocsRouteImport } from './routes/docs'
 import { Route as EvidenceRouteImport } from './routes/evidence'
 import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as LibraryRouteImport } from './routes/library'
@@ -21,6 +22,8 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SourcesRouteImport } from './routes/sources'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as CheckpointsCheckpointIdRouteImport } from './routes/checkpoints.$checkpointId'
+import { Route as DocsIndexRouteImport } from './routes/docs.index'
+import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
 import { Route as JobsJobIdRouteImport } from './routes/jobs_.$jobId'
 import { Route as ResumesResumeIdRouteImport } from './routes/resumes.$resumeId'
 import { Route as SourceRefinementsTaskIdRouteImport } from './routes/source-refinements.$taskId'
@@ -42,6 +45,11 @@ import { Route as ApiTemplateScoresRunIdFixtureIdKindRouteImport } from './route
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EvidenceRoute = EvidenceRouteImport.update({
@@ -98,6 +106,16 @@ const CheckpointsCheckpointIdRoute = CheckpointsCheckpointIdRouteImport.update({
   id: '/checkpoints/$checkpointId',
   path: '/checkpoints/$checkpointId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DocsRoute,
+} as any)
+const DocsSlugRoute = DocsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => DocsRoute,
 } as any)
 const JobsJobIdRoute = JobsJobIdRouteImport.update({
   id: '/jobs_/$jobId',
@@ -191,6 +209,7 @@ const ApiTemplateScoresRunIdFixtureIdKindRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/docs': typeof DocsRouteWithChildren
   '/evidence': typeof EvidenceRoute
   '/jobs': typeof JobsRoute
   '/library': typeof LibraryRoute
@@ -202,9 +221,11 @@ export interface FileRoutesByFullPath {
   '/sources': typeof SourcesRoute
   '/templates': typeof TemplatesRoute
   '/checkpoints/$checkpointId': typeof CheckpointsCheckpointIdRoute
+  '/docs/$slug': typeof DocsSlugRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/resumes/$resumeId': typeof ResumesResumeIdRoute
   '/source-refinements/$taskId': typeof SourceRefinementsTaskIdRoute
+  '/docs/': typeof DocsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/contexts': typeof ApiV1ContextsRoute
   '/api/v1/duplicates': typeof ApiV1DuplicatesRoute
@@ -233,9 +254,11 @@ export interface FileRoutesByTo {
   '/sources': typeof SourcesRoute
   '/templates': typeof TemplatesRoute
   '/checkpoints/$checkpointId': typeof CheckpointsCheckpointIdRoute
+  '/docs/$slug': typeof DocsSlugRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/resumes/$resumeId': typeof ResumesResumeIdRoute
   '/source-refinements/$taskId': typeof SourceRefinementsTaskIdRoute
+  '/docs': typeof DocsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/contexts': typeof ApiV1ContextsRoute
   '/api/v1/duplicates': typeof ApiV1DuplicatesRoute
@@ -254,6 +277,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/docs': typeof DocsRouteWithChildren
   '/evidence': typeof EvidenceRoute
   '/jobs': typeof JobsRoute
   '/library': typeof LibraryRoute
@@ -265,9 +289,11 @@ export interface FileRoutesById {
   '/sources': typeof SourcesRoute
   '/templates': typeof TemplatesRoute
   '/checkpoints/$checkpointId': typeof CheckpointsCheckpointIdRoute
+  '/docs/$slug': typeof DocsSlugRoute
   '/jobs_/$jobId': typeof JobsJobIdRoute
   '/resumes/$resumeId': typeof ResumesResumeIdRoute
   '/source-refinements/$taskId': typeof SourceRefinementsTaskIdRoute
+  '/docs/': typeof DocsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/contexts': typeof ApiV1ContextsRoute
   '/api/v1/duplicates': typeof ApiV1DuplicatesRoute
@@ -287,6 +313,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/docs'
     | '/evidence'
     | '/jobs'
     | '/library'
@@ -298,9 +325,11 @@ export interface FileRouteTypes {
     | '/sources'
     | '/templates'
     | '/checkpoints/$checkpointId'
+    | '/docs/$slug'
     | '/jobs/$jobId'
     | '/resumes/$resumeId'
     | '/source-refinements/$taskId'
+    | '/docs/'
     | '/api/auth/$'
     | '/api/v1/contexts'
     | '/api/v1/duplicates'
@@ -329,9 +358,11 @@ export interface FileRouteTypes {
     | '/sources'
     | '/templates'
     | '/checkpoints/$checkpointId'
+    | '/docs/$slug'
     | '/jobs/$jobId'
     | '/resumes/$resumeId'
     | '/source-refinements/$taskId'
+    | '/docs'
     | '/api/auth/$'
     | '/api/v1/contexts'
     | '/api/v1/duplicates'
@@ -349,6 +380,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/docs'
     | '/evidence'
     | '/jobs'
     | '/library'
@@ -360,9 +392,11 @@ export interface FileRouteTypes {
     | '/sources'
     | '/templates'
     | '/checkpoints/$checkpointId'
+    | '/docs/$slug'
     | '/jobs_/$jobId'
     | '/resumes/$resumeId'
     | '/source-refinements/$taskId'
+    | '/docs/'
     | '/api/auth/$'
     | '/api/v1/contexts'
     | '/api/v1/duplicates'
@@ -381,6 +415,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DocsRoute: typeof DocsRouteWithChildren
   EvidenceRoute: typeof EvidenceRoute
   JobsRoute: typeof JobsRoute
   LibraryRoute: typeof LibraryRoute
@@ -415,6 +450,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/evidence': {
@@ -493,6 +535,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/checkpoints/$checkpointId'
       preLoaderRoute: typeof CheckpointsCheckpointIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/docs/': {
+      id: '/docs/'
+      path: '/'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/docs/$slug': {
+      id: '/docs/$slug'
+      path: '/$slug'
+      fullPath: '/docs/$slug'
+      preLoaderRoute: typeof DocsSlugRouteImport
+      parentRoute: typeof DocsRoute
     }
     '/jobs_/$jobId': {
       id: '/jobs_/$jobId'
@@ -616,6 +672,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DocsRouteChildren {
+  DocsSlugRoute: typeof DocsSlugRoute
+  DocsIndexRoute: typeof DocsIndexRoute
+}
+
+const DocsRouteChildren: DocsRouteChildren = {
+  DocsSlugRoute: DocsSlugRoute,
+  DocsIndexRoute: DocsIndexRoute,
+}
+
+const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
+
 interface ApiV1EvidenceRouteChildren {
   ApiV1EvidenceClaimIdRoute: typeof ApiV1EvidenceClaimIdRoute
 }
@@ -654,6 +722,7 @@ const ApiV1SourcesRouteWithChildren = ApiV1SourcesRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DocsRoute: DocsRouteWithChildren,
   EvidenceRoute: EvidenceRoute,
   JobsRoute: JobsRoute,
   LibraryRoute: LibraryRoute,
