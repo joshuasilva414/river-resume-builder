@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { ArrowRight, LoaderCircle } from "lucide-react";
 import { useState } from "react";
 import { Appearance } from "~/components/appearance";
@@ -200,6 +200,9 @@ function SignIn() {
           </p>
         </div>
         <footer className="flex flex-col gap-3">
+          <Link to="/docs" className="w-fit text-sm text-primary underline underline-offset-4">
+            Learn how to use River
+          </Link>
           <p className="eyebrow">Tailor → Review → Export</p>
           <p className="text-muted-foreground">Your words. Your decisions.</p>
         </footer>

@@ -117,6 +117,41 @@
   }
 }
 @layer components {
+  .doc-copy {
+    @apply text-[15px] leading-7;
+  }
+  .doc-copy ol {
+    @apply list-decimal space-y-3 pl-6;
+  }
+  .doc-copy ul {
+    @apply list-disc space-y-2 pl-6;
+  }
+  .doc-copy li {
+    padding-left: 0.25rem;
+  }
+  .doc-copy li::marker {
+    color: var(--primary);
+  }
+  .doc-copy a {
+    @apply text-primary underline underline-offset-4;
+  }
+  .doc-copy dt {
+    @apply mt-4 font-semibold;
+  }
+  .doc-copy dd {
+    @apply mt-1 text-muted-foreground;
+  }
+  .doc-copy blockquote {
+    @apply my-4 border-l-2 border-primary pl-4 text-muted-foreground;
+  }
+  .doc-copy p + p,
+  .doc-copy p + ol,
+  .doc-copy p + ul,
+  .doc-copy ol + p,
+  .doc-copy ul + p,
+  .doc-copy dl + p {
+    margin-top: 1rem;
+  }
   .evidence-dialog {
     @apply flex max-h-[90dvh] flex-col gap-5 overflow-y-auto text-left;
   }
