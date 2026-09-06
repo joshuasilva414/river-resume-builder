@@ -33,7 +33,12 @@ export function Brand() {
           />{" "}
         </svg>
       </span>
-      <span className="font-editorial text-2xl font-semibold tracking-tight">River</span>
+      <span
+        className="font-editorial text-2xl font-semibold tracking-tight"
+        style={{ textBoxTrim: "trim-end" }}
+      >
+        River
+      </span>
     </span>
   );
 }

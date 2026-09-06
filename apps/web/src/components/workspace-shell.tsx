@@ -108,7 +108,7 @@ export function WorkspaceShell({
         ))}
       </nav>
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-[204px] shrink-0 flex-col border-r px-4 py-6 md:flex">
+        <aside className="hidden w-51 shrink-0 flex-col border-r px-4 py-6 md:flex">
           <p className="eyebrow px-2 pb-4">Workspace</p>
           <nav aria-label="Workspace" className="flex flex-col gap-1">
             {visibleNavigation.map((item) => (

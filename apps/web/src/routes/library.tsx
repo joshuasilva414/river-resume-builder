@@ -222,7 +222,7 @@ function LibraryPage() {
                   {blockDefinitions[detail.data.item.type].label} ·{" "}
                   {kindLabels[detail.data.item.kind]}
                 </Badge>
-                <h2 className="font-editorial text-[28px] leading-[34px]">
+                <h2 className="font-editorial text-[28px] leading-8.5">
                   {detail.data.revision.label}
                 </h2>
                 <p className="text-xs text-muted-foreground">
@@ -313,7 +313,7 @@ function LibraryPage() {
                         <p className="text-xs text-muted-foreground">
                           {new Date(event.createdAt).toLocaleString()}
                         </p>
-                        <p className="text-sm whitespace-pre-wrap break-words">{event.rationale}</p>
+                        <p className="text-sm whitespace-pre-wrap wrap-break-word">{event.rationale}</p>
                       </article>
                     ))}
                   </div>
