@@ -1,6 +1,6 @@
 # River build plan
 
-Status: V1 implementation is ongoing on personal staging. The core tailoring loop, reviewed AI, template workflows and history are deployed. Scoring is active, and source refinement, template promotion and visual approval pass staging testing. A bounded scoring retry and a 4-minute-23-second real tailoring/export session from the prepared workspace also pass. Hosted password recovery and production release remain open. See [implementation status](docs/implementation/status.md) and [runtime proof](docs/implementation/phase-0.md).
+Status: V1 implementation is complete on personal staging and remains unreleased. The core tailoring loop, reviewed AI, template workflows and history are deployed. Scoring is active, and source refinement, template promotion and visual approval pass staging testing. A bounded scoring retry, a 4-minute-23-second real tailoring/export session from the prepared workspace and real content in all three starter packs pass. The Owner confirmed hosted password recovery; protected navigation subsequently requires sign-in. Production approval, deployment and final-domain acceptance remain open. See [implementation status](docs/implementation/status.md) and [runtime proof](docs/implementation/phase-0.md).
 
 ## Approved implementation decisions
 
@@ -102,7 +102,7 @@ Implementation requirements derived from the accepted concurrency contract:
 - [x] Pin the workspace toolchain and prove TanStack Start development, production build, and deployed Worker behavior.
 - [x] Execute one Effect application service through a server function and an external server route. Validate its Effect Schema input and typed error mapping.
 - [x] Prove Drizzle/D1 migration, conditional revision update, and atomic persistence of aggregate, index, and audit data.
-- [ ] Prove Better Auth GitHub login, allowlisted registration, verification/reset delivery, session revocation, and denial of non-owner access.
+- [x] Prove Better Auth GitHub login, allowlisted registration, verification/reset delivery, session revocation, and denial of non-owner access. Hosted reset completion is Owner-confirmed; post-reset protected navigation requires sign-in. See `docs/implementation/authentication.md` for hosted and isolated-test evidence.
 - [x] Exercise cold starts, aborted requests, and subsequent requests on the deployed runtime to catch initialization lifetime issues. Hosted startup/render measurements and a server-observed cancellation followed by authenticated compilation pass; see `docs/implementation/request-lifetime.md` for the sampled scope and reproduction command.
 - [x] Read/write private R2 content and execute an Effect program within a Workflow step; verify retry and Operation reporting.
 - [x] Run one synthetic resume through the document Container: manifest composition, offline Tectonic compilation, PDF text extraction, and artifact return.
@@ -118,7 +118,7 @@ Exit: one authenticated, deployed vertical path produces a PDF from synthetic in
 Depends on Phase 0.
 
 - [x] Establish package boundaries, schema migrations, configuration validation, secret bindings, Effect Layers, and typed errors.
-- [ ] Implement owner bootstrap and both login methods, verification/recovery, revocation, and protected routes/downloads.
+- [x] Implement owner bootstrap and both login methods, verification/recovery, revocation, and protected routes/downloads.
 - [x] Implement credential creation, one-time secret display, scopes, expiration, revocation, and credential activity.
 - [x] Implement shared command execution, optimistic concurrency, permanent idempotency, and activity history.
 - [x] Add correlated diagnostics with redaction and CI checks for types, formatting/linting, focused tests, and builds. Hosted request/Problem Details and Operation/Workflow correlation passed; see `diagnostics.md`.

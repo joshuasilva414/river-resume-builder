@@ -24,9 +24,10 @@ Local and hosted Playwright journeys cover source intake, evidence review, manua
 
 Hosted Agent Credential acceptance passed with real REST/MCP source, evidence and job commands, exact citations, shared idempotency, denied scopes and revoked-credential 401s. See `agent-access.md`.
 
+The Owner confirmed hosted password-reset completion on September 5. Subsequent protected navigation in the previously authenticated browser displays sign-in. The separate isolated Better Auth/D1 tests cover old-password rejection, one-use/expired tokens and multiple-session revocation. See `authentication.md` for the exact evidence and its limits.
+
 The following work still prevents V1 release:
 
-- Hosted password recovery. GitHub OAuth now passes real Owner sign-in; the Owner must enter a new password to complete the separate reset journey.
 - Production secret/authentication setup, `river.jilva.dev` deployment and final production acceptance. Isolated personal-account D1/R2 resources, all 28 migrations, environment-specific backup handling and an empty production restore are prepared; see `production.md`.
 
 Successful bounded scoring retry and complete canonical result handling now pass: Minimal retains all three six-platform responses, with the badge correctly withheld for failing simulations. Actual phone qualification review also passes. See `template-scoring.md` and `mobile-review.md`.

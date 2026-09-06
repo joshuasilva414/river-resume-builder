@@ -23,14 +23,20 @@ The complete Workers suite then passed **142 tests in 25 files**. All six worksp
 
 Reproduce with `pnpm --filter @river/web exec vitest run test/auth.test.ts test/credentials.test.ts test/mcp.test.ts`.
 
-## Hosted acceptance limits
+## Hosted acceptance
 
 Commit `dc27521` is deployed to personal staging as Worker version `230d70d0-0600-4020-818c-e46daf72f84a`. The schema and document Container are unchanged.
 
-The Owner has created and verified the staging account and authenticated multiple persisted workflows. Verification email delivery and protected routes are established. This local recovery test does not establish hosted reset email delivery or Owner password entry. Completing that journey requires the Owner to enter a new password in the existing reset page. No Owner password was changed by this work, and no existing staging session was revoked merely by deploying the setting.
+The Owner has created and verified the staging account and authenticated multiple persisted workflows. Verification email delivery and protected routes are established. The local recovery test alone does not establish hosted reset email delivery or Owner password entry; that separate journey is recorded below. No Owner password was changed by the agent, and no existing staging session was revoked merely by deploying the setting.
 
 The personal GitHub app **River staging** is registered under `joshuasilva414` (app `3839574`, client ID `Ov23liu8Dx6Sb3xJJ5MB`). Its callback is `https://river-staging.jilva.workers.dev/api/auth/callback/github`. The Owner approved secret generation and staging installation, then completed GitHub's Confirm access challenge. The two credentials were installed as staging secrets through a private temporary file, which was removed. Existing secrets were preserved.
 
 A fresh Chrome sign-in authorized only read-only email addresses and profile information. GitHub returned to River and authenticated the existing verified Owner. The protected checkpoint and its retained scoring history load through that session. D1 confirms one password account and one GitHub account linked to the same Owner; no auth tokens, passwords or cookies were inspected. App wildcard matching and device flow remain disabled. The code deployment is `05238d5`; the secret installation created active Worker version `5e0fc3ae-0c56-4f53-93f9-af5b72272d62`. Hosted password-reset completion remains separate.
 
 The approved hosted Agent Credential journey passed real REST/MCP intake, exact citations, shared idempotency, stale-write rejection, scope denial and revocation. Both entry points return 401 after revocation. Fictional claim/job fixtures are archived; see `agent-access.md`.
+
+## Owner-confirmed hosted password reset — 2026-09-05
+
+The Owner replied **“password reset is complete”** to the outstanding hosted recovery check. This confirms completion of the requested email-link and new-password flow. At `2026-09-06T02:37:29Z` (September 5 in America/Chicago), a fresh navigation in the previously authenticated in-app browser to protected checkpoint `01a07463-0ac8-7287-a377-e408a1753763` displayed River's sign-in page instead of checkpoint content.
+
+The hosted evidence consists of the Owner's completion report and the observed protected-route sign-in requirement. The isolated Better Auth/D1 tests above establish old-password rejection, token expiry/reuse behavior and revocation of multiple sessions. The agent did not inspect the password, reset token, cookies or inbox, and did not attempt to sign in with the new password. This closes the staging recovery gate. Production authentication remains a separate final-domain acceptance step.

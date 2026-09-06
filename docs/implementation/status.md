@@ -6,7 +6,7 @@ Updated 2026-09-05 (America/Chicago). V1 is implemented on personal staging and 
 
 The six-package pnpm/Turborepo workspace uses strict TypeScript, Effect application services, Effect Schema contracts, Drizzle/D1, private R2, bounded Cloudflare Workflows and a separate document Worker/Container. UI server functions, REST and MCP share application services. Atomic revision guards, reference indexes, permanent idempotency, audit history and recoverable dispatch are implemented and tested.
 
-The sole Owner is created and verified on staging. Email/password and GitHub sign-in work for the same account. Sessions are revocable and protected artifact routes reject anonymous requests. The password-reset adapter now revokes existing sessions; the isolated Better Auth/D1 journey passes. Hosted password entry remains unfinished. Named Agent Credentials have scoped access, hash-only storage, expiry and revision-checked revocation. The approved hosted REST/MCP journey passed; its temporary credential is revoked. See [authentication](authentication.md) and [agent access](agent-access.md).
+The sole Owner is created and verified on staging. Email/password and GitHub sign-in work for the same account. Sessions are revocable and protected artifact routes reject anonymous requests. The password-reset adapter revokes existing sessions; the isolated Better Auth/D1 journey passes. The Owner has confirmed hosted password-reset completion, and subsequent protected navigation in the previously authenticated browser requires sign-in. Named Agent Credentials have scoped access, hash-only storage, expiry and revision-checked revocation. The approved hosted REST/MCP journey passed; its temporary credential is revoked. See [authentication](authentication.md) and [agent access](agent-access.md).
 
 Only personal Cloudflare account `a91c30d69981b341efe3b656a263f6da` is used. ACM UTSA is excluded. Staging has all 28 migrations through `0027_source_upload_checks.sql`, 72 base tables and 11 Workflows. Exact active code and resource identities are recorded in [deployment.json](deployment.json).
 
@@ -46,7 +46,6 @@ The latest complete suite passes 158 Workers tests in 26 files. Five domain test
 
 ## Remaining release work
 
-- Complete hosted password recovery with the Owner's new password.
 - Obtain separate production credential/publication approval and complete final-domain acceptance. Current production build/dry-run proof passes; scoring is configured for the verified provider origin.
 
 Production has isolated, empty D1/R2 resources and a passing empty-schema restore. It has no published application, installed secrets, Owner account or active custom domain. See [production preparation](production.md).
