@@ -9,6 +9,8 @@ const docker =
     ? "/Applications/Docker.app/Contents/Resources/bin/docker"
     : "docker");
 const container = `river-fixtures-${Date.now()}`;
+// Workers Builds lacks Docker cgroup controls; GitHub enforces the resource budget.
+const enforceResourceBudget = !process.env.WORKERS_CI;
 async function run(command, args, env = process.env) {
   await new Promise((resolve, reject) => {
     const child = spawn(command, args, { cwd: root, env, stdio: "inherit" });
@@ -43,10 +45,7 @@ try {
     container,
     "--network",
     "none",
-    "--memory",
-    "512m",
-    "--cpus",
-    "1",
+    ...(enforceResourceBudget ? ["--memory", "512m", "--cpus", "1"] : []),
     "river-documents:fixtures",
   ]);
   await run(docker, [
@@ -63,13 +62,14 @@ try {
     RIVER_TEST_CONTAINER: container,
     RIVER_FIXTURE_PATH: fixture,
   });
-  await run(docker, [
-    "exec",
-    container,
-    "node",
-    "-e",
-    'const fs=require("fs");console.log("Peak memory bytes:",fs.readFileSync("/sys/fs/cgroup/memory.peak","utf8").trim())',
-  ]);
+  if (enforceResourceBudget)
+    await run(docker, [
+      "exec",
+      container,
+      "node",
+      "-e",
+      'const fs=require("fs");console.log("Peak memory bytes:",fs.readFileSync("/sys/fs/cgroup/memory.peak","utf8").trim())',
+    ]);
 } finally {
   await run(docker, ["rm", "--force", container]);
 }

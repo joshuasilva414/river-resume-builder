@@ -37,6 +37,7 @@ createServer(
     }
     busy = true;
     let directory;
+    let responseBody;
     let stagePath;
     let stage = "request-body";
     try {
@@ -46,7 +47,6 @@ createServer(
         length += chunk.length;
         if (length > MAX_BODY) {
           response.writeHead(413);
-          response.end();
           return;
         }
         chunks.push(chunk);
@@ -62,7 +62,7 @@ createServer(
       response.setHeader("X-River-Document-Cache", cached ? "hit" : cacheKey ? "miss" : "bypass");
       if (cached) {
         response.writeHead(200, { "Content-Type": "application/json" });
-        response.end(cached);
+        responseBody = cached;
         return;
       }
       directory = await mkdtemp(join(tmpdir(), "river-document-"));
@@ -114,7 +114,7 @@ createServer(
       if (result.length > 30 * 1024 * 1024) throw new Error("Output limit exceeded");
       if (cacheKey) cache.put(cacheKey, result.toString("utf8"));
       response.writeHead(200, { "Content-Type": "application/json" });
-      response.end(result);
+      responseBody = result;
     } catch {
       if (stage === "document-process" && stagePath) {
         const recorded = await readFile(stagePath, "utf8").catch(() => null);
@@ -123,10 +123,12 @@ createServer(
       console.error(JSON.stringify({ event: "document-job-failed", stage }));
       response.setHeader("X-River-Document-Stage", stage);
       response.writeHead(422, { "Content-Type": "application/json" });
-      response.end(JSON.stringify({ error: "Document processing failed." }));
+      responseBody = JSON.stringify({ error: "Document processing failed." });
     } finally {
       if (directory) await rm(directory, { recursive: true, force: true });
       busy = false;
+      // Finish cleanup before a caller can submit its next sequential job.
+      response.end(responseBody);
     }
   },
 ).listen(8080, "0.0.0.0");

@@ -17,7 +17,7 @@ async function run(job) {
   const start = performance.now();
   const result = await new Promise((resolve, reject) => {
     const code =
-      'let chunks=[]; for await (const c of process.stdin) chunks.push(c); const r=await fetch("http://127.0.0.1:8080/jobs", {method:"POST",body:Buffer.concat(chunks),headers:{"content-type":"application/json"}}); console.log(JSON.stringify({status:r.status,protocol:r.headers.get("X-River-Document-Protocol"),stage:r.headers.get("X-River-Document-Stage"),cache:r.headers.get("X-River-Document-Cache"),body:await r.json()}));';
+      'let chunks=[]; for await (const c of process.stdin) chunks.push(c); const r=await fetch("http://127.0.0.1:8080/jobs", {method:"POST",body:Buffer.concat(chunks),headers:{"content-type":"application/json"}}); console.log(JSON.stringify({status:r.status,protocol:r.headers.get("X-River-Document-Protocol"),stage:r.headers.get("X-River-Document-Stage"),cache:r.headers.get("X-River-Document-Cache"),body:await r.text()}));';
     const child = spawn(
       docker,
       ["exec", "-i", container, "node", "--input-type=module", "-e", code],
@@ -34,6 +34,11 @@ async function run(job) {
     child.stdin.end(JSON.stringify(job));
   });
   assert.equal(result.protocol, runtimeContract.protocol);
+  assert.ok(
+    result.body,
+    `Empty document response: HTTP ${result.status}, job ${job.jobId ?? job.type}`,
+  );
+  result.body = JSON.parse(result.body);
   return { ...result, elapsedMs: performance.now() - start };
 }
 const invalidInput = await run({ type: "unsupported-synthetic-job", secretMarker: "PRIVATE" });
