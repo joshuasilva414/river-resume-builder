@@ -34,7 +34,7 @@ Explicit checkpoints, chronology, independent restoration branches, pinned full-
 
 ## Scoring and recovery
 
-The narrow ATS identity change is deployed. River retains exact checkpoint inputs, six independent simulations, dimensional findings, raw responses and rubric/model/deployment identity. Two hosted synthetic checkpoint runs pass; the cached response preserves its identity and compatible comparisons show zero deltas. Oversized real job text is blocked before submission and export remains available. See [scoring](scoring.md).
+The narrow ATS identity change is deployed. River retains exact checkpoint inputs, six independent simulations, dimensional findings, raw responses and rubric/model/deployment identity. Two hosted synthetic checkpoint runs pass; the cached response preserves its identity and compatible comparisons show zero deltas. A labeled staging finding review survives reload, matches the exact retained result and leaves the earlier run Unreviewed. Oversized real job text is blocked before submission and export remains available. See [scoring](scoring.md).
 
 All nine canonical template documents rendered and remain retained. The Oracle Taleo product-name mismatch is fixed. Minimal’s final bounded retry completes all three six-platform responses, retaining raw identity and earlier failures. Every fixture reports a failing Taleo filter. Classic has exhausted its three attempts with one complete fixture response; Technical retains its earlier failed attempt. No template receives an ATS Screener tested designation. Populated Classic phone review now passes in light/dark themes, including PDF/text, pinned older reports and the exhausted retry limit. See [template scoring](template-scoring.md).
 

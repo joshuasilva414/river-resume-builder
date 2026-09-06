@@ -4,7 +4,7 @@ Updated 2026-09-05. V1 is not released. This maps the remaining plan gates to co
 
 ## Service and persistence gate
 
-The complete Workers run recorded in `/tmp/river-score-diagnostics-full.log` passed 158 tests in 26 files, including source occurrence anchors, safe scoring diagnostics across Workflow steps, password-reset session revocation and dialog focus. Five domain tests, all workspace type/lint checks and the clean staging build passed. Production build/dry-run verification was recorded earlier for `a797477`; production remains unpublished. The following assertions satisfy M6's focused integration-test gate; hosted credential and provider acceptance remain separate.
+The complete Workers run recorded in `/tmp/river-score-diagnostics-full.log` passed 158 tests in 26 files, including source occurrence anchors, safe scoring diagnostics across Workflow steps, password-reset session revocation and dialog focus. Five domain tests, all workspace type/lint checks and the clean staging build passed. The current production build/dry run also passes with the final scoring-origin configuration; see `production.md`. Production remains unpublished. The following assertions satisfy M6's focused integration-test gate; hosted credential and provider acceptance remain separate.
 
 | Contract | Verification |
 | --- | --- |
@@ -30,6 +30,8 @@ The following work still prevents V1 release:
 - Production secret/authentication setup, `river.jilva.dev` deployment and final production acceptance. Isolated personal-account D1/R2 resources, all 28 migrations, environment-specific backup handling and an empty production restore are prepared; see `production.md`.
 
 Successful bounded scoring retry and complete canonical result handling now pass: Minimal retains all three six-platform responses, with the badge correctly withheld for failing simulations. Actual phone qualification review also passes. See `template-scoring.md` and `mobile-review.md`.
+
+Hosted finding-review persistence also passes on the existing synthetic checkpoint. The explicitly labeled test decision survives reload and leaves the earlier scoring run Unreviewed; D1 confirms the exact result/finding binding. See `scoring.md`. Different-snapshot comparison suppression has domain-test coverage; no separate hosted journey is claimed.
 
 The three approved setup actions completed. The later staging UI testing authorization also enabled synthetic source-refinement acceptance/export/structured return/promotion and generated-template visual approval. These now pass; see `source-refinement.md` and `template-generation.md`. Production publication remains separate. Original sources and checkpoint artifacts remain retained. Production storage exists, with no application or domain publication. ACM UTSA remains untouched.
 

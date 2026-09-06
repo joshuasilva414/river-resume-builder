@@ -1,6 +1,6 @@
 # ATS scoring implementation
 
-Phase 3 is in progress. Scoring persistence, bounded Workflows, atomic Save & score, finding decisions, comparisons and the Paper-based interface are deployed to staging. The approved ATS identity deployment, synthetic provider acceptance and two authenticated River scoring Workflows passed. The second hosted result came from the provider cache; compatible saved-result comparison passed. The design contract is `history-scoring-design.md`.
+Scoring persistence, bounded Workflows, atomic Save & score, finding decisions, comparisons and the Paper-based interface are implemented on staging. Hosted checkpoint scoring, cached identity preservation, compatible comparison, finding-review persistence and canonical bounded retry pass. Earlier sections retain the state at each milestone; current release blockers are listed in `release-gates.md`. The design contract is `history-scoring-design.md`.
 
 ## River adapter foundation
 
@@ -100,3 +100,11 @@ All 158 Workers tests in 26 files, five domain tests, workspace types/lint and t
 Minimal's second attempt consistently failed at `results.1.system`. A direct Node request returned canonical `Taleo`, while an isolated Cloudflare remote preview of the exact fictional graduate fixture returned `Oracle Taleo` in both result names and suggestion platform arrays. The preview captured only platform labels and cache status, used no River bindings or secrets, and was stopped after the single request. This is also Oracle's official product name: <https://www.oracle.com/human-capital-management/taleo/>.
 
 Commit `9eb25db` normalizes that exact alias to `Taleo` through the same shared validator used for HTTP acceptance and result retention. Original raw JSON and scoring identity remain unchanged. Unknown names and duplicate identities, including mixed `Taleo`/`Oracle Taleo` references, still fail. The change does not alter scores, thresholds, required dimensions or qualification rules. All 30 focused scoring tests, five domain tests, workspace types/lint and the clean staging build pass. Staging Worker: `0a8e3d24-d7f8-4a07-a75b-f08e81df16b7`. Logs: `/tmp/river-taleo-alias-{tests,domain,types,lint,build,deploy}.log`.
+
+## Hosted finding review — 2026-09-05
+
+The Owner's staging UI testing authorization was used to mark Workday finding 0 on synthetic run `01a073f4-331d-7f35-b652-f7795e70bea1` **Not applicable**. The rationale explicitly identifies a staging acceptance test and explains that the provider's blank-input claim conflicts with the retained 17-unit input. This is not evidence verification or a résumé edit.
+
+Decision `01a07475-3fd1-77b8-b26f-cb4e5776fc62` saved at revision 1 and survived a full browser reload with its rationale and attribution. Read-only D1 verification confirms its result digest matches the completed run (`2e5310e75721ba264a17a4f026d261eac8fab531bd5bb08667efb9b2109117bc`) and its exact finding digest is `c531b19b5488175c1042b426b8893fe2aa043ea6a577355b25239d6200608ddd`. Earlier run `01a073f2-5579-7a3a-99b1-4ea3e586bbe8` still has zero decisions and displays Unreviewed. The checkpoint's completed export and PDF download remain available. No new provider request was made.
+
+Different-snapshot comparison suppression remains covered by `packages/domain/src/scoring.test.ts`; a separate hosted differing-snapshot comparison has not been run. The live compatible comparison, bounded failed attempts and successful retry are recorded above and in `template-scoring.md`.
