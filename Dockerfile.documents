@@ -1,4 +1,4 @@
-FROM node:24.20.0-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e
+FROM node:24.20.0-bookworm-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl fontconfig fonts-lmodern=2.005-1 && rm -rf /var/lib/apt/lists/*
 RUN curl --fail --location --retry 3 https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%400.17.0/tectonic-0.17.0-x86_64-unknown-linux-musl.tar.gz -o /tmp/tectonic.tar.gz \
  && echo '8533d07f9ccbd7a65824b9e0459041bca34af1eb33daba48f59215593753a3b7  /tmp/tectonic.tar.gz' | sha256sum -c - \
@@ -27,3 +27,10 @@ RUN rm -f /app/fixture.mjs /app/check-resources.mjs && chmod -R a+rX /opt/tecton
 USER node
 EXPOSE 8080
 CMD ["node", "/app/server.mjs"]
+
+# Workers Builds cannot use docker run; execute the same fixtures in an offline build step.
+FROM runtime AS fixtures
+RUN --network=none node /workspace/apps/documents/scripts/check-build-runtime.mjs
+
+# Ordinary Wrangler deployments exclude the fixture stage and its generated artifacts.
+FROM runtime AS final

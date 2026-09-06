@@ -9,8 +9,8 @@ const docker =
     ? "/Applications/Docker.app/Contents/Resources/bin/docker"
     : "docker");
 const container = `river-fixtures-${Date.now()}`;
-// Workers Builds lacks Docker cgroup controls; GitHub enforces the resource budget.
-const enforceResourceBudget = !process.env.WORKERS_CI;
+// Workers Builds supports image builds but cannot launch standalone containers.
+const buildStageFixtures = Boolean(process.env.WORKERS_CI);
 async function run(command, args, env = process.env) {
   await new Promise((resolve, reject) => {
     const child = spawn(command, args, { cwd: root, env, stdio: "inherit" });
@@ -27,6 +27,7 @@ await run(docker, [
   "build",
   // Workers Builds requires host networking for image-build downloads, as Wrangler does.
   ...(process.env.WRANGLER_CI_OVERRIDE_NETWORK_MODE_HOST ? ["--network", "host"] : []),
+  ...(buildStageFixtures ? ["--target", "fixtures"] : []),
   "--platform",
   "linux/amd64",
   "-f",
@@ -35,6 +36,7 @@ await run(docker, [
   "river-documents:fixtures",
   ".",
 ]);
+if (buildStageFixtures) process.exit(0);
 try {
   await run(docker, [
     "run",
@@ -45,7 +47,10 @@ try {
     container,
     "--network",
     "none",
-    ...(enforceResourceBudget ? ["--memory", "512m", "--cpus", "1"] : []),
+    "--memory",
+    "512m",
+    "--cpus",
+    "1",
     "river-documents:fixtures",
   ]);
   await run(docker, [
@@ -62,14 +67,13 @@ try {
     RIVER_TEST_CONTAINER: container,
     RIVER_FIXTURE_PATH: fixture,
   });
-  if (enforceResourceBudget)
-    await run(docker, [
-      "exec",
-      container,
-      "node",
-      "-e",
-      'const fs=require("fs");console.log("Peak memory bytes:",fs.readFileSync("/sys/fs/cgroup/memory.peak","utf8").trim())',
-    ]);
+  await run(docker, [
+    "exec",
+    container,
+    "node",
+    "-e",
+    'const fs=require("fs");console.log("Peak memory bytes:",fs.readFileSync("/sys/fs/cgroup/memory.peak","utf8").trim())',
+  ]);
 } finally {
   await run(docker, ["rm", "--force", container]);
 }

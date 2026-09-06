@@ -11,28 +11,48 @@ const fixture = JSON.parse(
     "utf8",
   ),
 );
-const output = new URL("../test-results/", import.meta.url);
+const output = new URL(process.env.RIVER_FIXTURE_OUTPUT ?? "../test-results/", import.meta.url);
 await mkdir(output, { recursive: true });
+async function submit(job) {
+  const response = await fetch("http://127.0.0.1:8080/jobs", {
+    method: "POST",
+    body: JSON.stringify(job),
+    headers: { "content-type": "application/json" },
+  });
+  return {
+    status: response.status,
+    protocol: response.headers.get("X-River-Document-Protocol"),
+    stage: response.headers.get("X-River-Document-Stage"),
+    cache: response.headers.get("X-River-Document-Cache"),
+    body: await response.text(),
+  };
+}
 async function run(job) {
   const start = performance.now();
-  const result = await new Promise((resolve, reject) => {
-    const code =
-      'let chunks=[]; for await (const c of process.stdin) chunks.push(c); const r=await fetch("http://127.0.0.1:8080/jobs", {method:"POST",body:Buffer.concat(chunks),headers:{"content-type":"application/json"}}); console.log(JSON.stringify({status:r.status,protocol:r.headers.get("X-River-Document-Protocol"),stage:r.headers.get("X-River-Document-Stage"),cache:r.headers.get("X-River-Document-Cache"),body:await r.text()}));';
-    const child = spawn(
-      docker,
-      ["exec", "-i", container, "node", "--input-type=module", "-e", code],
-      { stdio: ["pipe", "pipe", "inherit"] },
-    );
-    let text = "";
-    child.stdout.on("data", (chunk) => {
-      text += chunk;
-    });
-    child.on("error", reject);
-    child.on("close", (code) =>
-      code === 0 ? resolve(JSON.parse(text)) : reject(Error(`Docker exec failed: ${code}`)),
-    );
-    child.stdin.end(JSON.stringify(job));
-  });
+  const result = process.env.RIVER_TEST_DIRECT
+    ? await submit(job)
+    : await new Promise((resolve, reject) => {
+        const code = `let chunks=[]; for await (const c of process.stdin) chunks.push(c); console.log(JSON.stringify(await (${submit.toString()})(JSON.parse(Buffer.concat(chunks)))));`;
+        const child = spawn(
+          docker,
+          ["exec", "-i", container, "node", "--input-type=module", "-e", code],
+          { stdio: ["pipe", "pipe", "inherit"] },
+        );
+        let text = "";
+        child.stdout.on("data", (chunk) => {
+          text += chunk;
+        });
+        child.on("error", reject);
+        child.on("close", (code) => {
+          if (code !== 0) return reject(Error(`Docker exec failed: ${code}`));
+          try {
+            resolve(JSON.parse(text));
+          } catch (error) {
+            reject(error);
+          }
+        });
+        child.stdin.end(JSON.stringify(job));
+      });
   assert.equal(result.protocol, runtimeContract.protocol);
   assert.ok(
     result.body,
