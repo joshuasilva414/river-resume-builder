@@ -569,6 +569,13 @@
       "GITHUB_CLIENT_SECRET",
       "OPENAI_API_KEY",
       "D1_EXPORT_API_TOKEN"
-    ]
+    ],
+    "manualBackup": {
+      "key": "backups/database/production/2026-09-06T03-38-37.323Z-3f20c91e-1778-466e-bf8a-3a41ce59d8f2/snapshot.json.gz",
+      "sha256": "0877685ad54cea93b763bfa941f18e67ed01f4c567a791682be8685db071da11",
+      "isolatedRestorePassed": true,
+      "tables": 72,
+      "retainedObjects": 0
+    }
   }
 }
