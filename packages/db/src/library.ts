@@ -1,4 +1,9 @@
-import type { InspectLibraryRequest, LibrarySearch, SaveLibraryRequest } from "@river/contracts";
+import type {
+  InspectLibraryRequest,
+  LibrarySearch,
+  SaveLibraryRequest,
+  SetLibraryArchivedRequest,
+} from "@river/contracts";
 import {
   ApplicationError,
   canonicalJson,
@@ -8,7 +13,7 @@ import {
   type Principal,
   validateLibraryData,
 } from "@river/domain";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { createCommands, type Guard, type Write } from "./commands";
 import type { Database } from "./index";
 import * as s from "./schema";
@@ -138,6 +143,9 @@ export function createLibraryRepository(db: Database) {
           and(
             eq(s.libraryItems.ownerId, ownerId),
             eq(s.libraryItems.kind, input.kind),
+            input.archived
+              ? isNotNull(s.libraryItems.archivedAt)
+              : isNull(s.libraryItems.archivedAt),
             input.type ? eq(s.libraryItems.type, input.type) : undefined,
             input.query
               ? sql`(instr(lower(${s.libraryItems.label}), lower(${input.query})) > 0 OR instr(lower(json_extract(${s.libraryRevisions.data}, '$.wording')), lower(${input.query})) > 0)`
@@ -218,7 +226,79 @@ export function createLibraryRepository(db: Database) {
           })),
         );
       }
-      return { item, revision, graph, history, evidence };
+      const lifecycle = await db
+        .select({
+          id: s.audit.id,
+          command: s.audit.command,
+          rationale: sql<string>`json_extract(${s.audit.after}, '$.rationale')`,
+          createdAt: s.audit.createdAt,
+        })
+        .from(s.audit)
+        .where(
+          and(
+            eq(s.audit.entityId, item.id),
+            inArray(s.audit.command, ["archive-library", "restore-library"]),
+          ),
+        )
+        .orderBy(desc(s.audit.createdAt), desc(s.audit.id))
+        .limit(100);
+      return { item, revision, graph, history, evidence, lifecycle };
+    },
+    /** Lifecycle changes retain the exact revision graph and every existing placement. */
+    async setLibraryArchived(actor: Principal, input: SetLibraryArchivedRequest) {
+      if (actor.kind !== "owner")
+        throw new ApplicationError({
+          code: "Forbidden",
+          message: "Only the Owner can archive reusable content.",
+        });
+      return commands.commit(
+        actor,
+        input.archived ? "archive-library" : "restore-library",
+        input.idempotencyKey,
+        input,
+        async () => {
+          if (!input.rationale.trim())
+            throw new ApplicationError({
+              code: "InvalidInput",
+              message: "Provide a reason for this change.",
+            });
+          const item = await observeLibrary(actor, input.id, input.revision);
+          if ((item.archivedAt !== null) === input.archived)
+            throw new ApplicationError({
+              code: "Conflict",
+              message: "This library item's status has already changed. Reload its current state.",
+            });
+          const now = Date.now();
+          const archivedAt = input.archived ? now : null;
+          const revision = item.revision + 1;
+          return {
+            result: { id: item.id, revision, revisionId: item.currentRevisionId },
+            guards: [libraryGuard(actor, item.id, item.revision)],
+            writes: [
+              db
+                .update(s.libraryItems)
+                .set({ archivedAt, revision, updatedAt: now })
+                .where(eq(s.libraryItems.id, item.id)),
+            ],
+            history: [
+              {
+                entityId: item.id,
+                before: {
+                  archivedAt: item.archivedAt,
+                  revision: item.revision,
+                  revisionId: item.currentRevisionId,
+                },
+                after: {
+                  archivedAt,
+                  revision,
+                  revisionId: item.currentRevisionId,
+                  rationale: input.rationale,
+                },
+              },
+            ],
+          };
+        },
+      );
     },
     async saveLibrary(actor: Principal, input: SaveLibraryRequest) {
       if (actor.kind !== "owner")
@@ -242,6 +322,11 @@ export function createLibraryRepository(db: Database) {
           input.id !== null && input.revision !== null
             ? await observeLibrary(actor, input.id, input.revision)
             : null;
+        if (previous && previous.archivedAt !== null)
+          throw new ApplicationError({
+            code: "Conflict",
+            message: "Restore this library item before editing it.",
+          });
         if (previous && (previous.kind !== input.data.kind || previous.type !== input.data.type))
           throw new ApplicationError({
             code: "InvalidInput",

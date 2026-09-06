@@ -10,6 +10,7 @@ import {
   type SectionData,
 } from "@river/domain";
 import { beforeAll, expect, it } from "vitest";
+import { compositionFixture } from "./fixtures/composition";
 
 beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
 async function fixture() {
@@ -208,4 +209,133 @@ it("keeps exact evidence links and derives staleness without relinking content",
     unsupported: true,
   });
   expect(detail.item.revision).toBe(0);
+});
+
+it("archives every library kind without rewriting pinned drafts or checkpoints and restores the same revisions", async () => {
+  const { repository, actor, draft, data } = await compositionFixture();
+  const capture = await repository.captureCheckpoint(actor, {
+    id: draft.id,
+    revision: 0,
+    idempotencyKey: "capture",
+  });
+  const before = await repository.inspectCheckpoint(actor.id, capture.id);
+  const references = data.sections.map((section) => section.reference);
+  const graph = await repository.libraryGraph(actor.id, references);
+  const requests = [];
+  for (const { item } of graph) {
+    const request = {
+      id: item.id,
+      revision: item.revision,
+      archived: true,
+      rationale: "Retire synthetic library fixture",
+      idempotencyKey: `archive-${item.id}`,
+    };
+    requests.push(request);
+    const archived = await repository.setLibraryArchived(actor, request);
+    expect(archived.revisionId).toBe(item.currentRevisionId);
+    expect(archived.revision).toBe(item.revision + 1);
+  }
+  for (const kind of ["content", "block", "section"] as const) {
+    const input = { kind, type: null, query: "", offset: 0 };
+    expect((await repository.listLibrary(actor.id, input)).items).toHaveLength(0);
+    expect(
+      (await repository.listLibrary(actor.id, { ...input, archived: true })).items,
+    ).toHaveLength(2);
+  }
+  expect(
+    (await repository.libraryGraph(actor.id, references)).map((entry) => entry.revision),
+  ).toEqual(graph.map((entry) => entry.revision));
+  const after = await repository.inspectCheckpoint(actor.id, capture.id);
+  expect(after.checkpoint).toEqual(before.checkpoint);
+  expect(after.report).toEqual(before.report);
+  expect((await repository.inspectResume(actor.id, draft.id)).draft.data).toEqual(data);
+  for (const request of requests) {
+    const restored = await repository.setLibraryArchived(actor, {
+      ...request,
+      archived: false,
+      revision: 1,
+      idempotencyKey: `restore-${request.id}`,
+    });
+    expect(restored.revision).toBe(2);
+    expect(await repository.setLibraryArchived(actor, request)).toMatchObject({ revision: 1 });
+    const detail = await repository.inspectLibrary(actor.id, { id: request.id });
+    expect(detail.item.archivedAt).toBeNull();
+    expect(detail.history).toHaveLength(1);
+    expect(detail.lifecycle).toHaveLength(2);
+    expect(detail.lifecycle.every((entry) => entry.rationale === request.rationale)).toBe(true);
+  }
+});
+
+it("guards concurrent archive and editing, enforces Owner access, and permanently deduplicates lifecycle writes", async () => {
+  const { repository, actor, save } = await fixture();
+  const content = { kind: "content", type: "summary", wording: "Preserved", evidence: [] } as const;
+  const ref = await save(content, "archive-race");
+  const request = {
+    id: ref.itemId,
+    revision: 0,
+    archived: true,
+    rationale: "Fixture complete",
+    idempotencyKey: "archive",
+  };
+  const agent: Principal = {
+    kind: "agent",
+    ownerId: actor.id,
+    id: newId(),
+    scopes: ["evidence:archive"],
+  };
+  await expect(repository.setLibraryArchived(agent, request)).rejects.toMatchObject({
+    code: "Forbidden",
+  });
+  const other = newId();
+  await expect(
+    repository.setLibraryArchived({ kind: "owner", id: other, ownerId: other }, request),
+  ).rejects.toMatchObject({ code: "NotFound" });
+  await expect(
+    repository.setLibraryArchived(actor, { ...request, rationale: "  " }),
+  ).rejects.toMatchObject({ code: "InvalidInput" });
+  const results = await Promise.all([
+    repository.setLibraryArchived(actor, request),
+    repository.setLibraryArchived(actor, request),
+  ]);
+  expect(results[0]).toEqual(results[1]);
+  await expect(
+    repository.saveLibrary(actor, {
+      id: ref.itemId,
+      revision: 0,
+      idempotencyKey: "stale-edit",
+      label: "Changed",
+      data: content,
+      rationale: "stale",
+    }),
+  ).rejects.toMatchObject({ code: "Conflict" });
+  await expect(
+    repository.saveLibrary(actor, {
+      id: ref.itemId,
+      revision: 1,
+      idempotencyKey: "archived-edit",
+      label: "Changed",
+      data: content,
+      rationale: "archived",
+    }),
+  ).rejects.toMatchObject({ code: "Conflict" });
+  await expect(
+    repository.setLibraryArchived(actor, { ...request, rationale: "Changed payload" }),
+  ).rejects.toMatchObject({ code: "Conflict" });
+  const detail = await repository.inspectLibrary(actor.id, { id: ref.itemId });
+  expect(detail.item.revision).toBe(1);
+  expect(detail.revision.data).toEqual(content);
+  expect(detail.history).toHaveLength(1);
+  expect(detail.lifecycle).toHaveLength(1);
+  const restores = await Promise.allSettled(
+    ["restore-a", "restore-b"].map((key) =>
+      repository.setLibraryArchived(actor, {
+        ...request,
+        revision: 1,
+        archived: false,
+        idempotencyKey: key,
+      }),
+    ),
+  );
+  expect(restores.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+  expect((await repository.inspectLibrary(actor.id, { id: ref.itemId })).lifecycle).toHaveLength(2);
 });

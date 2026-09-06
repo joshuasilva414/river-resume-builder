@@ -609,6 +609,7 @@ export const libraryItems = sqliteTable(
     label: text("label").notNull(),
     revision: integer("revision").notNull().default(0),
     currentRevisionId: text("current_revision_id").notNull(),
+    archivedAt: integer("archived_at"),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
   },

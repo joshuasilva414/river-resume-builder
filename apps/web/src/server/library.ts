@@ -1,4 +1,9 @@
-import type { InspectLibraryRequest, LibrarySearch, SaveLibraryRequest } from "@river/contracts";
+import type {
+  InspectLibraryRequest,
+  LibrarySearch,
+  SaveLibraryRequest,
+  SetLibraryArchivedRequest,
+} from "@river/contracts";
 import { ApplicationError } from "@river/domain";
 import { Effect } from "effect";
 import { Actor, attempt, Store } from "./services";
@@ -26,4 +31,10 @@ export const saveLibrary = (input: SaveLibraryRequest) =>
         }),
       );
     return yield* attempt(() => store.saveLibrary(actor, input));
+  });
+export const setLibraryArchived = (input: SetLibraryArchivedRequest) =>
+  Effect.gen(function* () {
+    const actor = yield* Actor;
+    const store = yield* Store;
+    return yield* attempt(() => store.setLibraryArchived(actor, input));
   });

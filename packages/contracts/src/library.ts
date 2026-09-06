@@ -15,6 +15,7 @@ export const LibrarySearch = Schema.Struct({
   type: Schema.NullOr(ContentType),
   query: Schema.String.check(Schema.isMaxLength(200)),
   offset: Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 1000000 })),
+  archived: Schema.optional(Schema.Boolean),
 });
 export type LibrarySearch = typeof LibrarySearch.Type;
 export const InspectLibraryRequest = Schema.Struct({
@@ -22,3 +23,11 @@ export const InspectLibraryRequest = Schema.Struct({
   revisionId: Schema.optional(RecordId),
 });
 export type InspectLibraryRequest = typeof InspectLibraryRequest.Type;
+export const SetLibraryArchivedRequest = Schema.Struct({
+  idempotencyKey: CommandKey,
+  id: RecordId,
+  revision: Revision,
+  archived: Schema.Boolean,
+  rationale: Schema.NonEmptyString.check(Schema.isMaxLength(4000)),
+});
+export type SetLibraryArchivedRequest = typeof SetLibraryArchivedRequest.Type;

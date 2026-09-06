@@ -102,6 +102,11 @@ export function LibraryPicker({
         <Failure error={detail.error} />
         {detail.data && (
           <div className="space-y-5 border-t pt-5">
+            {detail.data.item.archivedAt !== null && (
+              <p className="text-sm text-muted-foreground">
+                This item was archived. Restore it in the Content library before reusing it.
+              </p>
+            )}
             <LibraryDataView data={detail.data.revision.data} graph={detail.data.graph} />
             <EvidenceLinks
               value={detail.data.evidence.map((ref) => ({
@@ -116,9 +121,10 @@ export function LibraryPicker({
             Cancel
           </Button>
           <Button
-            disabled={!selected || !detail.data}
+            disabled={!selected || !detail.data || detail.data.item.archivedAt !== null}
             onClick={() => {
-              if (selected && detail.data) onPick(selected, detail.data);
+              if (selected && detail.data && detail.data.item.archivedAt === null)
+                onPick(selected, detail.data);
             }}
           >
             Use this revision

@@ -663,6 +663,11 @@ export function createCompositionRepository(db: Database) {
             input.reference.itemId,
             input.libraryRevision,
           );
+          if (item.archivedAt !== null)
+            throw new ApplicationError({
+              code: "Conflict",
+              message: "Restore this library item before applying it to a draft.",
+            });
           if (item.currentRevisionId !== input.reference.revisionId)
             throw new ApplicationError({
               code: "Conflict",

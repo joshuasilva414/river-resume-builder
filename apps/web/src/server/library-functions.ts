@@ -1,9 +1,14 @@
-import { InspectLibraryRequest, LibrarySearch, SaveLibraryRequest } from "@river/contracts";
+import {
+  InspectLibraryRequest,
+  LibrarySearch,
+  SaveLibraryRequest,
+  SetLibraryArchivedRequest,
+} from "@river/contracts";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { Schema } from "effect";
 import { bindings } from "./env";
-import { inspectLibrary, saveLibrary, searchLibrary } from "./library";
+import { inspectLibrary, saveLibrary, searchLibrary, setLibraryArchived } from "./library";
 import { execute } from "./services";
 export const getLibrary = createServerFn({ method: "GET" })
   .validator(Schema.decodeUnknownSync(LibrarySearch))
@@ -14,3 +19,6 @@ export const getLibraryDetail = createServerFn({ method: "GET" })
 export const mutateLibrary = createServerFn({ method: "POST" })
   .validator(Schema.decodeUnknownSync(SaveLibraryRequest))
   .handler(({ data }) => execute(bindings(), getRequestHeaders(), saveLibrary(data)));
+export const archiveLibrary = createServerFn({ method: "POST" })
+  .validator(Schema.decodeUnknownSync(SetLibraryArchivedRequest))
+  .handler(({ data }) => execute(bindings(), getRequestHeaders(), setLibraryArchived(data)));

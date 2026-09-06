@@ -1,11 +1,12 @@
 import { blockDefinitions, type ContentType, contentTypes, type LibraryKind } from "@river/domain";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { ArrowLeft, Plus } from "lucide-react";
+import { Archive, ArrowLeft, Plus, RotateCcw } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 import { Failure, FormField, selectClass, unwrap } from "~/components/evidence/shared";
 import { LibraryEditor } from "~/components/library/editor";
 import { EvidenceLinks } from "~/components/library/evidence-links";
+import { LibraryLifecycleDialog } from "~/components/library/lifecycle";
 import {
   kindLabels,
   LibraryDataView,
@@ -35,13 +36,14 @@ function LibraryPage() {
   const [search, setSearch] = useState("");
   const query = useDeferredValue(search);
   const [offset, setOffset] = useState(0);
+  const [archived, setArchived] = useState(false);
+  const [lifecycleItem, setLifecycleItem] = useState<LibraryDetail["item"] | null>(null);
   const [selected, setSelected] = useState<{ id: string; revisionId?: string } | null>(null);
   const [editor, setEditor] = useState<{ kind: LibraryKind; detail?: LibraryDetail } | null>(null);
-  const input = { kind, type, query, offset };
+  const input = { kind, type, query, offset, archived };
   const list = useQuery({
     queryKey: ["library", "search", input],
     queryFn: async () => unwrap(await getLibrary({ data: input })),
-    placeholderData: (previous) => previous,
   });
   const detail = useLibraryDetail(selected);
   return (
@@ -111,6 +113,20 @@ function LibraryPage() {
                 ))}
               </select>
             </FormField>
+            <FormField label="Status">
+              <select
+                className={selectClass}
+                value={archived ? "archived" : "active"}
+                onChange={(event) => {
+                  setArchived(event.target.value === "archived");
+                  setOffset(0);
+                  setSelected(null);
+                }}
+              >
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+              </select>
+            </FormField>
           </div>
           <Failure error={list.error} />
           {list.error && (
@@ -130,6 +146,7 @@ function LibraryPage() {
               )}
             >
               <p className="font-semibold">{entry.item.label}</p>
+              {entry.item.archivedAt !== null && <Badge variant="outline">Archived</Badge>}
               {entry.revision.data.kind === "content" && (
                 <p className="line-clamp-3 whitespace-pre-wrap text-[15px] leading-6">
                   {entry.revision.data.wording}
@@ -145,16 +162,22 @@ function LibraryPage() {
           {list.data && !list.data.items.length && (
             <div className="space-y-3 py-10">
               <h2 className="font-editorial text-2xl">
-                {query
-                  ? "No matching library items"
-                  : `Create your first ${kindLabels[kind].toLowerCase()}.`}
+                {archived
+                  ? "No archived items found"
+                  : query
+                    ? "No matching library items"
+                    : `Create your first ${kindLabels[kind].toLowerCase()}.`}
               </h2>
               <p className="text-sm text-muted-foreground">
-                Start with a wording unit. Blocks bind items into fields; Sections arrange Blocks.
+                {archived
+                  ? "Archived items remain available here to inspect or restore."
+                  : "Start with a wording unit. Blocks bind items into fields; Sections arrange Blocks."}
               </p>
-              <Button onClick={() => setEditor({ kind })}>
-                New {kindLabels[kind].toLowerCase()}
-              </Button>
+              {!archived && (
+                <Button onClick={() => setEditor({ kind })}>
+                  New {kindLabels[kind].toLowerCase()}
+                </Button>
+              )}
             </div>
           )}
           {list.data && (offset > 0 || list.data.hasMore) && (
@@ -208,24 +231,41 @@ function LibraryPage() {
                     ? " · Historical revision"
                     : " · Current library revision"}
                 </p>
-                {detail.data.revision.id === detail.data.item.currentRevisionId ? (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      if (detail.data)
-                        setEditor({ kind: detail.data.item.kind, detail: detail.data });
-                    }}
-                  >
-                    Edit reusable {kindLabels[detail.data.item.kind].toLowerCase()}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelected({ id: detail.data.item.id })}
-                  >
-                    Return to current revision
-                  </Button>
+                {detail.data.item.archivedAt !== null && (
+                  <div className="space-y-2 border-l-2 pl-3">
+                    <Badge variant="outline">Archived</Badge>
+                    <p className="text-sm text-muted-foreground">
+                      Existing résumés and checkpoints keep their saved content. Restore this item
+                      to edit or reuse it.
+                    </p>
+                  </div>
                 )}
+                <div className="flex flex-wrap gap-3">
+                  {detail.data.revision.id === detail.data.item.currentRevisionId ? (
+                    detail.data.item.archivedAt === null && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          if (detail.data)
+                            setEditor({ kind: detail.data.item.kind, detail: detail.data });
+                        }}
+                      >
+                        Edit reusable {kindLabels[detail.data.item.kind].toLowerCase()}
+                      </Button>
+                    )
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelected({ id: detail.data.item.id })}
+                    >
+                      Return to current revision
+                    </Button>
+                  )}
+                  <Button variant="outline" onClick={() => setLifecycleItem(detail.data.item)}>
+                    {detail.data.item.archivedAt === null ? <Archive /> : <RotateCcw />}
+                    {detail.data.item.archivedAt === null ? "Archive" : "Restore"}
+                  </Button>
+                </div>
               </div>
               <LibraryDataView data={detail.data.revision.data} graph={detail.data.graph} />
               <EvidenceLinks
@@ -259,6 +299,26 @@ function LibraryPage() {
                   ))}
                 </div>
               </details>
+              {detail.data.lifecycle.length > 0 && (
+                <details className="border-t pt-5">
+                  <summary className="cursor-pointer text-sm font-semibold">
+                    Archive history
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                    {detail.data.lifecycle.map((event) => (
+                      <article key={event.id} className="space-y-2 border-b pb-4">
+                        <p className="text-sm font-medium">
+                          {event.command === "archive-library" ? "Archived" : "Restored"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(event.createdAt).toLocaleString()}
+                        </p>
+                        <p className="text-sm whitespace-pre-wrap break-words">{event.rationale}</p>
+                      </article>
+                    ))}
+                  </div>
+                </details>
+              )}
               <details className="border-t pt-4 text-xs">
                 <summary className="cursor-pointer">Revision identity</summary>
                 <p className="mt-3 break-all font-mono">{detail.data.revision.id}</p>
@@ -275,6 +335,16 @@ function LibraryPage() {
           detail={editor.detail}
           onClose={() => setEditor(null)}
           onSaved={(ref) => setSelected({ id: ref.itemId })}
+        />
+      )}
+      {lifecycleItem && (
+        <LibraryLifecycleDialog
+          item={lifecycleItem}
+          onClose={() => setLifecycleItem(null)}
+          onSaved={() => {
+            setLifecycleItem(null);
+            setSelected(null);
+          }}
         />
       )}
     </WorkspaceShell>
