@@ -24,13 +24,15 @@ Connect the **web Worker** for each environment to `joshuasilva414/river-resume-
 | Build command | `pnpm ci:build staging` | `pnpm ci:build production` |
 | Deploy command | `pnpm ci:deploy staging` | `pnpm ci:deploy production` |
 | Non-production branch builds | Disabled | Disabled |
-| Watch paths | All files | All files |
+| Watch paths | All except `docs/**` and `README.md` | All except `docs/**` and `README.md` |
 | `NODE_VERSION` | `24.20.0` | `24.20.0` |
 | `PNPM_VERSION` | `10.33.0` | `10.33.0` |
 
 Leave `CLOUDFLARE_ENV` unset in dashboard build variables. The scripts select it only while building the web bundle. This keeps tests on local bindings. The lockfile and package manager are pinned in the repository. Keep the automatic dependency install enabled.
 
-The build runs lint, types, unit/Workers tests, deployment guard tests and offline PDF/DOCX container fixtures before creating the environment-specific Vite bundle. These checks run inside Cloudflare too; a failing GitHub check alone does not stop an independent Workers Build.
+The build runs lint, types, unit/Workers tests, deployment guard tests and offline PDF/DOCX container fixtures before creating the environment-specific Vite bundle. A failing GitHub check alone does not stop an independent Workers Build.
+
+GitHub enforces the 512 MiB / 1 CPU fixture budget. Cloudflare runs the same functional fixtures in the Dockerfile's `fixtures` build stage because its runner cannot launch standalone containers. That stage uses `RUN --network=none`; the deployed image excludes it. Image-build downloads use Cloudflare's host networking override; GitHub fixture containers still use `--network none`.
 
 The deploy command validates the generated account, Worker name, database, bucket, service, workflow and route identities before any remote writes. It then:
 
@@ -48,7 +50,11 @@ Use a dedicated **user API token** registered with Workers Builds. Scope account
 
 The deployment token is a build credential. Existing runtime secrets stay on the Workers and do not belong in GitHub Actions, the repository, or the client bundle. Cloudflare's default generated build token does not include every permission needed for River's database/container deployment.
 
-The repository connection was created on 2026-09-06 (`9729d0c8-fd1e-459c-800d-6fd1e9b1c56d`). `origin/dev` and `origin/staging` were created from main `018b823`. **Automatic deployment triggers are not yet activated.** Activation needs a dedicated build token and these scripts on the two watched branches. Verify the first staging build end to end before enabling production.
+The repository connection was created on 2026-09-06 (`9729d0c8-fd1e-459c-800d-6fd1e9b1c56d`). `origin/dev` and `origin/staging` were created from main `018b823`. Both automatic triggers use the dedicated **River automatic deployments** token, registered as build credential `f54ece86-c68f-4540-90f5-a54441b31028`.
+
+- Staging trigger: `8c4d1265-ef86-4a49-87ad-3f8a3a7dc5f5`.
+- Production trigger: `d3742d46-710e-472e-8512-375e1791e72b`.
+- Dev has no build trigger or hosted resources.
 
 ## Release safeguards
 
