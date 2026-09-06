@@ -112,6 +112,8 @@ Resume Blocks and Resume Sections have stable identities and immutable revisions
 
 Copying a Block or Section creates a new placement referencing the same exact revision. Its first edit creates a draft-local composition override. The Owner may explicitly promote the result as a new reusable revision or fork it into a separate reusable identity. New library revisions never automatically change existing drafts; the editor offers a comparison and an explicit Apply action. Checkpoints retain their original composition and presentation.
 
+Library Content Items, Blocks and Sections support recoverable archival with a required reason. Active lists and new-content pickers exclude archived library items. The Owner can inspect their pinned revisions and archive history, then restore an item before editing or reusing it. Archival advances the stable item revision without rewriting Content, Block or Section Revisions. Existing résumé placements and checkpoints retain their saved values. This library organization action is separate from evidence lifecycle warnings and export acknowledgments.
+
 ## Editor persistence and recovery
 
 Editor mutations use domain commands such as `insertBlock`, `moveBlock`, `applyContentOverride`, and `changeTemplate`. Each command carries an idempotency key and expected draft revision. The browser applies edits immediately and debounces autosave; successful server responses establish the next acknowledged base revision. Undo and redo remain local to the current editing session, while checkpoints provide persistent history.

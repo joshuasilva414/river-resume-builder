@@ -1,6 +1,6 @@
 # River build plan
 
-Status: V1 implementation is complete on personal staging and remains unreleased. The core tailoring loop, reviewed AI, template workflows and history are deployed. Scoring is active, and source refinement, template promotion and visual approval pass staging testing. A bounded scoring retry, a 4-minute-23-second real tailoring/export session from the prepared workspace and real content in all three starter packs pass. The Owner confirmed hosted password recovery; protected navigation subsequently requires sign-in. Production is published at river.jilva.dev with separate credentials and working Owner GitHub login. The first scheduled production backup and isolated restore pass. Final-domain document/export and email delivery acceptance remain open. See [implementation status](docs/implementation/status.md) and [runtime proof](docs/implementation/phase-0.md).
+Status: V1 is released at https://river.jilva.dev on the personal Cloudflare account. All three phases are implemented. Final-domain Owner sign-in, recovery email receipt, the approved fictional document/export test, scheduled backup and isolated restore pass. A prepared-workspace real tailoring/export session took 4 minutes 23 seconds with agent assistance; this is not first-use or unaided Owner timing. See [implementation status](docs/implementation/status.md), [release evidence](docs/implementation/release-gates.md) and [production acceptance](docs/implementation/production.md).
 
 ## Approved implementation decisions
 
@@ -46,7 +46,7 @@ All three delivery phases constitute V1. Phase 1 includes checkpoint storage and
 | Owner authentication | Better Auth, GitHub OAuth and allowlisted email/password | Verification/reset emails; revocable D1 sessions for 30 days; no KV or cookie session cache |
 | Authentication email | Cloudflare Email Service binding | Restrict destinations to the Owner |
 | Agent authentication | Named scoped bearer credentials | One-time secret display, stored hash, expiration/revocation; shared REST/MCP services |
-| AI | OpenAI, server-side deployment secret | Reviewed proposals; exact SDK/model selection remains open |
+| AI | OpenAI, server-side deployment secret | OpenAI SDK 7.10.0; task profiles pin gpt-5.4-mini-2026-03-17 |
 | Diagnostics | Effect structured logs/spans into Workers Observability | Correlation identifiers without private document content |
 | Tests | Vitest, matching @effect/vitest, cloudflare:test, Playwright | Pure rules, service behavior, platform integration, critical owner journeys |
 
@@ -193,7 +193,7 @@ Real USAA content now passes in Classic, Minimal and Technical. The latter two u
 Depends on M1–M5.
 
 - [x] Verify critical journeys with Playwright: sign in, add sources/evidence, review a job, compose, resolve a conflict, inspect warnings, and export.
-- [x] Verify authorization, stale proposal rejection, idempotent retry, partial background failure, and immutable historical outputs with focused integration tests. The reviewed 156-test Workers run covers these contracts; hosted provider/credential gates remain separate. See `docs/implementation/release-gates.md`.
+- [x] Verify authorization, stale proposal rejection, idempotent retry, partial background failure, and immutable historical outputs with focused integration tests. The final 160-test Workers run covers these contracts; hosted provider/credential gates remain separate. See `docs/implementation/release-gates.md`.
 - [x] Configure D1 Time Travel and daily D1 exports to a private R2 backup location; preserve immutable source objects.
 - [x] Perform a restore drill into isolated resources and verify source/provenance links and retained exports.
 - [x] Document deployment, migrations, secrets, rollback constraints, background-job diagnosis, backup and restore procedures.
@@ -235,7 +235,7 @@ Exit: restoring history never destroys newer work, score comparisons preserve th
 
 ## Resolved implementation contracts
 
-The approved implementation request and subsequent compatibility work resolved these earlier planning questions. The unchecked milestones above track remaining implementation and acceptance work.
+The approved implementation request and subsequent compatibility work resolved these earlier planning questions. All planned milestones and production acceptance gates above are complete; deferred work remains listed in SPEC.md.
 
 | Item | Needed by | Decision and evidence |
 | --- | --- | --- |

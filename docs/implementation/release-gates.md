@@ -1,10 +1,10 @@
 # V1 release evidence
 
-Updated 2026-09-05. V1 is not released. This maps the remaining plan gates to concrete verification rather than treating deployed controls as completed workflows.
+Updated 2026-09-05. V1 is released at https://river.jilva.dev. This maps the plan gates to concrete verification and records the limits of each check.
 
 ## Service and persistence gate
 
-The complete Workers run recorded in `/tmp/river-score-diagnostics-full.log` passed 158 tests in 26 files, including source occurrence anchors, safe scoring diagnostics across Workflow steps, password-reset session revocation and dialog focus. Five domain tests, all workspace type/lint checks and the clean staging build passed. The current production build/dry run also passes with the final scoring-origin configuration; see `production.md`. Production is published; final-domain document/export and email delivery acceptance remain open. The following assertions satisfy M6's focused integration-test gate; hosted credential and provider acceptance remain separate.
+The final complete Workers run recorded in `/tmp/river-archive-all-tests.log` passed 160 tests in 26 files, including source occurrence anchors, safe scoring diagnostics across Workflow steps, password-reset session revocation and dialog focus. All workspace types, domain/template/document unit suites, isolated-release lint and clean staging/production builds passed. Main-workspace lint separately identifies an unrelated uncommitted favicon title issue; that work is excluded from the release. Final-domain document/export and Owner-confirmed email delivery acceptance pass; see `production.md`. The following assertions satisfy M6's focused integration-test gate; hosted credential and provider acceptance remain separate.
 
 | Contract | Verification |
 | --- | --- |
@@ -14,6 +14,7 @@ The complete Workers run recorded in `/tmp/river-score-diagnostics-full.log` pas
 | Stale and concurrent AI acceptance | `job-ai.test.ts`, `source-ai.test.ts` and `wording.test.ts` preserve Pending proposals and unchanged aggregates/indexes/audits when captured inputs change or a competing decision wins. |
 | Interrupted background work | `sources.test.ts` finalizes a previously uploaded object, leaves a missing upload undispatched, rotates beyond 50 abandoned reservations and isolates R2 failures. `persistence.test.ts` preserves cancellation against late success and dispatch acknowledgment. |
 | Partial artifact publication | `refinement-artifacts.test.ts` interrupts after the first retained object, resumes without replacing that object's bytes/time, checks exact digests and rejects incomplete or conflicting sets. |
+| Library archive/restore | `library.test.ts` covers every kind, required reasons, Owner-only mutations, concurrent/replayed commands, stale editing, and unchanged immutable revisions, drafts and checkpoints. Paper desktop/mobile implementation and hosted acceptance pass; see `library.md`. |
 | Historical output and non-destructive restoration | `checkpoints.test.ts` preserves captured composition, contact/context values, artifacts and exact acknowledgments through later edits. `history.test.ts` restores an independent branch without changing the source checkpoint or newer draft. |
 
 Reproduce the complete Workers suite with `pnpm --filter @river/web test`. Its D1 and R2 bindings are isolated test resources; it does not send provider requests or change staging credentials. See each workflow's implementation record for its exact test and hosted proof history.
@@ -26,9 +27,7 @@ Hosted Agent Credential acceptance passed with real REST/MCP source, evidence an
 
 The Owner confirmed hosted password-reset completion on September 5. Subsequent protected navigation in the previously authenticated browser displays sign-in. The separate isolated Better Auth/D1 tests cover old-password rejection, one-use/expired tokens and multiple-session revocation. See `authentication.md` for the exact evidence and its limits.
 
-The following work still prevents V1 release:
-
-- Final-domain document/export and email delivery acceptance. Production publication, all five secret installations, Owner GitHub login and the first automatic backup plus isolated restore pass. The fictional document acceptance fixture is paused for explicit production-test approval; see `production.md`.
+Production acceptance is complete. The Owner approved the fictional fixture and confirmed recovery email receipt. Its first-attempt PDF passed all text checks; one explicitly approved unsupported warning preceded export. Four downloaded hashes match storage, and anonymous downloads returned 401. The job and three library items are archived. The final isolated restore passes 72 tables and four export objects with the original checkpoint/export/revisions unchanged. See `production.md` and `recovery.md`.
 
 Successful bounded scoring retry and complete canonical result handling now pass: Minimal retains all three six-platform responses, with the badge correctly withheld for failing simulations. Actual phone qualification review also passes. See `template-scoring.md` and `mobile-review.md`.
 

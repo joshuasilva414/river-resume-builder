@@ -1,6 +1,6 @@
 # Implementation status
 
-Updated 2026-09-05 (America/Chicago). V1 is implemented on personal staging and remains unreleased. This page describes current state; milestone documents retain earlier deployment and verification history. [Release gates](release-gates.md) tracks unfinished acceptance.
+Updated 2026-09-05 (America/Chicago). V1 is released at https://river.jilva.dev. This page describes current state; milestone documents retain earlier deployment and verification history. [Release evidence](release-gates.md) records completed acceptance and its limits.
 
 ## Application and persistence
 
@@ -8,7 +8,7 @@ The six-package pnpm/Turborepo workspace uses strict TypeScript, Effect applicat
 
 The sole Owner is created and verified on staging. Email/password and GitHub sign-in work for the same account. Sessions are revocable and protected artifact routes reject anonymous requests. The password-reset adapter revokes existing sessions; the isolated Better Auth/D1 journey passes. The Owner has confirmed hosted password-reset completion, and subsequent protected navigation in the previously authenticated browser requires sign-in. Named Agent Credentials have scoped access, hash-only storage, expiry and revision-checked revocation. The approved hosted REST/MCP journey passed; its temporary credential is revoked. See [authentication](authentication.md) and [agent access](agent-access.md).
 
-Only personal Cloudflare account `a91c30d69981b341efe3b656a263f6da` is used. ACM UTSA is excluded. Staging has all 28 migrations through `0027_source_upload_checks.sql`, 72 base tables and 11 Workflows. Exact active code and resource identities are recorded in [deployment.json](deployment.json).
+Only personal Cloudflare account `a91c30d69981b341efe3b656a263f6da` is used. ACM UTSA is excluded. Staging and production have all 29 migrations through `0028_library_archival.sql`, 72 base tables and 11 Workflows. Exact active code and resource identities are recorded in [deployment.json](deployment.json).
 
 River opens on Job targets. The redundant shared-header workspace label and Phase 0 badge are removed. Document runtime is available at `/runtime` in staging/local development; production hides the link, redirects the route and rejects diagnostic service calls. Paper design, focused tests and hosted desktop/mobile checks are recorded in [production preparation](production.md).
 
@@ -42,14 +42,16 @@ The narrow ATS identity change is deployed. River retains exact checkpoint input
 
 All nine canonical template documents rendered and remain retained. The Oracle Taleo product-name mismatch is fixed. Minimal’s final bounded retry completes all three six-platform responses, retaining raw identity and earlier failures. Every fixture reports a failing Taleo filter. Classic has exhausted its three attempts with one complete fixture response; Technical retains its earlier failed attempt. No template receives an ATS Screener tested designation. Populated Classic phone review now passes in light/dark themes, including PDF/text, pinned older reports and the exhausted retry limit. See [template scoring](template-scoring.md).
 
-The latest isolated restore passes 72 table counts, FTS equality, foreign keys, 148 retained objects, 24 exact citations and four exports. It preserves the successful complete Minimal scoring retry, timed USAA export, source-refinement decisions, independent branches, generic template promotion and approval. Exact comparison also preserves all 45 original library items/revisions, 23 evidence revisions, four original drafts/checkpoints and four earlier qualification reports. No live database was overwritten or Workflow redispatched. Daily backups retain their actual attempt history. See [recovery](recovery.md).
+The completed staging acceptance restore passes 72 table counts, FTS equality, foreign keys, 148 retained objects, 24 exact citations and four exports. It preserves the successful complete Minimal scoring retry, timed USAA export, source-refinement decisions, independent branches, generic template promotion and approval. Exact comparison also preserves all 45 original library items/revisions, 23 evidence revisions, four original drafts/checkpoints and four earlier qualification reports. No live database was overwritten or Workflow redispatched. Daily backups retain their actual attempt history. See [recovery](recovery.md).
 
-The latest complete suite passes 158 Workers tests in 26 files. Five domain tests, all workspace types/lint and the staging build pass. Tests use isolated resources and synthetic provider responses; they do not establish live provider reliability. [Release gates](release-gates.md) maps the contract checks to their test files.
+The latest complete suite passes 160 Workers tests in 26 files. Domain, template and document unit suites, all workspace types, isolated-release lint and both environment builds pass. The separate uncommitted favicon work in the main checkout is excluded from the release; its missing SVG title fails main-workspace lint. Tests use isolated resources and synthetic provider responses; they do not establish live provider reliability. [Release gates](release-gates.md) maps the contract checks to their test files.
 
-## Remaining release work
+## Production release acceptance
 
-- Complete final-domain document/export and email delivery acceptance. Production publication, all five secret installations, Owner GitHub login, the first scheduled backup and its isolated restore are complete. The fictional document test is paused for explicit production-test approval.
+Production is live at https://river.jilva.dev with its own D1/R2, private document Worker/Container and 11 Workflows. Owner GitHub sign-in, final-domain recovery email receipt, Job targets landing and production diagnostic restrictions pass. The explicitly approved fictional fixture compiled on attempt 1, produced a one-page PDF with correct text, and exported four hash-verified files after its single unsupported-evidence acknowledgment. Anonymous downloads returned 401. Staging records were not copied.
 
-Production is live at https://river.jilva.dev with its own D1/R2, private document Worker/Container and 11 Workflows. The landing and diagnostic restrictions pass. Staging records were not copied. See [production activation](production.md).
+The fictional job and all three library items are archived. Paper-designed library archive/restore is deployed, with required reasons and retained history. A fresh production backup restores all 72 tables and four export objects. Exact comparison preserves the checkpoint, export record and immutable library revisions. The first scheduled production backup also passed independently. See [production acceptance](production.md), [library](library.md) and [recovery](recovery.md).
+
+No required V1 implementation or release gate remains open. The recorded PDF flicker report remains possibly resolved and deferred at the Owner’s request; see [known issues](known-issues.md). Deferred product features remain in SPEC.md.
 
 The Owner authorizes overriding staging UI decisions for testing. Test acknowledgments and lifecycle approvals must remain identified as tests. This does not establish evidence verification. Production publication and credentials were approved separately. The optional complete-Owner-résumé AI rerun remains pending explicit transfer permission; synthetic v2 verification is complete and the optional rerun is not a release gate.

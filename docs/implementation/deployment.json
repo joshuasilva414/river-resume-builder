@@ -4,14 +4,14 @@
   "applicationUrl": "https://river-staging.jilva.workers.dev",
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
-  "webVersion": "491fc65f-90e8-4793-8654-1d40d4e7c112",
+  "webVersion": "080f168f-c8d0-4db2-adab-e1a550edb33e",
   "documentWorkerVersion": "8ad4cf9e-bb6e-4a1d-8fbc-7107e78f818f",
   "containerImageDigest": "sha256:a35ce74287fdce2c7a7152e2afd107ac2d9b736bd31b8f9eb8b42bdf5cec3a2f",
   "database": "river-staging",
   "databaseId": "1b837147-de99-4aaa-a4ad-386b826412b0",
   "bucket": "river-staging-artifacts",
   "workflow": "river-staging-documents",
-  "migrationsThrough": "0027_source_upload_checks.sql",
+  "migrationsThrough": "0028_library_archival.sql",
   "checks": {
     "signIn": 200,
     "unauthenticatedSettings": 307,
@@ -19,7 +19,7 @@
     "unauthenticatedArtifact": 401,
     "ownerAccount": "verified sole Owner; authenticated browser session confirmed",
     "hostedAuthenticatedPdf": "passed: PDF.js preview, exact text validation, PDF download action, and unauthenticated denial",
-    "productionDeployment": "not deployed",
+    "productionDeployment": "V1 released at https://river.jilva.dev; see productionActivation and production.md",
     "hostedSourceIntake": "passed: authenticated upload, extraction with repeated text and Unicode, original download, unauthenticated 401",
     "sourceFixtureId": "01a06fd4-a312-7863-9d11-472e76a6ac13",
     "sourceApiUnauthenticated": 401,
@@ -37,7 +37,7 @@
     "jobFixtureId": "01a0702c-c8fa-77b9-81e8-1578fb8d54b0",
     "hostedJobs": "passed: target creation, exact manual posting passage, pinned archived evidence selection, reload, citation and decision inspection, archive; synthetic fixture outside default job list",
     "jobResponsive": "1280px local desktop and 621px hosted narrow light/dark reviewed; no horizontal overflow at 621px; 390px override did not apply",
-    "hostedLibrary": "passed: authenticated synthetic Content Item creation, reload persistence, narrow dark editor; local nested revisions preserve original wording",
+    "hostedLibrary": "Archive/restore and immutable revision preservation pass in addition to prior library/composition acceptance; see libraryArchival.",
     "hostedComposition": "passed: synthetic draft creation, nested header revisions, autosave revision 1, real authenticated PDF, and narrow saved review",
     "compositionFixtureId": "01a07069-7ca2-738d-bd84-12a10310be3a",
     "compositionPreviewOperationId": "01a0706d-7239-79fb-b0ee-91539896d299",
@@ -52,7 +52,7 @@
     "jobAnalysis": "Passed: hosted live v2 requirement extraction and complete-map acceptance; v3 ranking with one cited Draft match and two explicit gaps; review alone leaves selections empty, separate exact-revision selection persists. Weak v2 ranking rejected with null payload. Fictional job and claims archived. Citation fix: 136 Workers tests; latest ranking guard: 10 focused tests; workspace types/lint and staging build pass.",
     "streamedRestoreDrill": "passed: v2 format derived from a real 42-table staging snapshot; isolated SQLite, FTS, foreign keys, one citation, 14 retained objects, one export; live scheduled export remains unverified",
     "wording": "Passed: live local and hosted gpt-5.4-mini-2026-03-17 generation and complete inline review on synthetic fixtures. Local unrelated rename, acceptance r8, undo r9, redo r10; hosted visible name-formatting acceptance r3, undo r4, retained r3 decision. Actual PDFs and 75% zoom retained. 14 focused Workers tests, workspace types/lint and staging build pass.",
-    "sourceProposals": "Passed: v2 hosted synthetic retry yields five Pending candidates with exact Unicode and distinct repeated-line citations. First attempt rejected invented context atomically. New Owner résumé run awaits explicit OpenAI transfer permission.",
+    "sourceProposals": "Passed: v2 hosted synthetic retry yields five Pending candidates with exact Unicode and distinct repeated-line citations. First attempt rejected invented context atomically. New Owner r\u00e9sum\u00e9 run awaits explicit OpenAI transfer permission.",
     "duplicateComparison": "Passed: hosted first-attempt generation, full findings/captured/current inspection, independent acknowledgment preserving both claims, separate attributed Keep separate decision and saved access through both claim histories. Fictional claims archived. Model inconsistency retained and identified in review rationale.",
     "templateStudio": "Passed: local real fixture validation, approval, concurrent preservation, mixing, exact draft/preview/checkpoint, retirement and retained export. Hosted third validation passed all four fixtures twice after fixing Container RPC stream ownership. Hosted graph remains Validated pending Owner visual approval. Anonymous PDF request returns 401.",
     "templateGeneration": "Hosted real model response and first-attempt 11-point PDF passed graph, text-integrity and runtime checks. Full component change, PDF, text and report reviewed; accepted into immutable Draft. All 86 Workers tests through conversations and eight focused backup tests pass; workspace checks/lint/build pass.",
@@ -547,9 +547,9 @@
     }
   },
   "productionActivation": {
-    "status": "published; final document/export and email delivery acceptance open",
-    "releaseCommit": "c006a46",
-    "codeCommit": "316c2b5",
+    "status": "V1 released; all required final-domain acceptance passed",
+    "releaseCommit": "2754539",
+    "codeCommit": "2754539",
     "accountId": "a91c30d69981b341efe3b656a263f6da",
     "applicationUrl": "https://river.jilva.dev",
     "documentWorkerVersion": "02f4fe23-a7f4-4897-966a-192a4f4897c5",
@@ -559,8 +559,8 @@
     "githubClientId": "Ov23liZjSClopimWF5Jz",
     "webBuildDryRun": true,
     "webPublished": true,
-    "productionAccepted": false,
-    "webVersion": "6b809303-ccd0-4f1a-b338-3f27ba23783b",
+    "productionAccepted": true,
+    "webVersion": "93fa8303-7f0a-405c-a256-fb8a786188f9",
     "ownerGithubSignIn": true,
     "productionRuntimeRedirect": true,
     "secretsInstalled": [
@@ -591,8 +591,66 @@
     },
     "emailAcceptance": {
       "resetRequestUiSucceeded": true,
-      "ownerReceiptConfirmed": false,
+      "ownerReceiptConfirmed": true,
       "passwordChangedByAgent": false
+    },
+    "mainFeatureCommit": "b46bc7e",
+    "migrationsThrough": "0028_library_archival.sql",
+    "migrationCount": 29,
+    "documentAcceptance": {
+      "checkpointId": "01a074d8-470e-74c7-96a3-53e49277b30d",
+      "operationId": "01a074d8-470e-7348-82c5-50b2fc913158",
+      "draftRevision": 1,
+      "attempts": 1,
+      "exportDigest": "88cd2598e14b1544a0899ce29ffb57f859135c4fa68413f436ee78c7dc251b61",
+      "objectDigests": {
+        "pdf": "f864d4c4fe18dba3decb96c9c07d593bf426082d9d257cdd0eeaa1c809384263",
+        "tex": "9a6deb5744cbda8a2ec34facbb416d3d79f9f7adc2fc40dac301fe6c1e5f9f73",
+        "text": "0141fa9c02a49106cd7b7616761fbd1982d74205983ad89fd2428d5633645596",
+        "report": "80fe88b30ddbfc38c706894f00950d0f4fbddff089acc8e8880004f7f6247808"
+      },
+      "allFourDownloadsMatchStorage": true,
+      "pageCount": 1,
+      "documentChecks": {
+        "completeness": true,
+        "multiplicity": true,
+        "readingOrder": true
+      },
+      "durationMs": 3020.27452,
+      "anonymousArtifactStatuses": {
+        "pdf": 401,
+        "tex": 401,
+        "text": 401,
+        "report": 401
+      },
+      "emailReceivedConfirmedByOwner": true,
+      "fictionalJobArchived": true,
+      "fictionalLibraryItemsArchived": 3,
+      "checkpointUnchangedAfterArchival": true,
+      "exportUnchangedAfterArchival": true
+    },
+    "finalBackup": {
+      "key": "backups/database/production/2026-09-06T04-12-08.821Z-379ff4c1-7be8-4095-af6e-d4737492875b/snapshot.json.gz",
+      "sha256": "29153be59f8dbac1507dfb10615ddf4e964251a4db27ab3ca2785e5aefc61c7e",
+      "report": "test-results/recovery/drill-a821db33-aa86-4c43-ae01-dc94e14d4cee/report.json",
+      "tables": 72,
+      "objects": 4,
+      "exports": 1,
+      "isolatedRestorePassed": true
     }
+  },
+  "milestoneHistoryNote": "Earlier nested milestone checks retain their original scope; productionActivation and libraryArchival describe the final released state.",
+  "libraryArchival": {
+    "mainCommit": "b46bc7e",
+    "releaseCommit": "2754539",
+    "migration": "0028_library_archival.sql",
+    "paperBoards": ["AJ4-0", "ALY-0"],
+    "workersTests": 160,
+    "stagingArchiveRestorePassed": true,
+    "productionCleanupPassed": true,
+    "immutableRevisionsPreserved": true,
+    "viewports": [1280, 390],
+    "appearances": ["light", "dark"],
+    "viewportReset": true
   }
 }
