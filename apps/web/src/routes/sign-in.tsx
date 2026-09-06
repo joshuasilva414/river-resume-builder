@@ -25,14 +25,14 @@ function SignIn() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const form = useForm({
-    defaultValues: { email: "", password: "" },
+    defaultValues: { name: "", email: "", password: "" },
     onSubmit: async ({ value }) => {
       setMessage(null);
       setError(false);
       try {
         const result =
           mode === "create"
-            ? await authClient.signUp.email({ ...value, name: "Joshua", callbackURL: "/" })
+            ? await authClient.signUp.email({ ...value, name: value.name.trim(), callbackURL: "/" })
             : mode === "recover"
               ? await authClient.requestPasswordReset({
                   email: value.email,
@@ -76,7 +76,7 @@ function SignIn() {
             </h1>
             <p className="text-[15px] leading-[21px] text-muted-foreground">
               {mode === "create"
-                ? "Use your workspace owner email to create your account."
+                ? "Use your invited email address to create your private workspace."
                 : mode === "recover"
                   ? "Enter your account email to request a password reset link."
                   : "Sign in to continue tailoring your résumés."}
@@ -97,6 +97,24 @@ function SignIn() {
             }}
           >
             <FieldGroup>
+              {mode === "create" && (
+                <form.Field name="name">
+                  {(field) => (
+                    <Field>
+                      <FieldLabel htmlFor="name">Name</FieldLabel>
+                      <Input
+                        id="name"
+                        autoComplete="name"
+                        required
+                        maxLength={100}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                      />
+                    </Field>
+                  )}
+                </form.Field>
+              )}
               <form.Field name="email">
                 {(field) => (
                   <Field>
@@ -145,7 +163,7 @@ function SignIn() {
                   <Button type="submit" disabled={busy}>
                     {busy && <LoaderCircle className="animate-spin" data-icon="inline-start" />}
                     {mode === "create"
-                      ? "Create owner account"
+                      ? "Create account"
                       : mode === "recover"
                         ? "Send reset link"
                         : "Sign in"}
@@ -178,7 +196,7 @@ function SignIn() {
             </Button>
           </div>
           <p className="text-center text-xs text-muted-foreground">
-            Access is limited to the workspace owner.
+            Accounts are available by invitation. Each workspace is private.
           </p>
         </div>
         <footer className="flex flex-col gap-3">

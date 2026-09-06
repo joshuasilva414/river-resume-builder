@@ -50,7 +50,7 @@ it("deduplicates daily dispatch atomically and records completion only after ret
   });
   expect(await store.scheduleBackup("missing@example.test", "2026-01-01")).toBeNull();
   const [first, duplicate] = await Promise.all([
-    store.scheduleBackup(email, "2026-01-01"),
+    store.scheduleBackup(email.toUpperCase(), "2026-01-01"),
     store.scheduleBackup(email, "2026-01-01"),
   ]);
   expect(first).toEqual(duplicate);
@@ -207,7 +207,7 @@ it("serializes explicit daily retries, preserves old operations, and enforces th
   const store = createRepository(env.DB),
     id = newId(),
     email = `${id}@example.test`;
-  const actor: Principal = { kind: "owner", id, ownerId: id };
+  const actor: Principal = { kind: "owner", id, ownerId: id, isAdmin: true };
   const agent: Principal = { kind: "agent", id: newId(), ownerId: id, scopes: [] };
   await store.db.insert(schema.user).values({
     id,
@@ -272,15 +272,15 @@ it("serializes explicit daily retries, preserves old operations, and enforces th
   ).toHaveLength(3);
   expect((await store.scheduleBackup(email, first.date))?.operationId).toBe(third.id);
   const other: Principal = { kind: "owner", id: newId(), ownerId: newId() };
-  expect((await store.readBackupStatus(other)).latest).toBeNull();
-  await expect(store.retryBackup(other, input, true)).rejects.toMatchObject({ code: "NotFound" });
+  await expect(store.readBackupStatus(other)).rejects.toMatchObject({ code: "Forbidden" });
+  await expect(store.retryBackup(other, input, true)).rejects.toMatchObject({ code: "Forbidden" });
 });
 
 it("pages UTC dates without replacing the latest attempt or another Owner's history", async () => {
   const store = createRepository(env.DB),
     id = newId(),
     email = `${id}@example.test`;
-  const actor: Principal = { kind: "owner", id, ownerId: id };
+  const actor: Principal = { kind: "owner", id, ownerId: id, isAdmin: true };
   await store.db.insert(schema.user).values({
     id,
     name: "History fixture",

@@ -5,7 +5,8 @@ import { Schema } from "effect";
 export const Configuration = Schema.Struct({
   ENVIRONMENT: Schema.Literals(["development", "staging", "production"]),
   APP_URL: Schema.NonEmptyString,
-  OWNER_EMAIL: Schema.NonEmptyString,
+  ADMIN_EMAIL: Schema.NonEmptyString,
+  ALLOWED_EMAILS: Schema.optional(Schema.String),
   AUTH_SECRET: Schema.String.check(Schema.isMinLength(32)),
   EMAIL_FROM: Schema.NonEmptyString,
   GITHUB_CLIENT_ID: Schema.optional(Schema.String),
@@ -59,8 +60,14 @@ export function bindings(): Env {
     (env.ENVIRONMENT !== "development" && url.protocol !== "https:")
   )
     throw new Error("APP_URL must be an origin, using HTTPS outside development.");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(env.OWNER_EMAIL))
-    throw new Error("OWNER_EMAIL must be a valid email address.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(env.ADMIN_EMAIL))
+    throw new Error("ADMIN_EMAIL must be a valid email address.");
+  if (
+    env.ALLOWED_EMAILS?.split(",")
+      .filter((email) => email.trim().length > 0)
+      .some((email) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
+  )
+    throw new Error("ALLOWED_EMAILS must contain comma-separated email addresses.");
   if (env.ATS_SCREENER_ORIGIN) {
     const provider = new URL(env.ATS_SCREENER_ORIGIN);
     if (

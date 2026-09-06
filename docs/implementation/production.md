@@ -2,6 +2,8 @@
 
 Updated 2026-09-05 (America/Chicago). V1 is released at https://river.jilva.dev. The Owner approved publication, the personal GitHub OAuth app, all five production secrets and the fictional production acceptance test. Owner sign-in, recovery email receipt, document/export and backup/restore acceptance pass. Staging records were not copied. ACM UTSA is excluded.
 
+The 2026-09-06 private-account extension is now deployed as web version `9d3ce1ab-ab71-47cb-93ad-3f7afa3d2aca`, with 31 migrations and 73 base tables. The existing administrator account is preserved and `jilvadev@gmail.com` and `karisamscott@gmail.com` are admitted. See [multi-user operation](multi-user.md) for current deployment and preservation evidence. The detailed V1 release record below remains historical.
+
 ## Deployed resources
 
 | Resource | Production identity |

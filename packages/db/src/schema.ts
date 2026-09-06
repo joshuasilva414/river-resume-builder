@@ -85,6 +85,14 @@ export const user = sqliteTable("user", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
+/** Shared auth throttles survive request-scoped Better Auth instances and Worker isolates. */
+export const rateLimit = sqliteTable("rate_limit", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  count: integer("count").notNull(),
+  lastRequest: integer("last_request").notNull(),
+});
+
 export const session = sqliteTable(
   "session",
   {
@@ -196,7 +204,11 @@ export const operations = sqliteTable(
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
   },
-  (table) => [index("operations_owner_created").on(table.ownerId, table.createdAt)],
+  (table) => [
+    index("operations_owner_created").on(table.ownerId, table.createdAt),
+    index("operations_created").on(table.createdAt),
+    index("operations_state").on(table.state),
+  ],
 );
 export const backups = sqliteTable("database_backups", {
   date: text("date").primaryKey(),

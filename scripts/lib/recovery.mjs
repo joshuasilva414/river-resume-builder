@@ -89,7 +89,15 @@ export async function restoreDatabase(snapshot, destination, environment) {
       assert.equal(sha256(migration.sql), migration.sha256);
       db.exec(migration.sql);
     }
+    // Replay accepted history without consuming admission again; keep FK and FTS checks active.
+    const admission = db
+      .prepare(
+        "SELECT sql FROM sqlite_master WHERE type='trigger' AND name='operations_usage_limits'",
+      )
+      .get()?.sql;
+    if (admission) db.exec("DROP TRIGGER operations_usage_limits");
     db.exec(snapshot.data);
+    if (admission) db.exec(admission);
     db.exec("COMMIT;");
     assert.equal(db.prepare("PRAGMA integrity_check").get().integrity_check, "ok");
     assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);

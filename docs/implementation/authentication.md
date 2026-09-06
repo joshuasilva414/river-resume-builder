@@ -1,6 +1,6 @@
-# Owner authentication and recovery
+# Account authentication and recovery
 
-Updated 2026-09-05. River uses request-scoped Better Auth 1.7.2 with the D1 Drizzle adapter. Only the configured, verified Owner can obtain an application principal. The required GitHub OAuth method is configured and verified on staging.
+Updated 2026-09-06. Staging and production support admitted private accounts and separate administrator capabilities. Existing administrator sessions remain valid after deployment. See [multi-user operation](multi-user.md) for current account admission, mail behavior and hosted verification. The history below describes the earlier single-owner release. River uses request-scoped Better Auth 1.7.2 with the D1 Drizzle adapter.
 
 Password recovery sends a one-use link through the destination-restricted mail adapter. Requesting a link does not end existing sessions. Completing a reset now sets Better Auth's `revokeSessionsOnPasswordReset` option, which deletes the Owner's existing D1 sessions. The user must sign in with the new password. Agent Credentials remain separate, individually revocable identities.
 

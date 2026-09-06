@@ -6,6 +6,7 @@ export const getAccessSettings = Effect.gen(function* () {
   const actor = yield* Actor;
   const repository = yield* Store;
   return yield* attempt(async () => ({
+    usage: await repository.readUsage(actor.ownerId),
     credentials: (await repository.listCredentials(actor.ownerId)).map((item) => ({
       ...item,
       createdAt: new Date(item.createdAt).toISOString(),

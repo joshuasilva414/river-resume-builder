@@ -43,8 +43,8 @@ All three delivery phases constitute V1. Phase 1 includes checkpoint storage and
 | Durable execution | Cloudflare Workflows | Application-owned Operation records remain authoritative for status and history |
 | Document processing | Separate Worker-backed Container | Typed extraction, compilation, and template-validation jobs |
 | LaTeX engine | Pinned Tectonic, support bundle, fonts, and container image | Offline, bounded, untrusted execution; PDF preview is authoritative |
-| Owner authentication | Better Auth, GitHub OAuth and allowlisted email/password | Verification/reset emails; revocable D1 sessions for 30 days; no KV or cookie session cache |
-| Authentication email | Cloudflare Email Service binding | Restrict destinations to the Owner |
+| Account authentication | Better Auth, GitHub OAuth and allowlisted email/password | Verification/reset emails; revocable D1 sessions for 30 days; no KV or cookie session cache |
+| Authentication email | Cloudflare Email Service binding | Restrict senders to the application domain; application admission policy restricts recipients |
 | Agent authentication | Named scoped bearer credentials | One-time secret display, stored hash, expiration/revocation; shared REST/MCP services |
 | AI | OpenAI, server-side deployment secret | OpenAI SDK 7.10.0; task profiles pin gpt-5.4-mini-2026-03-17 |
 | Diagnostics | Effect structured logs/spans into Workers Observability | Correlation identifiers without private document content |
@@ -52,7 +52,7 @@ All three delivery phases constitute V1. Phase 1 includes checkpoint storage and
 
 Effect SQL, HTTP, Workflow, and client-state layers are outside the accepted V1 architecture. Workflows owns durable retries; any Effect retry inside a step has a separate bounded budget. Revalidate exact dependency versions during Phase 0 instead of treating interview-time version research as a permanent compatibility guarantee.
 
-The sole Owner is `joshuasilva414@gmail.com`. Deploy only to the personal Cloudflare account. Do not use the ACM UTSA workspace. Production will use `river.jilva.dev`; staging uses its isolated workers.dev address.
+Each admitted account owns an independent private workspace. `ADMIN_EMAIL` identifies the service administrator; `ALLOWED_EMAILS` lists additional admitted addresses. No collaboration or sharing is supported. See `docs/implementation/multi-user.md`. Deploy only to the personal Cloudflare account. Do not use the ACM UTSA workspace. Production will use `river.jilva.dev`; staging uses its isolated workers.dev address.
 
 ## Workspace layout and ownership
 
@@ -246,7 +246,7 @@ The approved implementation request and subsequent compatibility work resolved t
 | Review metadata | M2/Phase 2 | Separate revision-checked review/lifecycle state with retained decisions, audit and immutable material revisions. See `evidence.md` and `template-studio.md`. |
 | Document adapters and limits | Phase 0/M5 | PDF.js, Mammoth and pinned offline Tectonic; measured limits and one bounded Container with two-minute idle sleep. See `phase-0.md`; hosted performance remains measured rather than guaranteed. |
 | Raw document overrides | Phase 2 | Accept into a new checkpoint; structured return creates a separate branch and regenerates source after an explicit explanation. See `source-refinement.md`. |
-| Deployment configuration | M1/M6 | Sole Owner `joshuasilva414@gmail.com`, intended `river.jilva.dev`, personal-account staging and isolated production resources. ACM UTSA is excluded. See `deployment.json`. |
+| Deployment configuration | M1/M6 | Private accounts with a separate service administrator, intended `river.jilva.dev`, personal-account staging and isolated production resources. ACM UTSA is excluded. See `deployment.json`. |
 | Retention | M5/M6 | Seven-day transient previews, 30-day daily backups, preserved original/checkpoint objects and removed rejected live payloads. Provider requests use `store: false`. See `recovery.md`. |
 | Recovery protocols | M1/M2 | Operation/dispatch persistence before execution, stable dispatch identities, atomic D1 commands and immutable recoverable R2 writes. See `recovery.md` and workflow implementation records. |
 

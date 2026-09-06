@@ -14,6 +14,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { Schema } from "effect";
 import { createCredential, getAccessSettings, revokeCredential } from "./access";
+import { isAdministrator } from "./account-access";
 import { authenticate } from "./auth";
 import { readBackupStatus, retryBackup } from "./backups";
 import { bindings } from "./env";
@@ -31,7 +32,12 @@ export const getSession = createServerFn({ method: "GET" }).handler(async () => 
   const session = await authenticate(env, getRequestHeaders());
   return {
     user: session
-      ? { id: session.user.id, name: session.user.name, email: session.user.email }
+      ? {
+          id: session.user.id,
+          name: session.user.name,
+          email: session.user.email,
+          isAdmin: isAdministrator(env, session.user.email),
+        }
       : null,
     githubEnabled: Boolean(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET),
     environment: env.ENVIRONMENT,

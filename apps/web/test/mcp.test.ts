@@ -33,7 +33,7 @@ async function fixture(scopes: readonly AgentScope[]) {
     ...env,
     ENVIRONMENT: "development" as const,
     APP_URL: "http://localhost:3000",
-    OWNER_EMAIL: email,
+    ADMIN_EMAIL: email,
     AUTH_SECRET: "mcp-test-only-at-least-thirty-two-characters",
     EMAIL_FROM: "River <test@example.test>",
   };

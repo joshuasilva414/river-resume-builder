@@ -4,8 +4,14 @@ import type {
   ProblemDetails,
   StartProofRequest,
 } from "@river/contracts";
-import { createRepository, type Repository } from "@river/db";
-import { type AgentScope, ApplicationError, newId, type Principal } from "@river/domain";
+import { createRepository, type Repository, usageFailure } from "@river/db";
+import {
+  type AgentScope,
+  ApplicationError,
+  newId,
+  type Principal,
+  requireAdministrator,
+} from "@river/domain";
 import { syntheticResume } from "@river/templates";
 import { Context, Effect, Layer } from "effect";
 import { authenticatePrincipal } from "./auth";
@@ -21,10 +27,11 @@ export function attempt<A>(run: () => Promise<A>): Effect.Effect<A, ApplicationE
     catch: (error) =>
       error instanceof ApplicationError
         ? error
-        : new ApplicationError({
+        : (usageFailure(error) ??
+          new ApplicationError({
             code: "Internal",
             message: "The operation could not be completed.",
-          }),
+          })),
   });
 }
 
@@ -43,6 +50,7 @@ export const startProof = (environment: Configuration["ENVIRONMENT"], input: Sta
   Effect.gen(function* () {
     yield* requireRuntime(environment);
     const actor = yield* Actor;
+    yield* attempt(async () => requireAdministrator(actor));
     const store = yield* Store;
     return yield* attempt(() =>
       store.startCompile(actor.id, input.idempotencyKey, {
@@ -65,6 +73,7 @@ export const listOperations = (environment: Configuration["ENVIRONMENT"]) =>
   Effect.gen(function* () {
     yield* requireRuntime(environment);
     const actor = yield* Actor;
+    yield* attempt(async () => requireAdministrator(actor));
     const store = yield* Store;
     const operations = yield* attempt(() => store.listOperations(actor.id));
     return operations
@@ -90,6 +99,7 @@ export function problem(error: ApplicationError, traceId: string): ProblemDetail
     Conflict: 409,
     NotFound: 404,
     Unavailable: 503,
+    RateLimited: 429,
     Internal: 500,
   } as const;
   return {

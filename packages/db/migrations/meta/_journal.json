@@ -134,6 +134,20 @@
       "when": 1788616276489,
       "tag": "0018_backup_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1788672484788,
+      "tag": "0029_multi_user_usage",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1788672620114,
+      "tag": "0030_auth_rate_limits",
+      "breakpoints": true
     }
   ]
 }

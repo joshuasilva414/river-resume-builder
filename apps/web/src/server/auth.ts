@@ -4,23 +4,27 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
 import { eq } from "drizzle-orm";
+import { isAccountAllowed, isAdministrator } from "./account-access";
 import type { Env } from "./env";
 
 type AuthMail = { to: string; subject: string; text: string };
 
 /** Request-scoped auth avoids retaining one request's Cloudflare bindings in another. */
 export function createAuth(env: Env, deliver?: (message: AuthMail) => Promise<void>) {
-  const ownerEmail = env.OWNER_EMAIL.toLowerCase().trim();
   const send = async (message: AuthMail) => {
-    if (message.to.toLowerCase() !== ownerEmail) throw new APIError("FORBIDDEN");
+    if (!isAccountAllowed(env, message.to)) return;
     if (deliver) return deliver(message);
     if (
       env.ENVIRONMENT === "development" &&
       ["localhost", "127.0.0.1"].includes(new URL(env.APP_URL).hostname)
     ) {
-      await env.ARTIFACTS.put("development/auth/latest.json", JSON.stringify(message), {
-        httpMetadata: { contentType: "application/json" },
-      });
+      await env.ARTIFACTS.put(
+        `development/auth/${await fingerprint(message.to.toLowerCase().trim())}/latest.json`,
+        JSON.stringify(message),
+        {
+          httpMetadata: { contentType: "application/json" },
+        },
+      );
       return;
     }
     if (!env.EMAIL)
@@ -68,14 +72,49 @@ export function createAuth(env: Env, deliver?: (message: AuthMail) => Promise<vo
             github: { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET },
           }
         : {},
+    advanced: { ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] } },
+    rateLimit: {
+      enabled: true,
+      storage: "database",
+      window: 60,
+      max: 60,
+      customRules: {
+        "/sign-up/email": { window: 3600, max: 5 },
+        "/request-password-reset": { window: 3600, max: 5 },
+        "/send-verification-email": { window: 3600, max: 5 },
+      },
+    },
     session: { expiresIn: 60 * 60 * 24 * 30, cookieCache: { enabled: false } },
     databaseHooks: {
+      session: {
+        create: {
+          before: async (session) => {
+            const user = (
+              await createDatabase(env.DB)
+                .select()
+                .from(schema.user)
+                .where(eq(schema.user.id, session.userId))
+                .limit(1)
+            )[0];
+            if (!user?.emailVerified || !isAccountAllowed(env, user.email))
+              throw new APIError("FORBIDDEN", { message: "Account access is unavailable." });
+            return { data: session };
+          },
+        },
+      },
       user: {
         create: {
           before: async (user) => {
-            if (user.email.toLowerCase() !== ownerEmail)
-              throw new APIError("FORBIDDEN", { message: "This workspace is private." });
-            return { data: user };
+            if (!isAccountAllowed(env, user.email))
+              throw new APIError("FORBIDDEN", {
+                message: "An invitation is required to create a River account.",
+              });
+            const name = user.name.trim();
+            if (!name || name.length > 100)
+              throw new APIError("BAD_REQUEST", {
+                message: "Enter a name between 1 and 100 characters.",
+              });
+            return { data: { ...user, name } };
           },
         },
       },
@@ -86,11 +125,7 @@ export function createAuth(env: Env, deliver?: (message: AuthMail) => Promise<vo
 
 export async function authenticate(env: Env, headers: Headers) {
   const session = await createAuth(env).api.getSession({ headers });
-  if (
-    !session?.user.emailVerified ||
-    session.user.email.toLowerCase() !== env.OWNER_EMAIL.toLowerCase()
-  )
-    return null;
+  if (!session?.user.emailVerified || !isAccountAllowed(env, session.user.email)) return null;
   return session;
 }
 
@@ -120,8 +155,7 @@ export async function authenticatePrincipal(env: Env, headers: Headers): Promise
         .where(eq(schema.user.id, credential.ownerId))
         .limit(1)
     )[0];
-    if (!owner?.verified || owner.email.toLowerCase() !== env.OWNER_EMAIL.trim().toLowerCase())
-      return null;
+    if (!owner?.verified || !isAccountAllowed(env, owner.email)) return null;
     await repository.credentialUsed(credential.id);
     return {
       kind: "agent",
@@ -131,5 +165,12 @@ export async function authenticatePrincipal(env: Env, headers: Headers): Promise
     };
   }
   const session = await authenticate(env, headers);
-  return session ? { kind: "owner", id: session.user.id, ownerId: session.user.id } : null;
+  return session
+    ? {
+        kind: "owner",
+        id: session.user.id,
+        ownerId: session.user.id,
+        isAdmin: isAdministrator(env, session.user.email),
+      }
+    : null;
 }

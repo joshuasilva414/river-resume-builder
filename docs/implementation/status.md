@@ -1,6 +1,10 @@
 # Implementation status
 
-Updated 2026-09-05 (America/Chicago). V1 is released at https://river.jilva.dev. This page describes current state; milestone documents retain earlier deployment and verification history. [Release evidence](release-gates.md) records completed acceptance and its limits.
+Updated 2026-09-06 (America/Chicago). V1 is released at https://river.jilva.dev. This page describes current state; milestone documents retain earlier deployment and verification history. [Release evidence](release-gates.md) records completed acceptance and its limits.
+
+## Multi-user extension
+
+The 2026-09-06 extension is deployed to staging and production with `jilvadev@gmail.com` and `karisamscott@gmail.com` admitted and the existing account retained as administrator. It adds private accounts, administrator-only backup/runtime controls, database-backed authentication throttles, and atomic per-account/service task budgets. Both environments have 31 migrations through `0030_auth_rate_limits.sql` and 73 base tables. The 211-test release passes; existing hosted sessions and anonymous access denial pass, and backup comparisons preserve all original production rows. See [multi-user operation](multi-user.md) for current versions, verification and the new recipient's pending signup/email verification. The sections below retain the earlier V1 acceptance history.
 
 ## Application and persistence
 

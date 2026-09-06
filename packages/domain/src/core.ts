@@ -67,7 +67,12 @@ export const agentScopes = [
 export const AgentScope = Schema.Literals(agentScopes);
 export type AgentScope = typeof AgentScope.Type;
 export type Principal =
-  | { readonly kind: "owner"; readonly id: string; readonly ownerId: string }
+  | {
+      readonly kind: "owner";
+      readonly id: string;
+      readonly ownerId: string;
+      readonly isAdmin?: boolean;
+    }
   | {
       readonly kind: "agent";
       readonly id: string;
@@ -82,12 +87,19 @@ export class ApplicationError extends Data.TaggedError("ApplicationError")<{
     | "InvalidInput"
     | "Conflict"
     | "NotFound"
+    | "RateLimited"
     | "Unavailable"
     | "Internal";
   readonly message: string;
   readonly expectedRevision?: number;
   readonly observedRevision?: number;
 }> {}
+
+/** Administration grants service maintenance access; it never grants access to other workspaces. */
+export function requireAdministrator(actor: Principal) {
+  if (actor.kind !== "owner" || !actor.isAdmin)
+    throw new ApplicationError({ code: "Forbidden", message: "Administrator access is required." });
+}
 
 /** Generate sortable UUIDv7 identities using a millisecond timestamp and secure randomness. */
 export function newId(now = Date.now()): string {

@@ -4,11 +4,11 @@ River is the product name. Resume Builder remains the descriptive project name. 
 
 ## Product goal
 
-Build a private, Joshua-first web app that turns a job description and verified personal evidence into a reviewed, tailored resume within 15 minutes.
+Build a web app with independent private accounts that turns a job description and verified personal evidence into a reviewed, tailored resume within 15 minutes.
 
-V1 includes all three delivery phases. Phase 1 is the first usable MVP. The hosted application is internet-reachable, but its UI is available only to the owner; external agents authenticate through separate scoped credentials.
+V1 includes all three delivery phases. Phase 1 is the first usable MVP. The hosted application is internet-reachable, but each workspace is available only to its verified account; external agents authenticate through separate scoped credentials.
 
-The sole Owner is `joshuasilva414@gmail.com`. The production hostname is `river.jilva.dev`. Deployment belongs to the personal Cloudflare account; the ACM UTSA workspace is excluded.
+Each account is the Owner of one private workspace. Accounts have no sharing or collaboration features. `ADMIN_EMAIL` identifies the service administrator and `ALLOWED_EMAILS` admits additional accounts. Administrator access grants backup and runtime maintenance capabilities, never access to another account's content. The production hostname is `river.jilva.dev`. Deployment belongs to the personal Cloudflare account; the ACM UTSA workspace is excluded.
 
 The product remains user-directed:
 
@@ -205,9 +205,9 @@ Returning to structured editing creates a new branch from the structured base an
 
 ## AI access
 
-V1 uses OpenAI through a user-provided API key. Internal product concepts remain task-oriented so additional providers can be added without changing the domain model.
+V1 uses OpenAI through the service operator's API key. Internal product concepts remain task-oriented so additional providers can be added without changing the domain model.
 
-The single owner's OpenAI key is configured as a server-side deployment secret. It is not stored in application data or exposed to the browser.
+The service OpenAI key is configured as a server-side deployment secret. It is not stored in application data or exposed to the browser.
 
 AI may access the complete workspace for authorized evidence, job-analysis, ranking, and resume-refinement tasks. Template generation is the exception and always uses synthetic content.
 

@@ -14,7 +14,7 @@ const settings = {
   ...env,
   ENVIRONMENT: "development" as const,
   APP_URL: "http://localhost:3000",
-  OWNER_EMAIL: "owner@example.test",
+  ADMIN_EMAIL: "owner@example.test",
   AUTH_SECRET: "river-test-only-secret-at-least-thirty-two-characters",
   EMAIL_FROM: "River <test@example.test>",
 };
@@ -38,12 +38,12 @@ it("requires the allowlisted verified Owner and honors session revocation", asyn
   ).toEqual([]);
   expect(deliveries).toHaveLength(0);
   await auth.api.signUpEmail({
-    body: { email: settings.OWNER_EMAIL, password: "a-test-password-123456", name: "Owner" },
+    body: { email: settings.ADMIN_EMAIL, password: "a-test-password-123456", name: "Owner" },
     headers,
   });
   await expect(
     auth.api.signInEmail({
-      body: { email: settings.OWNER_EMAIL, password: "a-test-password-123456" },
+      body: { email: settings.ADMIN_EMAIL, password: "a-test-password-123456" },
       headers,
     }),
   ).rejects.toMatchObject({ status: "FORBIDDEN" });
@@ -54,14 +54,14 @@ it("requires the allowlisted verified Owner and honors session revocation", asyn
   if (!token) throw Error("Expected a verification token");
   await auth.api.verifyEmail({ query: { token }, headers });
   const response = await auth.api.signInEmail({
-    body: { email: settings.OWNER_EMAIL, password: "a-test-password-123456" },
+    body: { email: settings.ADMIN_EMAIL, password: "a-test-password-123456" },
     headers,
     asResponse: true,
   });
   const cookie = response.headers.get("set-cookie")?.split(";")[0];
   if (!cookie) throw Error("Expected a session cookie");
   headers.set("Cookie", cookie);
-  expect((await authenticate(settings, headers))?.user.email).toBe(settings.OWNER_EMAIL);
+  expect((await authenticate(settings, headers))?.user.email).toBe(settings.ADMIN_EMAIL);
   const result = await execute(
     settings,
     headers,
@@ -94,7 +94,7 @@ it("requires the allowlisted verified Owner and honors session revocation", asyn
 });
 
 it("delivers single-use recovery only to the Owner and revokes existing sessions after a reset", async () => {
-  const recoverySettings = { ...settings, OWNER_EMAIL: "recovery-owner@example.test" };
+  const recoverySettings = { ...settings, ADMIN_EMAIL: "recovery-owner@example.test" };
   const deliveries: { to: string; subject: string; text: string }[] = [];
   const auth = createAuth(recoverySettings, async (message) => {
     deliveries.push(message);
@@ -103,7 +103,7 @@ it("delivers single-use recovery only to the Owner and revokes existing sessions
   const oldPassword = "fixture-old-password-123456";
   const newPassword = "fixture-new-password-654321";
   await auth.api.signUpEmail({
-    body: { email: recoverySettings.OWNER_EMAIL, password: oldPassword, name: "Recovery Owner" },
+    body: { email: recoverySettings.ADMIN_EMAIL, password: oldPassword, name: "Recovery Owner" },
     headers,
   });
   const verificationUrl = deliveries[0]?.text.split("\n").at(-1);
@@ -115,7 +115,7 @@ it("delivers single-use recovery only to the Owner and revokes existing sessions
   const sessions: Headers[] = [];
   for (let index = 0; index < 2; index++) {
     const response = await auth.api.signInEmail({
-      body: { email: recoverySettings.OWNER_EMAIL, password: oldPassword },
+      body: { email: recoverySettings.ADMIN_EMAIL, password: oldPassword },
       headers,
       asResponse: true,
     });
@@ -133,7 +133,7 @@ it("delivers single-use recovery only to the Owner and revokes existing sessions
   });
   expect(deliveries).toHaveLength(1);
   const requested = await auth.api.requestPasswordReset({
-    body: { email: recoverySettings.OWNER_EMAIL, redirectTo: "/reset-password" },
+    body: { email: recoverySettings.ADMIN_EMAIL, redirectTo: "/reset-password" },
     headers,
   });
   expect(requested).toEqual(unknown);
@@ -142,7 +142,7 @@ it("delivers single-use recovery only to the Owner and revokes existing sessions
     expect(await authenticate(recoverySettings, sessionHeaders)).not.toBeNull();
   const resetMail = deliveries[1];
   expect(resetMail).toMatchObject({
-    to: recoverySettings.OWNER_EMAIL,
+    to: recoverySettings.ADMIN_EMAIL,
     subject: "Reset your River password",
   });
   const resetLink = resetMail?.text.split("\n")[1];
@@ -166,7 +166,7 @@ it("delivers single-use recovery only to the Owner and revokes existing sessions
     expect(await authenticate(recoverySettings, sessionHeaders)).toBeNull();
   await expect(
     auth.api.signInEmail({
-      body: { email: recoverySettings.OWNER_EMAIL, password: oldPassword },
+      body: { email: recoverySettings.ADMIN_EMAIL, password: oldPassword },
       headers,
     }),
   ).rejects.toMatchObject({ status: "UNAUTHORIZED" });
@@ -174,13 +174,13 @@ it("delivers single-use recovery only to the Owner and revokes existing sessions
     auth.api.resetPassword({ body: { token, newPassword: oldPassword }, headers }),
   ).rejects.toMatchObject({ status: "BAD_REQUEST" });
   const signedIn = await auth.api.signInEmail({
-    body: { email: recoverySettings.OWNER_EMAIL, password: newPassword },
+    body: { email: recoverySettings.ADMIN_EMAIL, password: newPassword },
     headers,
   });
-  expect(signedIn.user.email).toBe(recoverySettings.OWNER_EMAIL);
+  expect(signedIn.user.email).toBe(recoverySettings.ADMIN_EMAIL);
 
   await auth.api.requestPasswordReset({
-    body: { email: recoverySettings.OWNER_EMAIL, redirectTo: "/reset-password" },
+    body: { email: recoverySettings.ADMIN_EMAIL, redirectTo: "/reset-password" },
     headers,
   });
   const expiringLink = deliveries[2]?.text.split("\n")[1];

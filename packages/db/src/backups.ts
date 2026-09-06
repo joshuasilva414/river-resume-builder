@@ -1,5 +1,11 @@
 import type { ReadBackupStatusRequest, RetryBackupRequest } from "@river/contracts";
-import { ApplicationError, type BackupObject, newId, type Principal } from "@river/domain";
+import {
+  ApplicationError,
+  type BackupObject,
+  newId,
+  type Principal,
+  requireAdministrator,
+} from "@river/domain";
 import { and, desc, eq, gt, isNotNull, lt, sql } from "drizzle-orm";
 import { conditionGuard, createCommands } from "./commands";
 import type { Database } from "./index";
@@ -12,7 +18,7 @@ export function createBackupRepository(db: Database) {
   return {
     getBackup,
     async readBackupStatus(actor: Principal, input: ReadBackupStatusRequest = {}) {
-      requireBackupOwner(actor);
+      requireAdministrator(actor);
       const selection = {
         date: s.backups.date,
         attempt: s.backups.attempts,
@@ -95,7 +101,7 @@ export function createBackupRepository(db: Database) {
       };
     },
     async retryBackup(actor: Principal, input: RetryBackupRequest, configured: boolean) {
-      requireBackupOwner(actor);
+      requireAdministrator(actor);
       return commands.commit(
         actor,
         "retry-database-backup",
@@ -164,7 +170,7 @@ export function createBackupRepository(db: Database) {
       );
     },
     /** The date is the permanent scheduler identity. Concurrent cron deliveries share one durable dispatch. */
-    async scheduleBackup(ownerEmail: string, date: string) {
+    async scheduleBackup(administratorEmail: string, date: string) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
         throw new ApplicationError({
           code: "InvalidInput",
@@ -176,7 +182,12 @@ export function createBackupRepository(db: Database) {
         await db
           .select({ id: s.user.id })
           .from(s.user)
-          .where(and(eq(s.user.email, ownerEmail), eq(s.user.emailVerified, true)))
+          .where(
+            and(
+              eq(s.user.email, administratorEmail.trim().toLowerCase()),
+              eq(s.user.emailVerified, true),
+            ),
+          )
           .limit(1)
       )[0];
       if (!owner) return null;
@@ -256,12 +267,4 @@ export function createBackupRepository(db: Database) {
       return true;
     },
   };
-}
-
-function requireBackupOwner(actor: Principal) {
-  if (actor.kind !== "owner")
-    throw new ApplicationError({
-      code: "Forbidden",
-      message: "Only the Owner can inspect or retry database backups.",
-    });
 }

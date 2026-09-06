@@ -38,7 +38,8 @@ export const Route = createFileRoute("/runtime")({
   beforeLoad: async () => {
     const session = await getSession();
     if (!session.user) throw redirect({ to: "/sign-in" });
-    if (session.environment === "production") throw redirect({ to: "/jobs", replace: true });
+    if (!session.user.isAdmin || session.environment === "production")
+      throw redirect({ to: "/jobs", replace: true });
     return { user: session.user, environment: session.environment };
   },
   component: Workspace,

@@ -1,8 +1,8 @@
 # River
 
-A private workspace for Joshua Silva to turn job postings and experience into tailored résumés, ready to review and export. Product behavior lives in [SPEC.md](SPEC.md); architecture and delivery gates live in [PLAN.md](PLAN.md).
+Private workspaces for turning job postings and experience into tailored résumés, ready to review and export. Product behavior lives in [SPEC.md](SPEC.md); architecture and delivery gates live in [PLAN.md](PLAN.md).
 
-**Implementation status:** V1 is implemented on personal staging and remains unreleased. See the [implementation status](docs/implementation/status.md) for current capabilities and verification, and the [release gates](docs/implementation/release-gates.md) for remaining acceptance and production deployment work.
+**Implementation status:** V1 and the private-account extension are deployed to staging and production. See the [implementation status](docs/implementation/status.md) and [multi-user operation](docs/implementation/multi-user.md) for verification and account admission.
 
 ## Run locally
 
@@ -20,7 +20,7 @@ WRANGLER_DOCKER_BIN=/Applications/Docker.app/Contents/Resources/bin/docker pnpm 
 3. Apply the D1 migrations to the local database.
 4. Start the web app on `http://127.0.0.1:3000` and the private document Worker on port 8788. The first Container build downloads and pins the compiler resources. On Linux, use your installed Docker CLI path.
 
-Create the allowlisted Owner account in the local sign-in screen. Development verification and reset messages are written to private local R2 instead of sending email. Retrieve `river-local-artifacts/development/auth/latest.json` with `wrangler r2 object get --local`; open its verification link in the same local browser. This delivery adapter is restricted to development and a loopback application origin.
+Create an account using `ADMIN_EMAIL` or an address in the comma-separated `ALLOWED_EMAILS` configuration. Development verification and reset messages are written to private local R2 instead of sending email. Run `pnpm auth:mail -- you@example.test` to read the latest local message for that address and open its verification link in the same local browser. This delivery adapter is restricted to development and a loopback application origin.
 
 ## Verify
 
@@ -45,8 +45,8 @@ GitHub Actions runs these checks. The workflow has been added but has not run on
 
 ## Deployment and current limitations
 
-The Owner is `joshuasilva414@gmail.com`. Resources belong exclusively to the personal Cloudflare account configured in both Wrangler files. The ACM UTSA workspace is outside this project.
+`ADMIN_EMAIL` identifies the service administrator; `ALLOWED_EMAILS` admits additional private accounts. The administrator has no cross-workspace content access. See [multi-user operation](docs/implementation/multi-user.md) for admission, migration and usage limits. Resources belong exclusively to the personal Cloudflare account configured in both Wrangler files. The ACM UTSA workspace is outside this project.
 
-Staging: [river-staging.jilva.workers.dev](https://river-staging.jilva.workers.dev). The intended production hostname is `river.jilva.dev`; the production application has not been deployed.
+Staging: [river-staging.jilva.workers.dev](https://river-staging.jilva.workers.dev). Production: [river.jilva.dev](https://river.jilva.dev).
 
 See [the runtime proof](docs/implementation/phase-0.md) for measurements, exact resource identities, reproducible deployment steps, and remaining acceptance checks. See [the implementation ledger](docs/implementation/status.md) before continuing work.

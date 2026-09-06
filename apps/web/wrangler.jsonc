@@ -11,15 +11,16 @@
   "vars": {
     "ENVIRONMENT": "development",
     "APP_URL": "http://127.0.0.1:3000",
-    "OWNER_EMAIL": "joshuasilva414@gmail.com",
+    "ADMIN_EMAIL": "joshuasilva414@gmail.com",
+    "ALLOWED_EMAILS": "",
     "EMAIL_FROM": "River <hello@river.jilva.dev>",
-    "OPENAI_REQUIREMENTS_MODEL": "gpt-5.4-mini-2026-03-17",
-    "OPENAI_RANKING_MODEL": "gpt-5.4-mini-2026-03-17",
-    "OPENAI_WORDING_MODEL": "gpt-5.4-mini-2026-03-17",
-    "OPENAI_SOURCE_CLAIMS_MODEL": "gpt-5.4-mini-2026-03-17",
-    "OPENAI_DUPLICATE_MODEL": "gpt-5.4-mini-2026-03-17",
-    "OPENAI_TEMPLATE_MODEL": "gpt-5.4-mini-2026-03-17",
-    "OPENAI_REFINEMENT_MODEL": "gpt-5.4-mini-2026-03-17"
+    "OPENAI_REQUIREMENTS_MODEL": "gpt-5.6-luna",
+    "OPENAI_RANKING_MODEL": "gpt-5.6-luna",
+    "OPENAI_WORDING_MODEL": "gpt-5.6-luna",
+    "OPENAI_SOURCE_CLAIMS_MODEL": "gpt-5.6-luna",
+    "OPENAI_DUPLICATE_MODEL": "gpt-5.6-luna",
+    "OPENAI_TEMPLATE_MODEL": "gpt-5.6-luna",
+    "OPENAI_REFINEMENT_MODEL": "gpt-5.6-luna"
   },
   "d1_databases": [
     {
@@ -112,15 +113,16 @@
         "BACKUP_BUCKET_NAME": "river-staging-artifacts",
         "APP_URL": "https://river-staging.jilva.workers.dev",
         "ATS_SCREENER_ORIGIN": "https://ats.jilva.dev",
-        "OWNER_EMAIL": "joshuasilva414@gmail.com",
+        "ADMIN_EMAIL": "joshuasilva414@gmail.com",
+        "ALLOWED_EMAILS": "jilvadev@gmail.com,karisamscott@gmail.com",
         "EMAIL_FROM": "River <hello@river.jilva.dev>",
-        "OPENAI_REQUIREMENTS_MODEL": "gpt-5.4-mini-2026-03-17",
-        "OPENAI_RANKING_MODEL": "gpt-5.4-mini-2026-03-17",
-        "OPENAI_WORDING_MODEL": "gpt-5.4-mini-2026-03-17",
-        "OPENAI_SOURCE_CLAIMS_MODEL": "gpt-5.4-mini-2026-03-17",
-        "OPENAI_DUPLICATE_MODEL": "gpt-5.4-mini-2026-03-17",
-        "OPENAI_TEMPLATE_MODEL": "gpt-5.4-mini-2026-03-17",
-        "OPENAI_REFINEMENT_MODEL": "gpt-5.4-mini-2026-03-17"
+        "OPENAI_REQUIREMENTS_MODEL": "gpt-5.6-luna",
+        "OPENAI_RANKING_MODEL": "gpt-5.6-luna",
+        "OPENAI_WORDING_MODEL": "gpt-5.6-luna",
+        "OPENAI_SOURCE_CLAIMS_MODEL": "gpt-5.6-luna",
+        "OPENAI_DUPLICATE_MODEL": "gpt-5.6-luna",
+        "OPENAI_TEMPLATE_MODEL": "gpt-5.6-luna",
+        "OPENAI_REFINEMENT_MODEL": "gpt-5.6-luna"
       },
       "r2_buckets": [
         {
@@ -195,7 +197,7 @@
       "send_email": [
         {
           "name": "EMAIL",
-          "allowed_destination_addresses": ["joshuasilva414@gmail.com"]
+          "allowed_sender_addresses": ["hello@river.jilva.dev"]
         }
       ],
       "triggers": {
@@ -219,15 +221,16 @@
         "BACKUP_BUCKET_NAME": "river-production-artifacts",
         "APP_URL": "https://river.jilva.dev",
         "ATS_SCREENER_ORIGIN": "https://ats.jilva.dev",
-        "OWNER_EMAIL": "joshuasilva414@gmail.com",
+        "ADMIN_EMAIL": "joshuasilva414@gmail.com",
+        "ALLOWED_EMAILS": "jilvadev@gmail.com,karisamscott@gmail.com",
         "EMAIL_FROM": "River <hello@river.jilva.dev>",
-        "OPENAI_REQUIREMENTS_MODEL": "gpt-5.4-mini-2026-03-17",
-        "OPENAI_RANKING_MODEL": "gpt-5.4-mini-2026-03-17",
-        "OPENAI_WORDING_MODEL": "gpt-5.4-mini-2026-03-17",
-        "OPENAI_SOURCE_CLAIMS_MODEL": "gpt-5.4-mini-2026-03-17",
-        "OPENAI_DUPLICATE_MODEL": "gpt-5.4-mini-2026-03-17",
-        "OPENAI_TEMPLATE_MODEL": "gpt-5.4-mini-2026-03-17",
-        "OPENAI_REFINEMENT_MODEL": "gpt-5.4-mini-2026-03-17"
+        "OPENAI_REQUIREMENTS_MODEL": "gpt-5.6-luna",
+        "OPENAI_RANKING_MODEL": "gpt-5.6-luna",
+        "OPENAI_WORDING_MODEL": "gpt-5.6-luna",
+        "OPENAI_SOURCE_CLAIMS_MODEL": "gpt-5.6-luna",
+        "OPENAI_DUPLICATE_MODEL": "gpt-5.6-luna",
+        "OPENAI_TEMPLATE_MODEL": "gpt-5.6-luna",
+        "OPENAI_REFINEMENT_MODEL": "gpt-5.6-luna"
       },
       "r2_buckets": [
         {
@@ -302,7 +305,7 @@
       "send_email": [
         {
           "name": "EMAIL",
-          "allowed_destination_addresses": ["joshuasilva414@gmail.com"]
+          "allowed_sender_addresses": ["hello@river.jilva.dev"]
         }
       ],
       "triggers": {

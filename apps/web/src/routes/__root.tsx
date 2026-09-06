@@ -7,10 +7,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "River — Résumé workspace" },
+      { title: "River" },
+      { name: "application-name", content: "River" },
+      {
+        name: "description",
+        content: "Build and tailor your résumé, from job post to ready to send.",
+      },
+      { name: "theme-color", content: "#1e5eff" },
       { name: "robots", content: "noindex, nofollow" },
     ],
-    links: [{ rel: "stylesheet", href: stylesheet }],
+    links: [
+      { rel: "stylesheet", href: stylesheet },
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+    ],
   }),
   component: Root,
   notFoundComponent: () => (

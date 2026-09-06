@@ -24,7 +24,7 @@ it("stores only credential hashes, enforces scopes, and revokes without stale or
     ...env,
     ENVIRONMENT: "development" as const,
     APP_URL: "http://localhost:3000",
-    OWNER_EMAIL: "owner@example.test",
+    ADMIN_EMAIL: "owner@example.test",
     AUTH_SECRET: "river-test-only-secret-at-least-thirty-two-characters",
     EMAIL_FROM: "River <test@example.test>",
   };

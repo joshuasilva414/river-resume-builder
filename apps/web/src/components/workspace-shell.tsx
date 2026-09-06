@@ -32,7 +32,7 @@ export function WorkspaceShell({
   mobileFocus = false,
   contained = false,
 }: {
-  user: { name: string; email: string };
+  user: { name: string; email: string; isAdmin: boolean };
   environment: string;
   children: ReactNode;
   mobileFocus?: boolean;
@@ -40,7 +40,7 @@ export function WorkspaceShell({
 }) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const visibleNavigation = navigation.filter(
-    (item) => item.to !== "/runtime" || environment !== "production",
+    (item) => item.to !== "/runtime" || (user.isAdmin && environment !== "production"),
   );
   const [failure, setFailure] = useState<string | null>(null);
   return (
@@ -134,8 +134,8 @@ export function WorkspaceShell({
           </nav>
           <div className="mt-auto flex flex-col gap-2 border-t px-2 pt-5">
             <span className="text-[13px] font-medium">{user.name}</span>
-            <span className="text-xs text-muted-foreground">Private workspace</span>
-            <span className="eyebrow pt-3">{environment}</span>
+            {/* <span className="text-xs text-muted-foreground">Private workspace</span>
+            <span className="eyebrow pt-3">{environment}</span> */}
           </div>
         </aside>
         <main className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</main>

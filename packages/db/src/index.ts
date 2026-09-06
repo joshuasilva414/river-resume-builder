@@ -29,11 +29,13 @@ import { createTemplateAiRepository } from "./template-ai";
 import { createTemplateConversationRepository } from "./template-conversations";
 import { createTemplateScoringRepository } from "./template-scoring";
 import { createTemplateRepository } from "./templates";
+import { createUsageRepository } from "./usage";
 import { createWordingRepository } from "./wording";
 
 export type { RefinementBaseArtifacts, SourceRefinementInput } from "./refinement-types";
 export type { ScoringFailure, ScoringInput, ScoringResult } from "./scoring-types";
 export type { TemplateScoringDocument, TemplateScoringReport } from "./template-scoring-types";
+export { usageFailure } from "./usage";
 export { schema };
 export const createDatabase = (binding: D1Database) => drizzle(binding, { schema });
 export type Database = ReturnType<typeof createDatabase>;
@@ -59,6 +61,7 @@ export function createRepository(binding: D1Database) {
 
   return {
     ...createAccessRepository(db),
+    ...createUsageRepository(db),
     ...createBackupRepository(db),
     ...createCheckpointRepository(db),
     ...createHistoryRepository(db),

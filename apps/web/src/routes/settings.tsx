@@ -155,7 +155,7 @@ function Settings() {
             <TabsTrigger value="account">Account & sessions</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
-            <TabsTrigger value="backups">Backups</TabsTrigger>
+            {user.isAdmin && <TabsTrigger value="backups">Backups</TabsTrigger>}
           </TabsList>
         </div>
         {settings.error && (
@@ -354,10 +354,26 @@ function Settings() {
         </TabsContent>
         <TabsContent value="account" className="p-6 md:p-8">
           <Account user={user} />
+          {settings.data?.usage && (
+            <section className="mt-8 flex flex-col gap-2 border-t pt-6">
+              <h2 className="text-xl">Processing usage</h2>
+              <p>
+                {settings.data.usage.today} of {settings.data.usage.dailyLimit} tasks today ·{" "}
+                {settings.data.usage.active} of {settings.data.usage.activeLimit} active
+              </p>
+              <p className="text-sm text-muted-foreground">
+                AI requests, document processing, previews and scoring share this allowance. Daily
+                usage resets at midnight UTC. Failed and cancelled tasks count toward the daily
+                allowance.
+              </p>
+            </section>
+          )}
         </TabsContent>
-        <TabsContent value="backups">
-          <BackupSettings />
-        </TabsContent>
+        {user.isAdmin && (
+          <TabsContent value="backups">
+            <BackupSettings />
+          </TabsContent>
+        )}
         <TabsContent value="appearance" className="flex flex-col items-start gap-5 p-6 md:p-8">
           <h2 className="text-2xl">Appearance</h2>
           <p className="text-muted-foreground">
@@ -469,7 +485,7 @@ function Account({ user }: { user: { name: string; email: string } }) {
         <p className="mt-3 font-medium">{user.name}</p>
         <p className="mt-1 text-muted-foreground">{user.email}</p>
         <Badge variant="outline" className="mt-3 text-approved">
-          <ShieldCheck /> Verified Owner
+          <ShieldCheck /> Verified account
         </Badge>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-6">

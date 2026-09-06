@@ -23,7 +23,7 @@ export default {
   async scheduled(event: ScheduledController, env: Env) {
     if (backupConfigured(env))
       await createRepository(env.DB).scheduleBackup(
-        env.OWNER_EMAIL,
+        env.ADMIN_EMAIL,
         new Date(event.scheduledTime).toISOString().slice(0, 10),
       );
     await reconcileOperations(env);

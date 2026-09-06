@@ -4,14 +4,14 @@
   "applicationUrl": "https://river-staging.jilva.workers.dev",
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
-  "webVersion": "080f168f-c8d0-4db2-adab-e1a550edb33e",
+  "webVersion": "31075387-924b-4c79-8c74-763065337f00",
   "documentWorkerVersion": "8ad4cf9e-bb6e-4a1d-8fbc-7107e78f818f",
   "containerImageDigest": "sha256:a35ce74287fdce2c7a7152e2afd107ac2d9b736bd31b8f9eb8b42bdf5cec3a2f",
   "database": "river-staging",
   "databaseId": "1b837147-de99-4aaa-a4ad-386b826412b0",
   "bucket": "river-staging-artifacts",
   "workflow": "river-staging-documents",
-  "migrationsThrough": "0028_library_archival.sql",
+  "migrationsThrough": "0030_auth_rate_limits.sql",
   "checks": {
     "signIn": 200,
     "unauthenticatedSettings": 307,
@@ -652,5 +652,81 @@
     "viewports": [1280, 390],
     "appearances": ["light", "dark"],
     "viewportReset": true
+  },
+  "productionWebVersion": "9d3ce1ab-ab71-47cb-93ad-3f7afa3d2aca",
+  "multiUserDeployment": {
+    "recordedAt": "2026-09-06T07:59:24.022629+00:00",
+    "status": "deployed",
+    "administratorEmail": "joshuasilva414@gmail.com",
+    "allowedEmails": ["jilvadev@gmail.com", "karisamscott@gmail.com"],
+    "migrationsThrough": "0030_auth_rate_limits.sql",
+    "migrationCount": 31,
+    "baseTables": 73,
+    "source": {
+      "baseCommit": "075b368cd9bf345a27232fb2f9dad4aaadc29891",
+      "releaseDirectory": "/tmp/river-multiuser-release-20260906",
+      "manifestPath": "test-results/multi-user-deployment/source-manifest.json",
+      "manifestSha256": "6b1cac82737d33c3f91e585be4d97f148d137f220035745071a1eec47d56bb97",
+      "excludedFiles": ["apps/web/public/favicon.svg", "apps/web/src/routes/__root.tsx"]
+    },
+    "checks": {
+      "testsPassed": 211,
+      "workersTestsPassed": 170,
+      "releaseLintPassed": true,
+      "stagingAndProductionBuildsPassed": true,
+      "existingAdministratorSessionsPassed": true,
+      "productionRuntimeRedirectPassed": true,
+      "anonymousIdentityArtifactAndMcpStatuses": 401,
+      "invitedEmailReachesNameValidation": true,
+      "newAccountsCreated": 0,
+      "newRecipientEmailDelivery": "Not exercised; recipient must create and verify their own account."
+    },
+    "staging": {
+      "webVersion": "31075387-924b-4c79-8c74-763065337f00",
+      "backupBefore": {
+        "key": "backups/database/staging/2026-09-06T07-45-56.200Z-9ce46467-f47e-4b22-8862-8c8f50f4526b/snapshot.json.gz",
+        "sha256": "2e24c20e882b57609de795ec651d9d7e7aa7d7cf07051d678545435f4034280b",
+        "tables": 72
+      },
+      "backupAfter": {
+        "key": "backups/database/staging/2026-09-06T07-51-37.973Z-62559ba4-8ff5-440f-9570-22954ac1c503/snapshot.json.gz",
+        "sha256": "7ca677bab671775afbd7304825be766e227990f534b97dd4ae690ebd2307f391",
+        "tables": 73
+      },
+      "unchangedOriginalTables": 71,
+      "changedOperationalTables": ["verification"],
+      "restoredIntegrityPassed": true
+    },
+    "production": {
+      "webVersion": "9d3ce1ab-ab71-47cb-93ad-3f7afa3d2aca",
+      "backupBefore": {
+        "key": "backups/database/production/2026-09-06T07-45-56.200Z-baf335ee-fa2e-47de-a1fa-58efcfe9cb93/snapshot.json.gz",
+        "sha256": "621a52f5e4ee63289e3f2fc49b2c6823528a1ed1e44168f42a092c68ce2d2bb7",
+        "tables": 72
+      },
+      "backupAfter": {
+        "key": "backups/database/production/2026-09-06T07-53-41.127Z-e39979c4-2601-4538-88be-84fc16458836/snapshot.json.gz",
+        "sha256": "9c01b9cde51d3dbb86a3e27985817fbe4e3fc2f6d7f7f51c3a1f589427f5290a",
+        "tables": 73
+      },
+      "unchangedOriginalTables": 72,
+      "changedOperationalTables": [],
+      "restoredIntegrityPassed": true
+    },
+    "accessListUpdates": [
+      {
+        "recordedAt": "2026-09-06T13:55:16.938386+00:00",
+        "addedEmail": "karisamscott@gmail.com",
+        "previousWebVersions": {
+          "staging": "c9d00dd4-3541-414e-933f-6efcd91cb487",
+          "production": "8d49a94d-4229-4476-939f-8270cca487cd"
+        },
+        "webVersions": {
+          "staging": "31075387-924b-4c79-8c74-763065337f00",
+          "production": "9d3ce1ab-ab71-47cb-93ad-3f7afa3d2aca"
+        },
+        "scope": "Access-list configuration only; no migrations or administrator changes."
+      }
+    ]
   }
 }

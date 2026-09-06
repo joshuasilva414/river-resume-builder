@@ -111,11 +111,18 @@ it("reaches uploaded originals beyond 50 abandoned reservations without changing
   const bytes = new TextEncoder().encode(atob(contentBase64));
   const digest = await fingerprint(bytes);
   const reservation = { ...metadata, digest, byteLength: bytes.length };
+  // Simulate the legacy backlog that could accumulate before multi-user admission limits.
+  await env.DB.exec("DROP TRIGGER operations_usage_limits");
   const ids: string[] = [];
   for (let index = 0; index < 51; index++)
     ids.push(
       await repository.beginSource(actor, { ...reservation, idempotencyKey: `reserve-${index}` }),
     );
+  const usageTrigger = env.TEST_MIGRATIONS.flatMap((migration) => migration.queries).find((query) =>
+    query.includes("CREATE TRIGGER operations_usage_limits"),
+  );
+  if (!usageTrigger) throw Error("Missing usage migration");
+  await env.DB.prepare(usageTrigger).run();
   const ordered = ids.toSorted();
   const firstId = ordered[0],
     lastId = ordered.at(-1);

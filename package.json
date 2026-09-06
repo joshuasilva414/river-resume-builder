@@ -11,14 +11,15 @@
     "build": "turbo run build",
     "check": "turbo run check",
     "lint": "turbo run lint",
-    "test": "turbo run test",
+    "test": "turbo run test && node --test scripts/lib/recovery.test.mjs",
     "setup:local": "node scripts/configure-local.mjs",
     "db:migrate:local": "pnpm --filter @river/web exec wrangler d1 migrations apply river-local --local",
     "test:documents": "node apps/documents/scripts/verify-container.mjs",
     "backup:staging": "node scripts/backup.mjs --staging",
     "backup:production": "node scripts/backup.mjs --production",
     "restore:drill": "node scripts/restore-drill.mjs",
-    "backup:status": "node scripts/backup-status.mjs"
+    "backup:status": "node scripts/backup-status.mjs",
+    "auth:mail": "node scripts/auth-mail.mjs"
   },
   "devDependencies": {
     "typescript": "7.0.2",
