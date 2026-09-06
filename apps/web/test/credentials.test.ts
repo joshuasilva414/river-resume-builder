@@ -61,7 +61,11 @@ it("stores only credential hashes, enforces scopes, and revokes without stale or
     error: { code: "Forbidden" },
   });
   expect(
-    await execute(settings, headers, startProof({ idempotencyKey: "forbidden", theme: "classic" })),
+    await execute(
+      settings,
+      headers,
+      startProof(settings.ENVIRONMENT, { idempotencyKey: "forbidden", theme: "classic" }),
+    ),
   ).toMatchObject({ ok: false, error: { code: "Forbidden" } });
   expect(await repository.listOperations(ownerId)).toHaveLength(0);
   await expect(

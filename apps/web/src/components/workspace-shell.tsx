@@ -22,7 +22,7 @@ const navigation = [
   { to: "/library", label: "Content library", icon: Layers },
   { to: "/templates", label: "Templates", icon: PanelsTopLeft },
   { to: "/sources", label: "Sources", icon: FileText },
-  { to: "/", label: "Document runtime", icon: Activity },
+  { to: "/runtime", label: "Document runtime", icon: Activity },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 export function WorkspaceShell({
@@ -39,6 +39,9 @@ export function WorkspaceShell({
   contained?: boolean;
 }) {
   const pathname = useLocation({ select: (location) => location.pathname });
+  const visibleNavigation = navigation.filter(
+    (item) => item.to !== "/runtime" || environment !== "production",
+  );
   const [failure, setFailure] = useState<string | null>(null);
   return (
     <div className={cn("flex min-h-dvh flex-col", contained && "xl:h-dvh xl:overflow-hidden")}>
@@ -46,9 +49,6 @@ export function WorkspaceShell({
         <Link to="/" className="md:w-60">
           <Brand />
         </Link>
-        <span className="hidden text-[13px] text-muted-foreground sm:block">
-          Personal workspace
-        </span>
         <div className="ml-auto flex items-center gap-3">
           <Appearance />
           <Button
@@ -83,7 +83,7 @@ export function WorkspaceShell({
           mobileFocus && "hidden",
         )}
       >
-        {navigation.map((item) => (
+        {visibleNavigation.map((item) => (
           <Button
             key={item.to}
             variant={
@@ -111,7 +111,7 @@ export function WorkspaceShell({
         <aside className="hidden w-[204px] shrink-0 flex-col border-r px-4 py-6 md:flex">
           <p className="eyebrow px-2 pb-4">Workspace</p>
           <nav aria-label="Workspace" className="flex flex-col gap-1">
-            {navigation.map((item) => (
+            {visibleNavigation.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}

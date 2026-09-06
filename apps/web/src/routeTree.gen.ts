@@ -15,6 +15,7 @@ import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RuntimeRouteImport } from './routes/runtime'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SourcesRouteImport } from './routes/sources'
@@ -66,6 +67,11 @@ const McpRoute = McpRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RuntimeRoute = RuntimeRouteImport.update({
+  id: '/runtime',
+  path: '/runtime',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -190,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/runtime': typeof RuntimeRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/sources': typeof SourcesRoute
@@ -220,6 +227,7 @@ export interface FileRoutesByTo {
   '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/runtime': typeof RuntimeRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/sources': typeof SourcesRoute
@@ -251,6 +259,7 @@ export interface FileRoutesById {
   '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/runtime': typeof RuntimeRoute
   '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/sources': typeof SourcesRoute
@@ -283,6 +292,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/mcp'
     | '/reset-password'
+    | '/runtime'
     | '/settings'
     | '/sign-in'
     | '/sources'
@@ -313,6 +323,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/mcp'
     | '/reset-password'
+    | '/runtime'
     | '/settings'
     | '/sign-in'
     | '/sources'
@@ -343,6 +354,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/mcp'
     | '/reset-password'
+    | '/runtime'
     | '/settings'
     | '/sign-in'
     | '/sources'
@@ -374,6 +386,7 @@ export interface RootRouteChildren {
   LibraryRoute: typeof LibraryRoute
   McpRoute: typeof McpRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  RuntimeRoute: typeof RuntimeRoute
   SettingsRoute: typeof SettingsRoute
   SignInRoute: typeof SignInRoute
   SourcesRoute: typeof SourcesRoute
@@ -437,6 +450,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/runtime': {
+      id: '/runtime'
+      path: '/runtime'
+      fullPath: '/runtime'
+      preLoaderRoute: typeof RuntimeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -639,6 +659,7 @@ const rootRouteChildren: RootRouteChildren = {
   LibraryRoute: LibraryRoute,
   McpRoute: McpRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  RuntimeRoute: RuntimeRoute,
   SettingsRoute: SettingsRoute,
   SignInRoute: SignInRoute,
   SourcesRoute: SourcesRoute,

@@ -37,9 +37,10 @@ export const getSession = createServerFn({ method: "GET" }).handler(async () => 
     environment: env.ENVIRONMENT,
   };
 });
-export const getOperations = createServerFn({ method: "GET" }).handler(async () =>
-  execute(bindings(), getRequestHeaders(), listOperations),
-);
+export const getOperations = createServerFn({ method: "GET" }).handler(async () => {
+  const env = bindings();
+  return execute(env, getRequestHeaders(), listOperations(env.ENVIRONMENT));
+});
 export const getSettings = createServerFn({ method: "GET" }).handler(async () =>
   execute(bindings(), getRequestHeaders(), getAccessSettings),
 );
@@ -67,7 +68,7 @@ export const compileProof = createServerFn({ method: "POST" })
   .validator(Schema.decodeUnknownSync(StartProofRequest))
   .handler(async ({ data }) => {
     const env = bindings();
-    const result = await execute(env, getRequestHeaders(), startProof(data));
+    const result = await execute(env, getRequestHeaders(), startProof(env.ENVIRONMENT, data));
     if (result.ok) {
       // The committed dispatch remains retryable even if Workflow creation is interrupted.
       try {

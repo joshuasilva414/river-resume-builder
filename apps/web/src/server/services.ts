@@ -10,7 +10,7 @@ import { syntheticResume } from "@river/templates";
 import { Context, Effect, Layer } from "effect";
 import { authenticatePrincipal } from "./auth";
 import { withDiagnostics } from "./diagnostics";
-import type { Env } from "./env";
+import type { Configuration, Env } from "./env";
 
 export class Store extends Context.Service<Store, Repository>()("river/Store") {}
 export class Actor extends Context.Service<Actor, Principal>()("river/Actor") {}
@@ -28,8 +28,20 @@ export function attempt<A>(run: () => Promise<A>): Effect.Effect<A, ApplicationE
   });
 }
 
-export const startProof = (input: StartProofRequest) =>
+const requireRuntime = (environment: Configuration["ENVIRONMENT"]) =>
   Effect.gen(function* () {
+    if (environment === "production")
+      return yield* Effect.fail(
+        new ApplicationError({
+          code: "NotFound",
+          message: "Document runtime is unavailable in production.",
+        }),
+      );
+  });
+
+export const startProof = (environment: Configuration["ENVIRONMENT"], input: StartProofRequest) =>
+  Effect.gen(function* () {
+    yield* requireRuntime(environment);
     const actor = yield* Actor;
     const store = yield* Store;
     return yield* attempt(() =>
@@ -49,24 +61,26 @@ export const cancelOperation = (input: typeof CancelOperationRequest.Type) =>
     );
   });
 
-export const listOperations = Effect.gen(function* () {
-  const actor = yield* Actor;
-  const store = yield* Store;
-  const operations = yield* attempt(() => store.listOperations(actor.id));
-  return operations
-    .filter((operation) => "document" in operation.input)
-    .map(
-      (operation): OperationView => ({
-        id: operation.id,
-        state: operation.state,
-        stage: operation.stage,
-        createdAt: new Date(operation.createdAt).toISOString(),
-        updatedAt: new Date(operation.updatedAt).toISOString(),
-        failure: operation.failure,
-        artifacts: operation.artifacts,
-      }),
-    );
-});
+export const listOperations = (environment: Configuration["ENVIRONMENT"]) =>
+  Effect.gen(function* () {
+    yield* requireRuntime(environment);
+    const actor = yield* Actor;
+    const store = yield* Store;
+    const operations = yield* attempt(() => store.listOperations(actor.id));
+    return operations
+      .filter((operation) => "document" in operation.input)
+      .map(
+        (operation): OperationView => ({
+          id: operation.id,
+          state: operation.state,
+          stage: operation.stage,
+          createdAt: new Date(operation.createdAt).toISOString(),
+          updatedAt: new Date(operation.updatedAt).toISOString(),
+          failure: operation.failure,
+          artifacts: operation.artifacts,
+        }),
+      );
+  });
 
 export function problem(error: ApplicationError, traceId: string): ProblemDetails {
   const statuses = {
