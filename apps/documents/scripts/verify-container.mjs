@@ -23,6 +23,8 @@ const fixture = fileURLToPath(new URL("../dist/fixture.json", import.meta.url));
 await run(process.execPath, ["apps/documents/dist/fixture.mjs", fixture]);
 await run(docker, [
   "build",
+  // Workers Builds requires host networking for image-build downloads, as Wrangler does.
+  ...(process.env.WRANGLER_CI_OVERRIDE_NETWORK_MODE_HOST ? ["--network", "host"] : []),
   "--platform",
   "linux/amd64",
   "-f",
