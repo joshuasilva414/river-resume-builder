@@ -83,3 +83,6 @@ The first manual post-publication backup retains all 72 base tables at `backups/
 ## Scheduled production backup verified — 2026-09-05
 
 The first daily Workflow succeeded on application attempt 1 at `2026-09-06T03:40:20.659Z`: Operation `01a074cd-5d40-70f2-b262-785b5593743a`, retained manifest SHA-256 `858f84e83201ff8c7d62973d4c610ad0358aa24a797750a8e7d35f2db04ce0c9`. Its independent local restore passes hashes, 72 table counts, integrity, foreign keys and exact FTS equality. Main-workspace report: `test-results/recovery/drill-d7ba9a43-c3fc-4188-8f45-86a4b3f73f02/report.json`. This closes the scheduled-backup gate; see `recovery.md` for the exact key and scope. Production document/export and final-domain email delivery still need acceptance.
+
+
+The production recovery-email request completed through the final-domain UI and displayed its sent-link confirmation. Inbox receipt is awaiting Owner confirmation; no reset completion or new-password entry is requested for this check. See `authentication.md`. The fictional document/export fixture still awaits its separate production-test approval.

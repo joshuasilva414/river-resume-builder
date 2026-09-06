@@ -588,6 +588,11 @@
       "tables": 72,
       "retainedObjects": 0,
       "report": "test-results/recovery/drill-d7ba9a43-c3fc-4188-8f45-86a4b3f73f02/report.json"
+    },
+    "emailAcceptance": {
+      "resetRequestUiSucceeded": true,
+      "ownerReceiptConfirmed": false,
+      "passwordChangedByAgent": false
     }
   }
 }

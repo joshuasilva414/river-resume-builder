@@ -40,3 +40,10 @@ The approved hosted Agent Credential journey passed real REST/MCP intake, exact 
 The Owner replied **“password reset is complete”** to the outstanding hosted recovery check. This confirms completion of the requested email-link and new-password flow. At `2026-09-06T02:37:29Z` (September 5 in America/Chicago), a fresh navigation in the previously authenticated in-app browser to protected checkpoint `01a07463-0ac8-7287-a377-e408a1753763` displayed River's sign-in page instead of checkpoint content.
 
 The hosted evidence consists of the Owner's completion report and the observed protected-route sign-in requirement. The isolated Better Auth/D1 tests above establish old-password rejection, token expiry/reuse behavior and revocation of multiple sessions. The agent did not inspect the password, reset token, cookies or inbox, and did not attempt to sign in with the new password. This closes the staging recovery gate. Production authentication remains a separate final-domain acceptance step.
+
+
+## Production authentication acceptance — 2026-09-05
+
+Production Worker `6b809303-ccd0-4f1a-b338-3f27ba23783b` uses the separate personal River OAuth app `3839803` and exact callback `https://river.jilva.dev/api/auth/callback/github`. The Owner explicitly approved registration, client-secret generation and installation of all five production secrets, and completed GitHub's Confirm access challenge. A fresh Chrome OAuth flow authorized read-only email/profile access and returned to Job targets on the final domain. The first production backup's isolated restore confirms one verified Owner, `joshuasilva414@gmail.com`. Staging credentials and records were not copied.
+
+An unauthenticated in-app browser submitted Forgot password → Send reset link for that Owner on the production domain. River returned “Check your email for a password reset link.” The Owner was asked to confirm inbox receipt only; that answer remains pending. No password, email inbox, reset URL/token or session cookie was inspected. No password was changed. The success response establishes the application's completed request, not inbox delivery by itself.
