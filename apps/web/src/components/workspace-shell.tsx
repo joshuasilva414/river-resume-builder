@@ -50,6 +50,9 @@ export function WorkspaceShell({
           <Brand />
         </Link>
         <div className="ml-auto flex items-center gap-3">
+          <Link to="/docs" className="text-sm text-muted-foreground hover:text-primary">
+            User guide
+          </Link>
           <Appearance />
           <Button
             variant="ghost"
