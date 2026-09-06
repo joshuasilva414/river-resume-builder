@@ -22,6 +22,16 @@ export function scoringFailure(error: unknown): ScoringFailure {
   };
 }
 
+/** Serialize safe failures inside the step callback, before Workflows flattens thrown error classes. */
+export async function captureScoringFailure(action: () => Promise<unknown>) {
+  try {
+    await action();
+    return null;
+  } catch (error) {
+    return scoringFailure(error);
+  }
+}
+
 /** Return only stage names to Workflow history; exact inputs remain in application storage. */
 export async function prepareScoring(env: ScoringEnvironment, id: string) {
   const store = createRepository(env.DB);

@@ -5,11 +5,29 @@ import {
   scoreCheckpointText,
   scoringProfile,
 } from "../src/server/scoring-provider";
+import { captureScoringFailure } from "../src/server/scoring-runtime";
 import liveFixture from "./fixtures/ats-live-response.json";
 import { syntheticScoringResponse, syntheticScoringVersion } from "./fixtures/scoring";
 
 const profile = scoringProfile("https://score.example.test");
 const input = { resumeText: "  Synthetic résumé 😀\n", jobDescription: "Exact synthetic job\n" };
+it("preserves safe provider failure identity and retry timing across a serialized Workflow step", async () => {
+  const retryAt = Date.now() + 60000;
+  const failure = await captureScoringFailure(async () => {
+    throw new ScoringProviderError("RateLimited", retryAt);
+  });
+  expect(JSON.parse(JSON.stringify(failure))).toEqual({
+    code: "RateLimited",
+    message: "The score provider is rate limited. Retry after the recorded time.",
+    retryAt,
+  });
+  expect(await captureScoringFailure(async () => "done")).toBeNull();
+  const unknown = await captureScoringFailure(async () => {
+    throw new Error("Private provider body must not cross a Workflow boundary");
+  });
+  expect(unknown?.code).toBe("Interrupted");
+  expect(JSON.stringify(unknown)).not.toContain("Private provider body");
+});
 it("accepts the deployed provider's full product name while preserving its original JSON and identity", async () => {
   const transport = vi
     .fn<typeof fetch>()

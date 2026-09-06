@@ -1,7 +1,12 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
-import { createRepository } from "@river/db";
+import { createRepository, type ScoringFailure } from "@river/db";
 import type { Env } from "./env";
-import { prepareScoring, scoringFailure, submitScoring } from "./scoring-runtime";
+import {
+  captureScoringFailure,
+  prepareScoring,
+  scoringFailure,
+  submitScoring,
+} from "./scoring-runtime";
 
 const persistenceStep = {
   retries: { limit: 2, delay: "5 seconds", backoff: "constant" },
@@ -11,6 +16,7 @@ export class ScoringWorkflow extends WorkflowEntrypoint<Env, { operationId: stri
   async run(event: WorkflowEvent<{ operationId: string }>, step: WorkflowStep) {
     const id = event.payload.operationId,
       store = createRepository(this.env.DB);
+    let failure: ScoringFailure | null = null;
     try {
       // Compilation can finish after the browser closes. Waiting is bounded to two minutes.
       for (let attempt = 0; attempt <= 12; attempt++) {
@@ -23,21 +29,25 @@ export class ScoringWorkflow extends WorkflowEntrypoint<Env, { operationId: stri
           throw new Error("Checkpoint document did not become ready within two minutes.");
         await step.sleep(`wait-for-checkpoint-${attempt}`, "10 seconds");
       }
-      await step.do(
+      failure = await step.do(
         "submit-and-retain-provider-result",
         {
           retries: { limit: 0, delay: "1 second" },
           timeout: "90 seconds",
         },
-        () => submitScoring(this.env, id),
+        () => captureScoringFailure(() => submitScoring(this.env, id)),
       );
-      await step.do("publish-retained-result", persistenceStep, async () => {
-        await store.completeScoring(id);
-      });
+      if (!failure)
+        await step.do("publish-retained-result", persistenceStep, async () => {
+          await store.completeScoring(id);
+        });
     } catch (error) {
-      const failure = scoringFailure(error);
+      failure = scoringFailure(error);
+    }
+    if (failure) {
+      const recorded = failure;
       await step.do("record-scoring-failure", persistenceStep, async () => {
-        await store.failScoring(id, failure);
+        await store.failScoring(id, recorded);
       });
       // Provider payloads and private text never become Workflow exception details.
       throw new Error(`Scoring operation ${id} failed`);

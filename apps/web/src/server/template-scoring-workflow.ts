@@ -1,7 +1,7 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
-import { createRepository } from "@river/db";
+import { createRepository, type ScoringFailure } from "@river/db";
 import type { Env } from "./env";
-import { scoringFailure } from "./scoring-runtime";
+import { captureScoringFailure, scoringFailure } from "./scoring-runtime";
 import {
   completeTemplateScoring,
   prepareTemplateScoring,
@@ -28,21 +28,26 @@ export class TemplateScoringWorkflow extends WorkflowEntrypoint<Env, { operation
         return row.run.fixtureSet.fixtures.map((f) => f.id);
       });
       for (const fixtureId of fixtures) {
+        let failure: ScoringFailure | null = null;
         try {
-          await step.do(
+          failure = await step.do(
             `render-${fixtureId}`,
             { retries: { limit: 0, delay: "1 second" }, timeout: "2 minutes" },
-            () => prepareTemplateScoring(this.env, id, fixtureId),
+            () => captureScoringFailure(() => prepareTemplateScoring(this.env, id, fixtureId)),
           );
-          await step.do(
-            `score-${fixtureId}`,
-            { retries: { limit: 0, delay: "1 second" }, timeout: "90 seconds" },
-            () => submitTemplateScoring(this.env, id, fixtureId),
-          );
+          if (!failure)
+            failure = await step.do(
+              `score-${fixtureId}`,
+              { retries: { limit: 0, delay: "1 second" }, timeout: "90 seconds" },
+              () => captureScoringFailure(() => submitTemplateScoring(this.env, id, fixtureId)),
+            );
         } catch (error) {
-          const failure = scoringFailure(error);
+          failure = scoringFailure(error);
+        }
+        if (failure) {
+          const recorded = failure;
           await step.do(`retain-failure-${fixtureId}`, persist, () =>
-            store.failTemplateScoringFixture(id, fixtureId, failure),
+            store.failTemplateScoringFixture(id, fixtureId, recorded),
           );
         }
       }
