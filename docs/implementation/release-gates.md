@@ -33,6 +33,8 @@ Successful bounded scoring retry and complete canonical result handling now pass
 
 Hosted finding-review persistence also passes on the existing synthetic checkpoint. The explicitly labeled test decision survives reload and leaves the earlier scoring run Unreviewed; D1 confirms the exact result/finding binding. See `scoring.md`. Different-snapshot comparison suppression has domain-test coverage; no separate hosted journey is claimed.
 
+M5's real-content rendering exit passes for all three starter packs. Minimal and Technical now retain separate one-page USAA checkpoints with complete text validation, visual inspection and unchanged wording/provenance. The original Classic export is preserved. See `owner-tailoring.md`.
+
 The three approved setup actions completed. The later staging UI testing authorization also enabled synthetic source-refinement acceptance/export/structured return/promotion and generated-template visual approval. These now pass; see `source-refinement.md` and `template-generation.md`. Production publication remains separate. Original sources and checkpoint artifacts remain retained. Production storage exists, with no application or domain publication. ACM UTSA remains untouched.
 
 The deployed request-lifetime gate now has a captured Cloudflare `canceled` invocation, a subsequent expected authorization response and a successful authenticated synthetic compile. See `request-lifetime.md`. The approved temporary Agent Credential completed its six-scope hosted journey and is revoked. Fictional claim/job fixtures are archived.

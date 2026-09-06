@@ -185,6 +185,8 @@ Depends on M4 and the document pipeline proof.
 
 Exit: all three packs render representative fixtures and real owner content with correct extraction. A displayed or exported PDF is associated with its exact input revision, and stale renders cannot masquerade as current ones.
 
+Real USAA content now passes in Classic, Minimal and Technical. The latter two use independent restored test branches and retain their exact one-page PDF, LaTeX, text and passing reports. Wording and provenance match the original checkpoint. See `docs/implementation/owner-tailoring.md` for the M5 acceptance identities.
+
 ### M6. MVP release and recovery
 
 Depends on M1–M5.

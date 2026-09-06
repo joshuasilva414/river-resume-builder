@@ -67,3 +67,21 @@ The exact saved revision was captured, all 29 Draft issues were individually ack
 - Local files: `test-results/owner-usaa/river-usaa-timed.{pdf,tex,txt,json}`; exact timestamps and hashes: `timed-proof.json` in that directory.
 
 The original USAA export retains its exact digest and 29 original acknowledgments. The new files are test acceptance artifacts; no application was submitted and no real résumé text was sent to an AI provider during this session.
+
+## Real content in all starter packs — 2026-09-05
+
+The M5 exit requires real Owner content as well as synthetic fixtures in all three packs. Two separate staging test branches restore the timed Classic checkpoint `01a07463-0ac8-7287-a377-e408a1753763` with Minimal and Technical. Both preserve its wording, order, evidence, contact, context and posting snapshot. Only the draft name, theme, fresh placement IDs and corresponding document locators differ. A recursive comparison of the captured D1 data/document values confirms those exact differences; the retained library graph and evidence values are byte-identical.
+
+| Pack | Test checkpoint | Document operation | Compilation | Validation |
+| --- | --- | --- | --- | --- |
+| Classic | `01a07463-0ac8-7287-a377-e408a1753763` | `01a07463-0ac8-7a7e-bc29-733d19919a27` | 10,090 ms, attempt 1 | One page; all text checks pass |
+| Minimal | `01a07479-38e8-76aa-828a-a5e0ced07a59` | `01a07479-38e8-7bc7-8c91-61105e13ead2` | 9,695 ms, attempt 1 | One page; all text checks pass |
+| Technical | `01a07479-8339-77a7-bb6e-5e4ba4e96ef9` | `01a07479-8339-7d69-821f-8df93e249219` | 9,978 ms, attempt 1 | One page; all text checks pass |
+
+Minimal branch `01a07478-b0b0-7c98-bcd5-7780df9dff65` and Technical branch `01a07479-1f5a-710f-99b2-e07b31d9d478` each capture draft revision 0. Their hosted reports pass completeness, expected multiplicity and reading order under `river-text-nfkc-v2`. Actual protected PDFs were visually inspected through PDF.js, including page endings and margins. Neither has visible overlap or clipping. All four artifact kinds are retained under each exact document fingerprint.
+
+Minimal fingerprint: `521e46918514a396c71080b9d60751559c326abc661f7e0f5ec299193c17c84c`; PDF digest: `fc86a18273ee3d0dcfee0ee3de3f28dcb9b46e4cb1150efdf0a401c1c958cf8e`; report digest: `8f531fca9ae7b047db4b93d2baf308de438cef5b2b8de68e89fc819eebd2f4ba`.
+
+Technical fingerprint: `237179268e335160c10893428a75e73195a37e81894d864ef2676e6bb459c1b0`; PDF digest: `d3f29485eeb2dbe35e309ac28f7626a395f75903995e9d4e8bfc4adeb72da174`; report digest: `7a20cbfbc757cd09352f974bd9c8377ae9e6284086a2f2e90ff08b37b1f06d26`.
+
+Both new checkpoints correctly start with zero of 29 evidence warnings acknowledged and disabled export. These rendering checks do not create new evidence decisions or export records. Read-only verification confirms the timed Classic export still has digest `307c3a4ea18db503d3dee955ca08c24acb751eba2c960bcb588a43b6b8937915`. No AI provider received the content. These two checkpoints were created after the 148-object restore drill and are not claimed as part of that earlier snapshot.
