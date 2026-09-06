@@ -313,7 +313,9 @@ function LibraryPage() {
                         <p className="text-xs text-muted-foreground">
                           {new Date(event.createdAt).toLocaleString()}
                         </p>
-                        <p className="text-sm whitespace-pre-wrap wrap-break-word">{event.rationale}</p>
+                        <p className="text-sm whitespace-pre-wrap wrap-break-word">
+                          {event.rationale}
+                        </p>
                       </article>
                     ))}
                   </div>

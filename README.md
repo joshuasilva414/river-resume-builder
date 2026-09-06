@@ -4,6 +4,8 @@ Private workspaces for turning job postings and experience into tailored résum�
 
 **Implementation status:** V1 and the private-account extension are deployed to staging and production. See the [implementation status](docs/implementation/status.md) and [multi-user operation](docs/implementation/multi-user.md) for verification and account admission.
 
+See [CI and automatic deployments](docs/implementation/ci-cd.md) for the dev → staging → main branch flow, Cloudflare build settings, and release safeguards.
+
 ## Run locally
 
 Use Node **24.20.0**, pnpm **10.33.0**, and a running Docker Desktop engine. All application dependencies are pinned in `pnpm-lock.yaml`.

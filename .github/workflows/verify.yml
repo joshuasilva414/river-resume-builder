@@ -1,10 +1,18 @@
 name: Verify River
-on: [push, pull_request]
+on:
+  push:
+    branches: [main, staging, dev]
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: verify-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   application:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -18,9 +26,14 @@ jobs:
       - run: pnpm lint
       - run: pnpm check
       - run: pnpm test
-      - run: pnpm --filter @river/web build
+      - run: pnpm test:deployment
+      - name: Build and validate staging bundle
+        run: pnpm ci:build staging --bundle-only
+      - name: Build and validate production bundle
+        run: pnpm ci:build production --bundle-only
   documents:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -37,3 +50,4 @@ jobs:
         with:
           name: document-fixture-results
           path: apps/documents/test-results
+          retention-days: 7
