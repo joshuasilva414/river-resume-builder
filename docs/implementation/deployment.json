@@ -4,7 +4,7 @@
   "applicationUrl": "https://river-staging.jilva.workers.dev",
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
-  "webVersion": "0a8e3d24-d7f8-4a07-a75b-f08e81df16b7",
+  "webVersion": "491fc65f-90e8-4793-8654-1d40d4e7c112",
   "documentWorkerVersion": "8ad4cf9e-bb6e-4a1d-8fbc-7107e78f818f",
   "containerImageDigest": "sha256:a35ce74287fdce2c7a7152e2afd107ac2d9b736bd31b8f9eb8b42bdf5cec3a2f",
   "database": "river-staging",
@@ -25,7 +25,7 @@
     "sourceApiUnauthenticated": 401,
     "sourceOriginalUnauthenticated": 401,
     "ownerSessionControls": "current session identified; separate session has revoke control; existing sessions preserved",
-    "passwordRecovery": "Session revocation on completed password reset is deployed. Isolated Better Auth/D1 tests cover Owner-only mail, callback, unchanged sessions on request, revoked sessions on reset, old password rejection and used/expired tokens. All 142 Workers tests, workspace checks/lint and staging build pass. Hosted Owner password entry and reset delivery remain unverified.",
+    "passwordRecovery": "Owner confirmed hosted reset completion on 2026-09-05; subsequent protected navigation required sign-in. Isolated Better Auth/D1 tests cover Owner-only mail, callback, unchanged sessions on request, revoked sessions on reset, old password rejection and used/expired tokens. See authentication.md for the separate hosted and isolated evidence.",
     "requestLifetime": "Passed on version 230d70d0-0600-4020-818c-e46daf72f84a: filtered tail records a canceled identity/D1 invocation, subsequent expected 401 response and authenticated compile 01a07398-58ea-7eaa-a692-1d36e78579cf succeeds with retained artifacts and real PDF/text validation. End-to-end 16412ms; document stage about 9590ms. See request-lifetime.md for sampled scope and reproduction.",
     "evidenceApiUnauthenticated": 401,
     "mcpUnauthenticated": 401,
@@ -506,6 +506,20 @@
       "focusedScoringTests": 30,
       "remoteSyntheticLabelProof": true
     }
+  },
+  "runtimeNavigation": {
+    "commit": "316c2b5",
+    "workerVersion": "491fc65f-90e8-4793-8654-1d40d4e7c112",
+    "landingRoute": "/jobs",
+    "diagnosticRoute": "/runtime",
+    "productionDiagnostics": false,
+    "sharedHeaderWorkspaceLabel": false,
+    "phaseBadge": false,
+    "paperArtboards": ["NG-0", "AGI-0", "14H-0"],
+    "focusedTests": 8,
+    "stagingBrowserVerified": true,
+    "productionBuildDryRun": true,
+    "productionPublished": false
   },
   "finalAcceptance": {
     "codeCommit": "9eb25db",

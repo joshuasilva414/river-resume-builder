@@ -10,6 +10,8 @@ The sole Owner is created and verified on staging. Email/password and GitHub sig
 
 Only personal Cloudflare account `a91c30d69981b341efe3b656a263f6da` is used. ACM UTSA is excluded. Staging has all 28 migrations through `0027_source_upload_checks.sql`, 72 base tables and 11 Workflows. Exact active code and resource identities are recorded in [deployment.json](deployment.json).
 
+River opens on Job targets. The redundant shared-header workspace label and Phase 0 badge are removed. Document runtime is available at `/runtime` in staging/local development; production hides the link, redirects the route and rejects diagnostic service calls. Paper design, focused tests and hosted desktop/mobile checks are recorded in [production preparation](production.md).
+
 ## Tailoring and documents
 
 Source intake preserves immutable originals, recoverable uploads, exact parser versions, processing results, repeated text and Unicode locators. Claims have immutable material revisions, citations, context, explicit verification, archive/restore and reviewed merges. Search and probable-duplicate review are implemented. Job Targets retain immutable posting snapshots, editable Requirement Map revisions and exact evidence selections. Manual use works without AI. See [source intake](source-intake.md), [evidence](evidence.md) and [jobs](jobs.md).
