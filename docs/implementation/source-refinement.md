@@ -1,6 +1,6 @@
 # Final-document refinement
 
-Implemented and deployed; hosted preview passed, while acceptance verification remains open. Product behavior is defined in SPEC.md's Final-document refinement section. Paper boards 65/67/68 and the complete review contract in `template-ai-design.md` are the interface handoff. The interface preserves separate generation, review and guarded acceptance.
+Implemented and deployed; hosted preview, test acceptance, retained export, structured return and generic template promotion now pass. Product behavior is defined in SPEC.md's Final-document refinement section. Paper boards 65/67/68 and the complete review contract in `template-ai-design.md` are the interface handoff. The interface preserves separate generation, review and guarded acceptance.
 
 ## Document boundary
 
@@ -75,3 +75,26 @@ After deploying document commit `60f0205` as Worker `6459e815-8f14-4772-827d-5af
 Hosted browser review inspected complete before/after source, its one required field and unchanged support, complete extracted text, both actual PDFs and both full validation reports. Completeness, multiplicity and reading order pass, with no warnings. Review digest is `6eaae525ce9a587410ce56a23a40048f5521d7666ee5d7cf5267b3913b95e720`; preview fingerprint is `ab9485a7cb387774fe2d93ae269fe54092172cf150b2e5f6575092dbd6feb451`. Anonymous preview access returns 401. The attestation remains unchecked; no acceptance/publication/export is claimed.
 
 The diagnostics fixture suite passes all fixed/custom templates, source repeatability, missing-text blocking, body sizes and extraction limits. Malformed input reports only `input-validation`; prohibited source reports only `prepare-input`; both retain a generic error body. Peak offline memory was 421,687,296 bytes.
+
+
+## Hosted test acceptance and promotion — 2026-09-05
+
+The Owner authorized staging UI overrides for testing. The saved synthetic candidate was re-inspected and its exact coverage acknowledgment submitted through the normal UI. Publication succeeded on attempt one, creating checkpoint `01a07433-f786-72be-a8e8-78faa4699ccc` under Operation `01a07433-f786-7c9c-8525-b218bc8499b9`. All four reviewed artifacts became retained files. The source still changes only paragraph spacing from 3pt to 2pt; complete intended and extracted text remain unchanged.
+
+The new checkpoint required its own unsupported-name acknowledgment. The original checkpoint's acknowledgment did not carry forward. Saving that staging test acknowledgment enabled export, which completed at 19:53:37 America/Chicago. This is synthetic test activity, not a verification of candidate facts.
+
+Return-to-editor displayed the regeneration consequence and complete comparison entry before requiring an explicit acknowledgment. It created branch `01a07435-aa1f-7e8a-95e4-7fb7232fd933`, named “Synthetic source-return QA — preserved checkpoint.” Its revision-zero preview `01a07435-ab55-7b8e-9625-bdaa814afbb9` succeeded. The source checkpoint, original structured checkpoint, original working draft, newer history branch and real USAA draft/checkpoint remained unchanged.
+
+Promotion extracted the allowlisted paragraph-spacing adjustment, 3 → 2pt. The UI displayed a complete 23,517-unit synthetic input with the generic brief, constraints, Classic graph and four synthetic fixtures. Task `01a07436-b011-75a3-b589-e5ce2efc1d60` used `river-template-generation-v3`; input digest `12bac312cf57f0ab3bffdd8fb4dd3323313b6fc0b107d8a408feb0a72d5c7834`. Generation and preview both succeeded on attempt one. Component source, synthetic PDF and complete passing report were inspected before accepting proposal `01a07436-cd25-78c6-a25f-1c1a01777295` into independent Draft revision `01a07439-9749-7c01-92cd-ab78f59daabe`.
+
+Read-only assertions against the subsequent isolated database restore confirm the checkpoint/export/branch links, new acknowledgment, unchanged older drafts/checkpoints, and accepted promotion provenance. The promoted document source differs from its captured Classic base only in paragraph spacing; tokens, sections and blocks remain identical. The captured model input contains neither expanded source nor checkpoint identities. The promoted graph remains Draft, with full fixture validation and approval separate from this promotion test. See `recovery.md` for the snapshot and supplemental assertions.
+
+## Responsive review correction
+
+The hosted narrow review exposed a layout defect: shared horizontal tab styling forced both lists to 36px even though their two rows needed 96px. This caused outer tabs, inner tabs and PDF controls to overlap. A Paper subagent updated the existing mobile design and created boards 100/101 for 610px/390px before code changed. The handoff is in `source-refinement-design.md`.
+
+Commit `11e33fa` gives these two lists intrinsic height at the same selector specificity, fixed 44px triggers, 8px row gaps, 20px outer-to-panel spacing and 16px inner-to-viewer spacing. Existing Radix tab behavior and the desktop breakpoint remain unchanged. The change is confined to `components/refinement/comparison.tsx`.
+
+Deployed web version `367f234f-b1a0-4e45-816e-28b7d359c778` passes actual 390px, 610px and 1280px browser checks. Narrow lists measure 96px with all tabs contained; desktop lists measure 44px. Document width matches viewport width. Light/dark screenshots show loaded PDFs without overlapping controls. ArrowRight moves focus and selection to Proposed PDF. No blank page, framework overlay or application console errors appeared; the only console warnings came from an unrelated LMS browser extension. Temporary viewport overrides were reset.
+
+Workspace types/lint and a clean staging build pass. No new service test was added for this CSS-only correction; the latest complete backend suite remains 156 passing tests. Logs: `/tmp/river-refinement-tabs-{types,lint,build,deploy}.log`.

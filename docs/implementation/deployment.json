@@ -4,7 +4,7 @@
   "applicationUrl": "https://river-staging.jilva.workers.dev",
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
-  "webVersion": "4d91f980-cfbb-41b7-bdf1-652d0e5e31c3",
+  "webVersion": "367f234f-b1a0-4e45-816e-28b7d359c778",
   "documentWorkerVersion": "8ad4cf9e-bb6e-4a1d-8fbc-7107e78f818f",
   "containerImageDigest": "sha256:a35ce74287fdce2c7a7152e2afd107ac2d9b736bd31b8f9eb8b42bdf5cec3a2f",
   "database": "river-staging",
@@ -62,8 +62,8 @@
     "templateConversation": "Hosted accepted turn, complete original brief, same-scope prior-instruction default and pinned accepted base verified in the conversation. Concurrent and pagination behavior covered in Workers tests.",
     "hostedHistory": "Passed: restored an independent synthetic Classic branch, rendered r0, captured a labeled checkpoint, inspected lineage and pinned complete content/PDF comparison. Both actual PDFs render with independent zoom. No new export attestation.",
     "hostedScoring": "Passed: two first-attempt authenticated synthetic checkpoint Workflows, six complete simulations, exact 17/95 input coverage, raw retention, cached identity preservation and compatible zero-delta comparison. Export remains available. Light/dark 390px results and compatible comparison pass; qualification and outage/retry remain separate.",
-    "hostedSourceRefinement": "Passed on third bounded preview after one real generation: complete source, intended field, unchanged extracted text, both real PDFs and complete passing reports inspected. Anonymous preview returns 401. Candidate remains Pending; no acceptance. Earlier two 422 failures remain unattributed.",
-    "currentSchemaRestore": "Passed: 72 tables, 140 objects, 24 exact citations, two exports, all 29 real checkpoint acknowledgments, nine canonical documents and four withheld qualification reports. Isolated local restore; no remote replacement or dispatch.",
+    "hostedSourceRefinement": "Passed synthetic generation/preview, explicit test review acknowledgment, retained source checkpoint, independent export acknowledgment, structured branch regeneration and generic-only template promotion. Original and newer drafts/checkpoints preserved. See source-refinement.md.",
+    "currentSchemaRestore": "Passed: 72 tables, 144 retained objects, 24 exact citations and three exports. Source acceptance, separate structured branch, generic template promotion and graph approval preserved; previous drafts/checkpoints unchanged. Isolated local restore only.",
     "documentDiagnostics": "Offline full fixture suite passed; fixed protocol/stage headers identify malformed input and prohibited source without exposing exception contents. Peak memory 421687296 bytes.",
     "templateScoring": "All three fixed packs rendered three canonical fixtures each. Eight provider responses InvalidResponse; one complete Classic result includes a failed simulation. All designations withheld. Classic retry preserves successful artifacts and raw response. See template-scoring.md.",
     "applicationDiagnostics": "Passed: one JSON event per application execution, anonymous 401 traceId matches response, authenticated outcomes include elapsed spans, and successful dispatch records identical Operation/Workflow IDs. 139 Workers tests, workspace types/lint and staging build pass.",
@@ -174,6 +174,17 @@
       "canonicalTemplateDocuments": 9,
       "qualificationReports": 4,
       "published": false
+    },
+    "sourceAcceptanceDrill": {
+      "key": "backups/database/staging/2026-09-06T00-59-21.843Z-7152f4ac-3555-451b-962c-4a06321ab1db/snapshot.json.gz",
+      "sha256": "cea6ea1cf0cb8e69e665d0576b5c230434361f8e428c806f532c5ac9c3caca54",
+      "report": "test-results/recovery/drill-96b18ff8-b2f7-42c1-bef8-f621ddfa5531/report.json",
+      "supplementalProof": "test-results/recovery/drill-96b18ff8-b2f7-42c1-bef8-f621ddfa5531/source-acceptance-proof.json",
+      "tables": 72,
+      "objects": 144,
+      "citations": 24,
+      "exportedCheckpoints": 3,
+      "published": false
     }
   },
   "jobAnalysisWorkflow": "river-staging-job-analysis",
@@ -191,10 +202,10 @@
     "generationAttempts": 1,
     "previewAttempts": 1,
     "validationId": "01a071ea-7ef6-77ab-9430-db189dac8e5b",
-    "validation": "All four fixtures rendered twice and passed; Validated, awaiting separate Owner visual approval.",
+    "validation": "All four fixtures rendered twice and passed. Each fixture was visually inspected and exact graph approved for staging QA under Owner authorization; graph/digest unchanged.",
     "conversationId": "01a071e6-f217-7952-93c0-b97743159fc3"
   },
-  "deployedWebCommit": "5a9fa16",
+  "deployedWebCommit": "11e33fa",
   "requestLifetimeProof": {
     "webVersion": "230d70d0-0600-4020-818c-e46daf72f84a",
     "report": "test-results/runtime/river-lifetime-4c7f4b67-b5c5-4ed2-b735-86101a834fc2/report.json",
@@ -227,10 +238,19 @@
     ],
     "generationAttempts": 1,
     "previewAttempts": 3,
-    "state": "Pending; complete preview passed; no acceptance or publication",
+    "state": "Accepted in staging QA; retained export and separate structured branch passed",
     "reviewDigest": "6eaae525ce9a587410ce56a23a40048f5521d7666ee5d7cf5267b3913b95e720",
     "previewFingerprint": "ab9485a7cb387774fe2d93ae269fe54092172cf150b2e5f6575092dbd6feb451",
-    "documentMs": 11408.33835
+    "documentMs": 11408.33835,
+    "acceptedCheckpointId": "01a07433-f786-72be-a8e8-78faa4699ccc",
+    "publicationOperationId": "01a07433-f786-7c9c-8525-b218bc8499b9",
+    "publicationAttempts": 1,
+    "exported": true,
+    "structuredBranchId": "01a07435-aa1f-7e8a-95e4-7fb7232fd933",
+    "branchPreviewId": "01a07435-ab55-7b8e-9625-bdaa814afbb9",
+    "promotionTaskId": "01a07436-b011-75a3-b589-e5ce2efc1d60",
+    "promotionDraftRevisionId": "01a07439-9749-7c01-92cd-ab78f59daabe",
+    "testOnly": true
   },
   "deployedDocumentCommit": "149d87f",
   "templateScoringRelease": {
@@ -338,7 +358,25 @@
       "light",
       "dark"
     ],
-    "qualification": false
+    "qualification": false,
+    "sourceRefinement": {
+      "commit": "11e33fa",
+      "viewports": [
+        390,
+        610,
+        1280
+      ],
+      "narrowListHeight": 96,
+      "desktopListHeight": 44,
+      "horizontalOverflow": false,
+      "keyboardNavigation": true,
+      "applicationConsoleErrors": 0,
+      "viewportReset": true,
+      "paperBoards": [
+        100,
+        101
+      ]
+    }
   },
   "productionPreparation": {
     "applicationPublished": false,

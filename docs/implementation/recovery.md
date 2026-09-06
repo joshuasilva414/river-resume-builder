@@ -112,3 +112,12 @@ The isolated unpublished restore passed schema/data integrity, foreign keys, exa
 Additional read-only assertions against the restored database checked the real USAA export digest, all 29 exact issue acknowledgments and all 16 source-linked claims remaining Draft. All nine canonical template documents matched their captured document digests and four artifact hashes. The sole valid provider response matched its raw-response digest. All four immutable qualification reports matched their digests and withheld qualification. The five Pending v2 source candidates retained separate repeated-text occurrences. Supplemental proof: `test-results/recovery/drill-3d462133-e158-44c4-a982-73679a241fd6/acceptance-proof.json`.
 
 No remote data was replaced, no restored Operation was dispatched and no private résumé content was committed. Logs: `/tmp/river-owner-export-backup-retry.log` and `/tmp/river-owner-export-restore.log`.
+
+
+## Accepted source and template lifecycle restore — 2026-09-05
+
+After the authorized staging UI acceptance checks, a fresh manual backup retained all 72 tables at `backups/database/staging/2026-09-06T00-59-21.843Z-7152f4ac-3555-451b-962c-4a06321ab1db/snapshot.json.gz` (SHA-256 `cea6ea1cf0cb8e69e665d0576b5c230434361f8e428c806f532c5ac9c3caca54`). The isolated restore passed 24 exact citations, all 144 retained objects and three exported checkpoints, including the accepted source override.
+
+Report: `test-results/recovery/drill-96b18ff8-b2f7-42c1-bef8-f621ddfa5531/report.json`. Supplemental assertions in `source-acceptance-proof.json` confirm the accepted source/base links, fresh unsupported-issue acknowledgment, separate regenerated branch, successful revision-zero preview and template-promotion provenance. Comparing this snapshot with the preceding restore proves the original and real USAA checkpoints and all three preexisting working drafts are unchanged. The promoted Draft changes only paragraph spacing; the earlier template's approval preserves its exact graph/digest. No remote restore or operation redispatch occurred.
+
+Logs: `/tmp/river-source-acceptance-backup.log` and `/tmp/river-source-acceptance-restore.log`. The daily backup's attempt history remains intact.

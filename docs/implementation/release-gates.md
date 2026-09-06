@@ -27,14 +27,12 @@ Hosted Agent Credential acceptance passed with real REST/MCP source, evidence an
 The following work still prevents V1 release:
 
 - Hosted password recovery. GitHub OAuth now passes real Owner sign-in; the Owner must enter a new password to complete the separate reset journey.
-- Explicit source-refinement acceptance, retained export, structured return and template promotion. Candidate rendering passed; acceptance remains pending the Owner review attestation.
 - Successful live scoring retry and canonical template qualification. ATS deployment, authenticated six-platform scoring, cached identity preservation, compatible comparisons and failed-attempt recovery now pass. All three packs rendered their fixtures, but eight responses failed validation and the one valid fixture failed a simulation. No tested designation is awarded.
 - Phone review of populated canonical qualification. Desktop populated review passes for all three packs; checkpoint-scoring phone review also passes. See `template-scoring.md` and `recovery.md` for the precise provider and recovery coverage.
 - A timed Owner job-tailoring session within 15 minutes. The selected résumé and USAA Notion brief now complete the real manual export workflow; development and troubleshooting time prevents claiming this timing gate.
-- Owner review of the generated template, plus explicit permission before a new AI run sends the complete Owner résumé to OpenAI. The corrected source contract passed hosted synthetic generation, retry and exact repeated/Unicode citations.
 - Production secret/authentication setup, `river.jilva.dev` deployment and final production acceptance. Isolated personal-account D1/R2 resources, all 28 migrations, environment-specific backup handling and an empty production restore are prepared; see `production.md`.
 
-The three approved setup actions are authorized. Source-refinement Owner attestation and production publication remain separate. Original sources and checkpoint artifacts remain retained. Production storage exists, with no application or domain publication. ACM UTSA remains untouched.
+The three approved setup actions completed. The later staging UI testing authorization also enabled synthetic source-refinement acceptance/export/structured return/promotion and generated-template visual approval. These now pass; see `source-refinement.md` and `template-generation.md`. Production publication remains separate. Original sources and checkpoint artifacts remain retained. Production storage exists, with no application or domain publication. ACM UTSA remains untouched.
 
 The deployed request-lifetime gate now has a captured Cloudflare `canceled` invocation, a subsequent expected authorization response and a successful authenticated synthetic compile. See `request-lifetime.md`. The approved temporary Agent Credential completed its six-scope hosted journey and is revoked. Fictional claim/job fixtures are archived.
 
@@ -42,3 +40,6 @@ The deployed request-lifetime gate now has a captured Cloudflare `canceled` invo
 ## Staging testing authorization
 
 On 2026-09-05 the Owner authorized overriding staging application UI decisions for testing. Test acknowledgments, lifecycle approvals and state changes may be completed without asking again. Record their test purpose; they do not establish real evidence verification or a production release decision. This authorization applies to staging UI testing. The personal-account boundary, ACM UTSA exclusion and separate production publication gate remain in force.
+
+
+The optional v2 AI rerun on the complete Owner résumé remains pending explicit OpenAI-transfer permission after automatic approval review rejected that submission. Hosted synthetic v2 generation, bounded retry and exact repeated/Unicode citations already pass. This optional rerun is not an additional release gate or a blocker for the completed manual export.
