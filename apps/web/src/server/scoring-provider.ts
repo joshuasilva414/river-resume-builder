@@ -2,6 +2,7 @@ import {
   type AtsScoringResponse,
   type ScoringProfile,
   ScoringProviderVersion,
+  ScoringResponseError,
   scoringLimits,
   scoringPlatforms,
   scoringPreflight,
@@ -24,12 +25,30 @@ const messages = {
   InvalidInput:
     "Scoring requires complete résumé and job text within the provider's effective limits.",
 } as const;
+const responseProblems = {
+  ContentType: "The score provider returned a response without a JSON content type.",
+  BodyLimit: "The score provider response exceeded the adapter's byte limit.",
+  MissingBody: "The score provider returned no response body.",
+  Encoding: "The score provider response was not valid UTF-8.",
+  Json: "The score provider response was not valid JSON.",
+  Stream: "The score provider response stream could not be read completely.",
+} as const;
 export class ScoringProviderError extends Error {
   constructor(
     readonly code: keyof typeof messages,
     readonly retryAt: number | null = null,
+    problem?: keyof typeof responseProblems | ScoringResponseError,
+    httpStatus?: number,
   ) {
-    super(messages[code]);
+    super(
+      code === "InvalidResponse" && problem
+        ? problem instanceof ScoringResponseError
+          ? problem.message
+          : responseProblems[problem]
+        : messages[code],
+    );
+    if (httpStatus && Number.isInteger(httpStatus) && httpStatus >= 300 && httpStatus <= 599)
+      this.message += ` HTTP ${httpStatus}.`;
     this.name = "ScoringProviderError";
   }
 }
@@ -42,15 +61,16 @@ function retryTime(header: string | null, now: number) {
 
 /** Read the actual stream limit; never trust Content-Length or retain a provider error body. */
 async function readProviderJson(response: Response, limit: number): Promise<unknown> {
-  if (
-    !response.headers.get("content-type")?.toLowerCase().startsWith("application/json") ||
-    Number(response.headers.get("content-length")) > limit
-  ) {
+  if (!response.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
     await response.body?.cancel();
-    throw new ScoringProviderError("InvalidResponse");
+    throw new ScoringProviderError("InvalidResponse", null, "ContentType");
+  }
+  if (Number(response.headers.get("content-length")) > limit) {
+    await response.body?.cancel();
+    throw new ScoringProviderError("InvalidResponse", null, "BodyLimit");
   }
   const reader = response.body?.getReader();
-  if (!reader) throw new ScoringProviderError("InvalidResponse");
+  if (!reader) throw new ScoringProviderError("InvalidResponse", null, "MissingBody");
   const chunks: Uint8Array[] = [];
   let length = 0;
   try {
@@ -60,7 +80,7 @@ async function readProviderJson(response: Response, limit: number): Promise<unkn
       length += item.value.byteLength;
       if (length > limit) {
         await reader.cancel();
-        throw new ScoringProviderError("InvalidResponse");
+        throw new ScoringProviderError("InvalidResponse", null, "BodyLimit");
       }
       chunks.push(item.value);
     }
@@ -73,7 +93,17 @@ async function readProviderJson(response: Response, limit: number): Promise<unkn
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  let text: string;
+  try {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw new ScoringProviderError("InvalidResponse", null, "Encoding");
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new ScoringProviderError("InvalidResponse", null, "Json");
+  }
 }
 
 async function requestProvider(
@@ -108,6 +138,8 @@ async function requestProvider(
     throw new ScoringProviderError(
       response.status === 429 ? "RateLimited" : "Unavailable",
       response.status === 429 ? retryTime(response.headers.get("retry-after"), Date.now()) : null,
+      undefined,
+      response.status,
     );
   }
   try {
@@ -117,9 +149,12 @@ async function requestProvider(
     );
     if (combined.aborted) throw new Error("Request cancelled");
     return value;
-  } catch {
+  } catch (error) {
+    if (!combined.aborted && error instanceof ScoringProviderError) throw error;
     throw new ScoringProviderError(
       signal?.aborted ? "Cancelled" : deadline.aborted ? "Timeout" : "InvalidResponse",
+      null,
+      "Stream",
     );
   }
 }
@@ -161,13 +196,17 @@ export async function scoreCheckpointText(
   const raw = await requestProvider(
     profile,
     "/api/analyze",
-    { mode: "full-score", ...input },
+    { mode: "full-score", resumeText: input.resumeText, jobDescription: input.jobDescription },
     transport,
     signal,
   );
   try {
     return { raw, response: validateScoringResponse(raw, input.resumeText, input.jobDescription) };
-  } catch {
-    throw new ScoringProviderError("InvalidResponse");
+  } catch (error) {
+    throw new ScoringProviderError(
+      "InvalidResponse",
+      null,
+      error instanceof ScoringResponseError ? error : undefined,
+    );
   }
 }

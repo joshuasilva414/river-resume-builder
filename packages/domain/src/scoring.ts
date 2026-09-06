@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Schema, SchemaIssue } from "effect";
 import { ApplicationError, canonicalJson, fingerprint } from "./core";
 
 export const scoringPlatforms = [
@@ -165,6 +165,49 @@ export function scoringPreflight(resumeText: string, jobDescription: string) {
   };
 }
 
+const responseFailures = {
+  Schema: "The score provider returned invalid scoring fields.",
+  Platforms: "The score provider did not return all six unique simulations.",
+  BulletCounts: "The score provider returned contradictory bullet counts.",
+  SuggestionPlatforms: "A suggestion repeats a simulation identity.",
+  ProviderIdentity: "The winning provider and scoring identity disagree.",
+  InputCoverage: "The score provider did not confirm complete submitted input.",
+} as const;
+// Only known schema keys and bounded array indexes may appear in retained diagnostics.
+const diagnosticFields = new Set(
+  `results system vendor overallScore passesFilter breakdown formatting score issues details
+keywordMatch matched missing synonymMatched sections present experience quantifiedBullets totalBullets
+actionVerbCount highlights education notes suggestions summary impact platforms _provider _fallback
+_cached _scoringIdentity _inputCoverage schemaVersion mode rubric version digest deployment buildId
+commit environment capabilityVersion provider model requested reported fingerprint requestConfigurationDigest
+units resumeText jobDescription submitted analyzed complete`.split(/\s+/),
+);
+const formatSchemaFailure = SchemaIssue.makeFormatterStandardSchemaV1({
+  leafHook: () => "Invalid field",
+  checkHook: () => "Invalid field",
+});
+export class ScoringResponseError extends Error {
+  constructor(
+    readonly reason: keyof typeof responseFailures,
+    schemaError?: Schema.SchemaError,
+  ) {
+    const path = schemaError
+      ? formatSchemaFailure(schemaError.issue)
+          .issues[0]?.path?.slice(0, 12)
+          .map((part) => {
+            const key = typeof part === "object" ? part.key : part;
+            if (typeof key === "string" && diagnosticFields.has(key)) return key;
+            if (typeof key === "number" && Number.isInteger(key) && key >= 0 && key < 100)
+              return key;
+            return "?";
+          })
+          .join(".")
+      : null;
+    super(`${responseFailures[reason]}${path ? ` Field: ${path}.` : ""}`);
+    this.name = "ScoringResponseError";
+  }
+}
+
 /** A partial platform set or contradictory coverage is a failed run, never a collection of zero scores. */
 export function validateScoringResponse(raw: unknown, resumeText: string, jobDescription: string) {
   if (!scoringPreflight(resumeText, jobDescription).allowed)
@@ -173,22 +216,27 @@ export function validateScoringResponse(raw: unknown, resumeText: string, jobDes
       message:
         "Scoring requires complete résumé and job text within the provider's effective limits.",
     });
-  const normalized = Schema.decodeUnknownSync(ProviderResponse)(raw);
-  const value = Schema.decodeUnknownSync(AtsScoringResponse)(normalized);
+  let value: AtsScoringResponse;
+  try {
+    const normalized = Schema.decodeUnknownSync(ProviderResponse)(raw);
+    value = Schema.decodeUnknownSync(AtsScoringResponse)(normalized);
+  } catch (error) {
+    throw new ScoringResponseError("Schema", Schema.isSchemaError(error) ? error : undefined);
+  }
   if (new Set(value.results.map((result) => result.system)).size !== scoringPlatforms.length)
-    throw new Error("The score provider did not return all six unique simulations.");
+    throw new ScoringResponseError("Platforms");
   for (const result of value.results) {
     if (result.breakdown.experience.quantifiedBullets > result.breakdown.experience.totalBullets)
-      throw new Error("The score provider returned contradictory bullet counts.");
+      throw new ScoringResponseError("BulletCounts");
     for (const suggestion of result.suggestions)
       if (
         typeof suggestion !== "string" &&
         new Set(suggestion.platforms).size !== suggestion.platforms.length
       )
-        throw new Error("A suggestion repeats a simulation identity.");
+        throw new ScoringResponseError("SuggestionPlatforms");
   }
   if (value._scoringIdentity && value._scoringIdentity.provider !== value._provider)
-    throw new Error("The winning provider and scoring identity disagree.");
+    throw new ScoringResponseError("ProviderIdentity");
   const coverage = value._inputCoverage;
   if (
     coverage &&
@@ -198,7 +246,7 @@ export function validateScoringResponse(raw: unknown, resumeText: string, jobDes
       coverage.jobDescription.submitted !== jobDescription.length ||
       coverage.jobDescription.analyzed !== jobDescription.length)
   )
-    throw new Error("The score provider did not confirm complete submitted input.");
+    throw new ScoringResponseError("InputCoverage");
   return value;
 }
 

@@ -101,7 +101,13 @@ it("captures provider capabilities and submits exact strings once without attach
     .mockResolvedValueOnce(Response.json(syntheticScoringVersion))
     .mockResolvedValueOnce(Response.json(raw));
   const version = await inspectScoringProvider(profile, transport);
-  const result = await scoreCheckpointText(profile, input, version, transport);
+  const retainedInput = {
+    ...input,
+    textKey: "private/artifact-key",
+    templateIdentity: "Internal template source",
+    validationJson: "Internal validation report",
+  };
+  const result = await scoreCheckpointText(profile, retainedInput, version, transport);
   expect(transport).toHaveBeenCalledTimes(2);
   const [url, init] = transport.mock.calls[1] ?? [];
   expect(url).toBe("https://score.example.test/api/analyze");
@@ -157,8 +163,6 @@ it("sanitizes malformed output and bounds the actual body stream", async () => {
       scoreCheckpointText(profile, input, syntheticScoringVersion, transport),
     ).rejects.toMatchObject({
       code: "InvalidResponse",
-      message:
-        "The score provider did not return a complete valid result within its response limit.",
     });
   }
   const cancelled = vi.fn();
@@ -178,6 +182,85 @@ it("sanitizes malformed output and bounds the actual body stream", async () => {
   ).rejects.toMatchObject({ code: "InvalidResponse" });
   expect(cancelled).toHaveBeenCalledTimes(1);
 });
+it("retains only safe field paths and fixed consistency failures across Workflow serialization", async () => {
+  const raw = syntheticScoringResponse(input);
+  const invalid = {
+    ...raw,
+    results: raw.results.map((result) => ({ ...result, overallScore: "PRIVATE RESUME VALUE" })),
+  };
+  const failure = await captureScoringFailure(() =>
+    scoreCheckpointText(
+      profile,
+      input,
+      syntheticScoringVersion,
+      vi.fn<typeof fetch>().mockResolvedValue(Response.json(invalid)),
+    ),
+  );
+  expect(JSON.parse(JSON.stringify(failure))).toMatchObject({
+    code: "InvalidResponse",
+    message: "The score provider returned invalid scoring fields. Field: results.0.overallScore.",
+  });
+  expect(JSON.stringify(failure)).not.toContain("PRIVATE");
+  const coverage = { ...raw, _inputCoverage: { ...raw._inputCoverage, complete: false } };
+  await expect(
+    scoreCheckpointText(
+      profile,
+      input,
+      syntheticScoringVersion,
+      vi.fn<typeof fetch>().mockResolvedValue(Response.json(coverage)),
+    ),
+  ).rejects.toMatchObject({
+    code: "InvalidResponse",
+    message: "The score provider did not confirm complete submitted input.",
+  });
+});
+it("distinguishes transport format failures without exposing provider text", async () => {
+  const cases = [
+    [new Response("PRIVATE BODY"), "without a JSON content type"],
+    [
+      new Response("PRIVATE BODY", { headers: { "content-type": "application/json" } }),
+      "not valid JSON",
+    ],
+    [
+      new Response(new Uint8Array([0xff]), { headers: { "content-type": "application/json" } }),
+      "not valid UTF-8",
+    ],
+    [new Response(null, { headers: { "content-type": "application/json" } }), "no response body"],
+    [
+      new Response("PRIVATE BODY", {
+        headers: {
+          "content-type": "application/json",
+          "content-length": String(profile.maxResponseBytes + 1),
+        },
+      }),
+      "byte limit",
+    ],
+    [
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.error(new Error("PRIVATE STREAM ERROR"));
+          },
+        }),
+        { headers: { "content-type": "application/json" } },
+      ),
+      "could not be read completely",
+    ],
+  ] as const;
+  for (const [response, message] of cases) {
+    const failure = await captureScoringFailure(() =>
+      scoreCheckpointText(
+        profile,
+        input,
+        syntheticScoringVersion,
+        vi.fn<typeof fetch>().mockResolvedValue(response),
+      ),
+    );
+    expect(failure?.code).toBe("InvalidResponse");
+    expect(failure?.message).toContain(message);
+    expect(JSON.stringify(failure)).not.toContain("PRIVATE");
+  }
+});
 it("does not follow redirects or retry a rate-limited request before its recorded deadline", async () => {
   const redirect = vi.fn<typeof fetch>().mockResolvedValue(
     new Response("private provider detail", {
@@ -187,7 +270,11 @@ it("does not follow redirects or retry a rate-limited request before its recorde
   );
   await expect(
     scoreCheckpointText(profile, input, syntheticScoringVersion, redirect),
-  ).rejects.toMatchObject({ code: "Unavailable" });
+  ).rejects.toMatchObject({
+    code: "Unavailable",
+    message:
+      "The score provider is unavailable. The checkpoint remains available for review and export. HTTP 302.",
+  });
   expect(redirect).toHaveBeenCalledTimes(1);
   const transport = vi
     .fn<typeof fetch>()
