@@ -4,7 +4,7 @@
   "applicationUrl": "https://river-staging.jilva.workers.dev",
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
-  "webVersion": "367f234f-b1a0-4e45-816e-28b7d359c778",
+  "webVersion": "0a8e3d24-d7f8-4a07-a75b-f08e81df16b7",
   "documentWorkerVersion": "8ad4cf9e-bb6e-4a1d-8fbc-7107e78f818f",
   "containerImageDigest": "sha256:a35ce74287fdce2c7a7152e2afd107ac2d9b736bd31b8f9eb8b42bdf5cec3a2f",
   "database": "river-staging",
@@ -52,7 +52,7 @@
     "jobAnalysis": "Passed: hosted live v2 requirement extraction and complete-map acceptance; v3 ranking with one cited Draft match and two explicit gaps; review alone leaves selections empty, separate exact-revision selection persists. Weak v2 ranking rejected with null payload. Fictional job and claims archived. Citation fix: 136 Workers tests; latest ranking guard: 10 focused tests; workspace types/lint and staging build pass.",
     "streamedRestoreDrill": "passed: v2 format derived from a real 42-table staging snapshot; isolated SQLite, FTS, foreign keys, one citation, 14 retained objects, one export; live scheduled export remains unverified",
     "wording": "Passed: live local and hosted gpt-5.4-mini-2026-03-17 generation and complete inline review on synthetic fixtures. Local unrelated rename, acceptance r8, undo r9, redo r10; hosted visible name-formatting acceptance r3, undo r4, retained r3 decision. Actual PDFs and 75% zoom retained. 14 focused Workers tests, workspace types/lint and staging build pass.",
-    "sourceProposals": "Passed: v2 hosted synthetic retry yields five Pending candidates with exact Unicode and distinct repeated-line citations. First attempt rejected invented context atomically. New Owner résumé run awaits explicit OpenAI transfer permission.",
+    "sourceProposals": "Passed: v2 hosted synthetic retry yields five Pending candidates with exact Unicode and distinct repeated-line citations. First attempt rejected invented context atomically. New Owner r\u00e9sum\u00e9 run awaits explicit OpenAI transfer permission.",
     "duplicateComparison": "Passed: hosted first-attempt generation, full findings/captured/current inspection, independent acknowledgment preserving both claims, separate attributed Keep separate decision and saved access through both claim histories. Fictional claims archived. Model inconsistency retained and identified in review rationale.",
     "templateStudio": "Passed: local real fixture validation, approval, concurrent preservation, mixing, exact draft/preview/checkpoint, retirement and retained export. Hosted third validation passed all four fixtures twice after fixing Container RPC stream ownership. Hosted graph remains Validated pending Owner visual approval. Anonymous PDF request returns 401.",
     "templateGeneration": "Hosted real model response and first-attempt 11-point PDF passed graph, text-integrity and runtime checks. Full component change, PDF, text and report reviewed; accepted into immutable Draft. All 86 Workers tests through conversations and eight focused backup tests pass; workspace checks/lint/build pass.",
@@ -63,9 +63,9 @@
     "hostedHistory": "Passed: restored an independent synthetic Classic branch, rendered r0, captured a labeled checkpoint, inspected lineage and pinned complete content/PDF comparison. Both actual PDFs render with independent zoom. No new export attestation.",
     "hostedScoring": "Passed: two first-attempt authenticated synthetic checkpoint Workflows, six complete simulations, exact 17/95 input coverage, raw retention, cached identity preservation and compatible zero-delta comparison. Export remains available. Light/dark 390px results and compatible comparison pass; qualification and outage/retry remain separate.",
     "hostedSourceRefinement": "Passed synthetic generation/preview, explicit test review acknowledgment, retained source checkpoint, independent export acknowledgment, structured branch regeneration and generic-only template promotion. Original and newer drafts/checkpoints preserved. See source-refinement.md.",
-    "currentSchemaRestore": "Passed: 72 tables, 144 retained objects, 24 exact citations and three exports. Source acceptance, separate structured branch, generic template promotion and graph approval preserved; previous drafts/checkpoints unchanged. Isolated local restore only.",
+    "currentSchemaRestore": "Passed: 72 tables, 148 retained objects, 24 exact citations and four exports. Includes complete Minimal qualification, timed real USAA export, source refinement, independent branches and template promotion. Original drafts/library/checkpoints/reports unchanged. Isolated local restore only.",
     "documentDiagnostics": "Offline full fixture suite passed; fixed protocol/stage headers identify malformed input and prohibited source without exposing exception contents. Peak memory 421687296 bytes.",
-    "templateScoring": "All three fixed packs rendered three canonical fixtures each. Eight provider responses InvalidResponse; one complete Classic result includes a failed simulation. All designations withheld. Classic retry preserves successful artifacts and raw response. See template-scoring.md.",
+    "templateScoring": "Passed bounded live retry: Minimal retains all three complete six-platform responses after Oracle Taleo alias correction. Failing Taleo simulations withhold every badge. Prior attempts and all nine canonical documents remain unchanged.",
     "applicationDiagnostics": "Passed: one JSON event per application execution, anonymous 401 traceId matches response, authenticated outcomes include elapsed spans, and successful dispatch records identical Operation/Workflow IDs. 139 Workers tests, workspace types/lint and staging build pass.",
     "sourceUploadRecovery": "Deployed: persistent least-recently-checked scan of at most 50 uploads and isolated redacted R2 failures. 141 Workers tests, workspace types/lint and staging build pass. Hosted original source records remain Ready. Batch-boundary and failure injection are local Workers tests, not hosted injected failures.",
     "mobileReview": "Passed at actual 390x844 Chrome viewport: source list, light/dark history and wording review, exact content and both retained PDFs, light/dark backup status and failure history, unavailable scoring state and retained PDF download action. Focus-return correction passed locally and hosted. Populated scoring/mobile acceptance remain unverified; see mobile-review.md.",
@@ -156,10 +156,7 @@
       "scoringRuns": 2,
       "scoringRawDigestsVerified": true,
       "cachedIdentityPreserved": true,
-      "ownerAuthProviders": [
-        "credential",
-        "github"
-      ],
+      "ownerAuthProviders": ["credential", "github"],
       "published": false
     },
     "ownerExportAndQualificationDrill": {
@@ -288,10 +285,7 @@
   "hostedEvidenceAi": {
     "sourceId": "01a07316-636d-74af-9a45-c12ffa42e177",
     "sourceTaskId": "01a07317-38b0-7cb7-a328-59ec1692a4fb",
-    "claimIds": [
-      "01a07317-e671-7eea-98f2-a7b92c5be987",
-      "01a0732d-7f64-7b83-9fcd-f62c1473540b"
-    ],
+    "claimIds": ["01a07317-e671-7eea-98f2-a7b92c5be987", "01a0732d-7f64-7b83-9fcd-f62c1473540b"],
     "claimsArchived": true,
     "jobId": "01a07317-0c52-7545-b111-8a05135624a8",
     "jobArchived": true,
@@ -354,28 +348,18 @@
     "checkpointRevision": 0,
     "populatedScoring": true,
     "scoringComparison": true,
-    "scoringAppearance": [
-      "light",
-      "dark"
-    ],
-    "qualification": false,
+    "scoringAppearance": ["light", "dark"],
+    "qualification": true,
     "sourceRefinement": {
       "commit": "11e33fa",
-      "viewports": [
-        390,
-        610,
-        1280
-      ],
+      "viewports": [390, 610, 1280],
       "narrowListHeight": 96,
       "desktopListHeight": 44,
       "horizontalOverflow": false,
       "keyboardNavigation": true,
       "applicationConsoleErrors": 0,
       "viewportReset": true,
-      "paperBoards": [
-        100,
-        101
-      ]
+      "paperBoards": [100, 101]
     }
   },
   "productionPreparation": {
@@ -430,22 +414,13 @@
   },
   "hostedScoring": {
     "checkpointId": "01a07091-d743-76c2-a7ee-51294410467a",
-    "runIds": [
-      "01a073f2-5579-7a3a-99b1-4ea3e586bbe8",
-      "01a073f4-331d-7f35-b652-f7795e70bea1"
-    ],
+    "runIds": ["01a073f2-5579-7a3a-99b1-4ea3e586bbe8", "01a073f4-331d-7f35-b652-f7795e70bea1"],
     "operationIds": [
       "01a073f2-5579-7604-84ad-d92449cde648",
       "01a073f4-331d-7821-8a65-38dabd9058bf"
     ],
-    "attempts": [
-      1,
-      1
-    ],
-    "cached": [
-      false,
-      true
-    ],
+    "attempts": [1, 1],
+    "cached": [false, true],
     "inputCoverage": {
       "resumeText": 17,
       "jobDescription": 95,
@@ -488,20 +463,8 @@
     "pendingCandidates": 5,
     "newClaims": 0,
     "source": "fictional fixture",
-    "repeatedOffsets": [
-      [
-        335,
-        357
-      ],
-      [
-        358,
-        380
-      ]
-    ],
-    "unicodeOffsets": [
-      301,
-      334
-    ]
+    "repeatedOffsets": [[335, 357], [358, 380]],
+    "unicodeOffsets": [301, 334]
   },
   "hostedTemplateQualification": {
     "qualified": false,
@@ -524,6 +487,49 @@
         "attempts": 1,
         "reportDigest": "f109d62a4fb1c8a8fb7b437bcf8919f9665dcc4a9ee0dfba1f9e08a945d707de"
       }
+    }
+  },
+  "scoringDiagnostics": {
+    "commit": "528a60e",
+    "workerVersion": "c126133a-7441-4700-93ac-6691b599a8ee",
+    "workersTests": 158,
+    "domainTests": 5,
+    "finalAdapterTests": 10,
+    "privateValuesRetained": false,
+    "requestFields": ["mode", "resumeText", "jobDescription"],
+    "classicFinalOperation": "01a0744e-3a4f-74da-aca0-9d761d380e6e",
+    "aliasCorrection": {
+      "commit": "9eb25db",
+      "workerVersion": "0a8e3d24-d7f8-4a07-a75b-f08e81df16b7",
+      "alias": "Oracle Taleo",
+      "canonical": "Taleo",
+      "focusedScoringTests": 30,
+      "remoteSyntheticLabelProof": true
+    }
+  },
+  "finalAcceptance": {
+    "codeCommit": "9eb25db",
+    "minimalRun": "01a07420-24a3-77f3-8f7e-27c01fb6040f",
+    "minimalOperation": "01a0745f-780a-718d-a492-605eccb18cd4",
+    "completeFixtures": 3,
+    "qualified": false,
+    "reportDigest": "4c2c32facb1b8ed95a706b953da7ec5eb9f4781d8826b7955a14703f9f8b31aa",
+    "timedTailoring": {
+      "checkpointId": "01a07463-0ac8-7287-a377-e408a1753763",
+      "draftId": "01a07460-b1db-7167-a1f8-c3a5c6da0800",
+      "revision": 6,
+      "elapsedMs": 262378,
+      "startingPoint": "Existing USAA job, selected Draft evidence and reusable library content; agent operated",
+      "files": 4,
+      "hashesVerified": true
+    },
+    "backup": {
+      "key": "backups/database/staging/2026-09-06T01-50-08.082Z-45748b89-0c7c-4533-b393-b523ac8a7fce/snapshot.json.gz",
+      "sha256": "9f8a3ae0dacca1cd5dd513c0fbde83cc62309ddd2e61dd3812a95213d28a459d",
+      "report": "test-results/recovery/drill-e7d40656-da2f-41c7-b1cc-b763331c424c/report.json",
+      "objects": 148,
+      "citations": 24,
+      "exports": 4
     }
   }
 }

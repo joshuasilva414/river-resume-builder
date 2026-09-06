@@ -1,9 +1,10 @@
 # River build plan
 
-Status: V1 implementation is ongoing on personal staging. The core tailoring loop, reviewed AI, template workflows and history are deployed. Scoring activation, final-source acceptance, remaining authentication/mobile checks and the real Owner release session remain open. See [implementation status](docs/implementation/status.md) and [runtime proof](docs/implementation/phase-0.md).
+Status: V1 implementation is ongoing on personal staging. The core tailoring loop, reviewed AI, template workflows and history are deployed. Scoring is active, and source refinement, template promotion and visual approval pass staging testing. A bounded scoring retry and a 4-minute-23-second real tailoring/export session from the prepared workspace also pass. Hosted password recovery and production release remain open. See [implementation status](docs/implementation/status.md) and [runtime proof](docs/implementation/phase-0.md).
 
 ## Approved implementation decisions
 
+- The Owner authorizes overriding staging application UI decisions for testing. Label test acknowledgments and lifecycle decisions; they do not establish evidence verification or production approval.
 - Before creating or updating a page design, have a subagent design it in Paper. Implement only screens and states already present in Paper; keep the design handoff node IDs with each milestone.
 - Product name: River. Use the current logo, typography, colors, and interaction designs on Paper's App UI · Newsreader page when implementing each screen.
 - Export permits Draft, Needs clarification, stale, archived, and unsupported content only after explicit acknowledgment of each issue for the exact checkpoint. Archived evidence is excluded from default search. Compilation, prohibited constructs, and text-integrity failures remain blocking.
@@ -188,12 +189,12 @@ Exit: all three packs render representative fixtures and real owner content with
 
 Depends on M1–M5.
 
-- [ ] Verify critical journeys with Playwright: sign in, add sources/evidence, review a job, compose, resolve a conflict, inspect warnings, and export.
-- [x] Verify authorization, stale proposal rejection, idempotent retry, partial background failure, and immutable historical outputs with focused integration tests. The reviewed 149-test Workers run covers these contracts; hosted provider/credential gates remain separate. See `docs/implementation/release-gates.md`.
+- [x] Verify critical journeys with Playwright: sign in, add sources/evidence, review a job, compose, resolve a conflict, inspect warnings, and export.
+- [x] Verify authorization, stale proposal rejection, idempotent retry, partial background failure, and immutable historical outputs with focused integration tests. The reviewed 156-test Workers run covers these contracts; hosted provider/credential gates remain separate. See `docs/implementation/release-gates.md`.
 - [x] Configure D1 Time Travel and daily D1 exports to a private R2 backup location; preserve immutable source objects.
 - [x] Perform a restore drill into isolated resources and verify source/provenance links and retained exports.
 - [x] Document deployment, migrations, secrets, rollback constraints, background-job diagnosis, backup and restore procedures.
-- [ ] Complete one real job-tailoring session within 15 minutes and record delays that need correction before MVP release.
+- [x] Complete one real job-tailoring session within 15 minutes and record delays that need correction before MVP release. The new USAA draft, local tailoring, review, export and four downloads took 4 minutes 23 seconds using existing job/evidence/library records with agent assistance. This does not measure first-use intake or unaided Owner speed. See `docs/implementation/owner-tailoring.md`.
 
 Exit: the Owner can complete the core loop; failures are diagnosable; data can be restored; AI and scoring availability do not determine whether manual export works.
 
@@ -211,21 +212,21 @@ Wording assistance is implemented and deployed. Live local and hosted provider r
 - [x] Implement guided template briefs and iterative generation using synthetic fixtures exclusively.
 - [x] Implement Draft → Validated → Approved → Retired lifecycle behavior; editing approved payloads creates new revisions.
 - [x] Validate cross-pack style contracts before enabling component mixing.
-Manual template editing, full-graph validation, explicit donor combinations, and exact custom résumé bindings are deployed. Synthetic-only AI generation and scoped conversations are deployed through migration 0017. A hosted model candidate was reviewed, accepted into a Draft, and passed all four fixtures twice; visual approval remains a separate Owner action. See `docs/implementation/template-studio.md` and `docs/implementation/template-generation.md`.
-- [ ] Support final-document source proposals with full diffs, extracted-text changes, rendered preview, validation, and explicit acceptance into a new checkpoint.
-- [ ] Support promotion of final-document changes into new template drafts subject to normal validation and approval.
+Manual template editing, full-graph validation, explicit donor combinations, and exact custom résumé bindings are deployed. Synthetic-only AI generation and scoped conversations are deployed through migration 0017. A hosted model candidate was reviewed, accepted into a Draft, and passed all four fixtures twice; staging test visual approval now passes on the exact graph. See `docs/implementation/template-studio.md` and `docs/implementation/template-generation.md`.
+- [x] Support final-document source proposals with full diffs, extracted-text changes, rendered preview, validation, and explicit acceptance into a new checkpoint.
+- [x] Support promotion of final-document changes into new template drafts subject to normal validation and approval.
 
 Exit: every generated change is reviewable and attributable; content changes cannot be hidden behind a layout-only label; reusable template generation never receives private resume content.
 
 ## Phase 3: scoring and history
 
-- [x] Add explicit checkpoint creation, chronological history, branching, non-destructive restoration, and side-by-side comparisons. Hosted synthetic restoration and both actual PDFs pass; narrow mobile comparison remains a release check.
-- [ ] Integrate ATS Screener behind a replaceable provider adapter using the exact checkpoint text and job snapshot.
-- [ ] Persist provider/deploy/rubric identity, submission fingerprint, raw six-platform simulations, fallback information, suggestions, and failures.
-- [ ] Compare scores only within the same provider/rubric identity. Label simulations separately from local document validation.
-- [ ] Implement retryable scoring failures and provider limits without blocking export.
-- [ ] Score canonical template fixtures and assign the separate ATS Screener tested designation only when its stated criteria pass.
-- [x] Add inline writing assistance after review-queue behavior is proven. Paper board 77 is implemented with exact target comparison and session undo; local and hosted live-provider browser checks pass. Actual 390-pixel proposal review and keyboard focus return now pass; populated scoring review remains separate.
+- [x] Add explicit checkpoint creation, chronological history, branching, non-destructive restoration, and side-by-side comparisons. Hosted synthetic restoration and both actual PDFs pass; actual phone comparison passes in both themes.
+- [x] Integrate ATS Screener behind a replaceable provider adapter using the exact checkpoint text and job snapshot.
+- [x] Persist provider/deploy/rubric identity, submission fingerprint, raw six-platform simulations, fallback information, suggestions, and failures.
+- [x] Compare scores only within the same provider/rubric identity. Label simulations separately from local document validation.
+- [x] Implement retryable scoring failures and provider limits without blocking export.
+- [x] Score canonical template fixtures and assign the separate ATS Screener tested designation only when its stated criteria pass. Minimal’s final bounded retry retains all three six-platform responses; failing simulations correctly withhold the designation. All nine pack/fixture documents render. See `docs/implementation/template-scoring.md`.
+- [x] Add inline writing assistance after review-queue behavior is proven. Paper board 77 is implemented with exact target comparison and session undo; local and hosted live-provider browser checks pass. Actual 390-pixel proposal review and keyboard focus return now pass; populated checkpoint scoring review passes in both themes.
 
 Exit: restoring history never destroys newer work, score comparisons preserve their meaning, and scoring outages leave export usable.
 

@@ -1,6 +1,6 @@
 # Canonical template ATS qualification
 
-Canonical qualification, durable fixture runs, Owner application services, a bounded Workflow, protected artifact inspection and Paper’s review interface are deployed to personal staging on 2026-09-05. The Paper contract is board 75 in `history-scoring-design.md`. All three fixed packs have now completed hosted qualification attempts. None qualified; no live template has an `ATS Screener tested` designation from this work. See the latest results below.
+Canonical qualification, durable fixture runs, Owner application services, a bounded Workflow, protected artifact inspection and Paper’s review interface are deployed to personal staging on 2026-09-05. The Paper contract is board 75 in `history-scoring-design.md`. All three fixed packs have hosted qualification history. After the Oracle Taleo alias correction, Minimal’s final bounded retry completed all three six-platform responses. Its failing simulations correctly withhold the designation. No live template has an `ATS Screener tested` designation from this work. See the latest result below.
 
 ## Exact synthetic inputs
 
@@ -82,3 +82,25 @@ The eight missing results failed strict validation with `InvalidResponse`. Their
 That one valid response reports Workday 79, Taleo 68, iCIMS 84, Greenhouse 82, Lever 80 and SuccessFactors 83. Taleo reports a failed filter. These are provider simulations, not measured behavior of those vendors' systems. The qualification gate correctly rejects both this failed simulation and incomplete fixture coverage.
 
 Latest Operations: Classic `01a0740c-0005-7d83-9253-40e99146d94c`, Minimal `01a07420-24a3-7526-93ca-c269a7cee2f4`, Technical `01a07423-7ac2-74e1-b960-a7c6a954a701`. All finished Failed with retained reports. This verifies live failure handling, populated review and partial-result preservation on retry. Successful scoring retry, passing canonical qualification and phone inspection of populated qualification remain open. Export remains available throughout.
+
+## Response diagnosis and completed phone review — 2026-09-05
+
+Classic's third and final attempt used Operation `01a0744e-3a4f-74da-aca0-9d761d380e6e`. Graduate-web failed Unavailable and unicode-application failed InvalidResponse. The prior experienced-platform result remained unchanged, and the qualification report retained the same `455cf5ec72b49334fa78e9cd6120e3e6bd9b526f213497b869b750b5572305d9` digest. The original budget is exhausted; no attempts were reset.
+
+After safe diagnostics deployed, Minimal's second attempt (`01a07457-fb5b-74a1-9c11-88e602ecaa5c`) failed schema validation at `results.1.system` for every fixture. An isolated Cloudflare preview of the exact fictional graduate input confirmed the returned `Oracle Taleo` alias in results and suggestions. Direct Node requests returned canonical `Taleo`; they did not reproduce that hosted response. The exact-alias correction, privacy boundary, tests and deployment are recorded in `scoring.md`. Earlier rejected bodies were not retained, so this does not retroactively prove the cause of every historical failure.
+
+Populated Classic review at 390 × 844 passes in light/dark themes: actual retained PDF, complete text, all six simulation outcomes, expanded dimensional findings, pinned earlier attempts and the exhausted-retry state. No horizontal overflow or application console error was observed; the temporary viewport override was reset. See `mobile-review.md`. No template qualifies solely by completing a run: every required simulation must pass before a badge can be awarded.
+
+## Successful bounded retry after the alias correction
+
+Minimal run `01a07420-24a3-77f3-8f7e-27c01fb6040f` completed its third attempt through Operation `01a0745f-780a-718d-a492-605eccb18cd4`. All three fixture responses are valid and retained, with report SHA-256 `4c2c32facb1b8ed95a706b953da7ec5eb9f4781d8826b7955a14703f9f8b31aa`. The two earlier failed reports remain immutable. The UI displays Succeeded for execution and Designation withheld for qualification.
+
+| Fixture | Workday | Taleo | iCIMS | Greenhouse | Lever | SuccessFactors | Raw response SHA-256 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| graduate-web | 72 | 58 | 78 | 82 | 75 | 80 | `25eff91558d03628a9c7f006f7548f2a3b4686a6fdaff8c1c662d7a747343362` |
+| experienced-platform | 79 | 64 | 82 | 86 | 75 | 80 | `ceddf89982e6cc287c5613815dcf6a415018cb05c56b178a366655f0d7d05817` |
+| unicode-application | 72 | 58 | 82 | 80 | 77 | 78 | `0e4af7acd1b70a105d908658b5e9f9e4bae370d10462f8aaa754a0c8089fae3e` |
+
+Taleo reports a failed filter in every fixture; the other simulations report passing filters. These are raw provider simulations, not verified vendor behavior. No scores were adjusted and no fixtures were changed to earn a badge. All responses report uncached results and deployment identity `4035124d-7dab-48bb-ab4e-831cfc46d442`. The complete retained raw experienced-platform and Unicode responses contain `Oracle Taleo`; River’s normalized view uses `Taleo`.
+
+This proves successful live bounded retry, complete canonical result retention and correct withholding on real failed simulations. Classic remains exhausted at three attempts and Technical retains its earlier failed attempt; their budgets and history were not reset.

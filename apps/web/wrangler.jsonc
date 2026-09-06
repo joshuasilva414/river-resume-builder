@@ -218,6 +218,7 @@
         "BACKUP_DATABASE_ID": "50d255b8-840b-4d03-87d9-c3fb9e810366",
         "BACKUP_BUCKET_NAME": "river-production-artifacts",
         "APP_URL": "https://river.jilva.dev",
+        "ATS_SCREENER_ORIGIN": "https://ats.jilva.dev",
         "OWNER_EMAIL": "joshuasilva414@gmail.com",
         "EMAIL_FROM": "River <hello@river.jilva.dev>",
         "OPENAI_REQUIREMENTS_MODEL": "gpt-5.4-mini-2026-03-17",

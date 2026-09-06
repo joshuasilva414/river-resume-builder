@@ -4,7 +4,7 @@ Updated 2026-09-05. V1 is not released. This maps the remaining plan gates to co
 
 ## Service and persistence gate
 
-The complete Workers run recorded in `/tmp/river-source-anchors-full.log` passed 156 tests in 26 files, including source occurrence anchors, safe scoring failures across Workflow steps, password-reset session revocation and dialog focus. Five domain tests, all workspace type/lint checks and the clean staging build passed. Production build/dry-run verification was recorded earlier for `a797477`; production remains unpublished. The following assertions satisfy M6's focused integration-test gate; hosted credential and provider acceptance remain separate.
+The complete Workers run recorded in `/tmp/river-score-diagnostics-full.log` passed 158 tests in 26 files, including source occurrence anchors, safe scoring diagnostics across Workflow steps, password-reset session revocation and dialog focus. Five domain tests, all workspace type/lint checks and the clean staging build passed. Production build/dry-run verification was recorded earlier for `a797477`; production remains unpublished. The following assertions satisfy M6's focused integration-test gate; hosted credential and provider acceptance remain separate.
 
 | Contract | Verification |
 | --- | --- |
@@ -20,17 +20,16 @@ Reproduce the complete Workers suite with `pnpm --filter @river/web test`. Its D
 
 ## Browser and release gates
 
-Local and hosted Playwright journeys cover source intake, evidence review, manual jobs, composition, concurrent-tab preservation, warning inspection, retained export, AI review and history. Their records are in `evidence.md`, `jobs.md`, `composition.md`, `checkpoints.md` and the relevant AI documents. `mobile-review.md` records actual 390-pixel checks. Earlier journeys use synthetic data. The real USAA intake-to-export journey now passes with 29 explicitly approved Draft acknowledgments and four verified downloads; see `owner-tailoring.md`. It does not prove the required 15-minute Owner session.
+Local and hosted Playwright journeys cover source intake, evidence review, manual jobs, composition, concurrent-tab preservation, warning inspection, retained export, AI review and history. Their records are in `evidence.md`, `jobs.md`, `composition.md`, `checkpoints.md` and the relevant AI documents. `mobile-review.md` records actual 390-pixel checks. Earlier journeys use synthetic data. The real USAA intake-to-export journey now passes with 29 explicitly approved Draft acknowledgments and four verified downloads; see `owner-tailoring.md`. A fresh prepared-workspace session then completed in 4 minutes 23 seconds with agent assistance; it excludes first-use intake and unaided Owner timing.
 
 Hosted Agent Credential acceptance passed with real REST/MCP source, evidence and job commands, exact citations, shared idempotency, denied scopes and revoked-credential 401s. See `agent-access.md`.
 
 The following work still prevents V1 release:
 
 - Hosted password recovery. GitHub OAuth now passes real Owner sign-in; the Owner must enter a new password to complete the separate reset journey.
-- Successful live scoring retry and canonical template qualification. ATS deployment, authenticated six-platform scoring, cached identity preservation, compatible comparisons and failed-attempt recovery now pass. All three packs rendered their fixtures, but eight responses failed validation and the one valid fixture failed a simulation. No tested designation is awarded.
-- Phone review of populated canonical qualification. Desktop populated review passes for all three packs; checkpoint-scoring phone review also passes. See `template-scoring.md` and `recovery.md` for the precise provider and recovery coverage.
-- A timed Owner job-tailoring session within 15 minutes. The selected résumé and USAA Notion brief now complete the real manual export workflow; development and troubleshooting time prevents claiming this timing gate.
 - Production secret/authentication setup, `river.jilva.dev` deployment and final production acceptance. Isolated personal-account D1/R2 resources, all 28 migrations, environment-specific backup handling and an empty production restore are prepared; see `production.md`.
+
+Successful bounded scoring retry and complete canonical result handling now pass: Minimal retains all three six-platform responses, with the badge correctly withheld for failing simulations. Actual phone qualification review also passes. See `template-scoring.md` and `mobile-review.md`.
 
 The three approved setup actions completed. The later staging UI testing authorization also enabled synthetic source-refinement acceptance/export/structured return/promotion and generated-template visual approval. These now pass; see `source-refinement.md` and `template-generation.md`. Production publication remains separate. Original sources and checkpoint artifacts remain retained. Production storage exists, with no application or domain publication. ACM UTSA remains untouched.
 

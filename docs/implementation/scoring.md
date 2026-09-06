@@ -86,3 +86,17 @@ D1 retains complete 17/17 and 95/95 input coverage, original raw responses, all 
 The provider classified all six scores below threshold. Its explanation inaccurately described the name-only input as blank and made unverified claims about vendor internals. River preserves those statements as provider suggestions; they remain Unreviewed and do not establish evidence. The original passing document report, acknowledgment and retained PDF download remain available. No new export or finding attestation was submitted.
 
 Populated light/dark phone results and the compatible comparison now pass at 390 × 844; see `mobile-review.md`. Canonical template qualification, live failure/retry and differing-snapshot browser comparisons remain separate acceptance work. The shared validator and local tests cover missing/incompatible identities and suppressed deltas.
+
+## Safe response diagnostics — 2026-09-05
+
+Commit `528a60e`, staging Worker `c126133a-7441-4700-93ac-6691b599a8ee`, distinguishes content type, response size, missing body, UTF-8, JSON, stream failure, schema fields and consistency failures. Non-success responses retain only their numeric HTTP status. Schema diagnostics retain bounded known field names and array indexes; input values, provider messages and arbitrary property names remain excluded. These safe messages survive Workflow serialization and use the existing failure display.
+
+The request adapter also projects exactly `mode`, `resumeText` and `jobDescription`. Rich internal input records previously added artifact keys, template identity and validation metadata through object spreading; these fields are no longer sent. The actual résumé and job strings remain unchanged.
+
+All 158 Workers tests in 26 files, five domain tests, workspace types/lint and the clean staging build pass. After the final HTTP-status addition, all ten focused adapter tests pass. Tests cover safe field paths, private-value removal, malformed transport bodies, complete-input checks and exclusion of internal request metadata. Logs: `/tmp/river-score-diagnostics-{full,domain,types,lint,tests,build,deploy}.log`.
+
+## Confirmed Oracle Taleo alias — 2026-09-05
+
+Minimal's second attempt consistently failed at `results.1.system`. A direct Node request returned canonical `Taleo`, while an isolated Cloudflare remote preview of the exact fictional graduate fixture returned `Oracle Taleo` in both result names and suggestion platform arrays. The preview captured only platform labels and cache status, used no River bindings or secrets, and was stopped after the single request. This is also Oracle's official product name: <https://www.oracle.com/human-capital-management/taleo/>.
+
+Commit `9eb25db` normalizes that exact alias to `Taleo` through the same shared validator used for HTTP acceptance and result retention. Original raw JSON and scoring identity remain unchanged. Unknown names and duplicate identities, including mixed `Taleo`/`Oracle Taleo` references, still fail. The change does not alter scores, thresholds, required dimensions or qualification rules. All 30 focused scoring tests, five domain tests, workspace types/lint and the clean staging build pass. Staging Worker: `0a8e3d24-d7f8-4a07-a75b-f08e81df16b7`. Logs: `/tmp/river-taleo-alias-{tests,domain,types,lint,build,deploy}.log`.

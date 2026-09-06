@@ -33,3 +33,9 @@ After successful GitHub sign-in, Chrome reviewed checkpoint `01a07091-d743-76c2-
 Screenshots confirmed the results and comparison tables fit. The document measured 390 pixels; each modal measured 388 client/scroll pixels, including both nested dialogs. No page-level horizontal overflow was observed. The temporary viewport override was reset after review. No new score, finding decision, checkpoint or export was created by this mobile inspection. Scoring runs were created by the earlier approved desktop acceptance.
 
 This completes populated checkpoint-scoring review for the recorded states. Canonical qualification, error/retry and incompatible-result mobile states remain separate coverage.
+
+## Canonical qualification phone review — 2026-09-05
+
+Classic run `01a073fd-5509-7616-a7ac-563f1046094e` was reviewed at 390 × 844 in both themes. The existing retry action started its third attempt; progress changed through scoring into a retained failed report. The exhausted run exposes no further retry button. Its earlier attempts remain selectable, and selecting attempt one pins its original report date while preserving the current run status.
+
+The first retained fixture PDF loaded through PDF.js, exact submitted text expanded, all six experienced-platform results remained visible and Taleo’s failing simulation expanded into dimensional findings. Screenshot and DOM checks found no page or modal horizontal overflow: document 390 pixels, dialog client/scroll width 388 pixels. Browser logs contained only an unrelated LMS extension warning. The viewport override was reset. This test exercised actual synthetic scoring under the Owner’s staging UI authorization; it did not modify Owner evidence or older results.

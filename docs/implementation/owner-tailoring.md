@@ -51,3 +51,19 @@ The local set is `test-results/owner-usaa/river-usaa-r0119330.{pdf,tex,txt,json}
 - Scoring preflight displayed the complete 1,816-unit résumé and 15,401-unit job snapshot against the provider's 6,000/4,000 limits. Submission was blocked rather than silently truncating the brief. No score run exists for this checkpoint.
 - The real v1 source proposal run rejected incorrect offsets and published no candidates. The v2 correction passed synthetic hosted retry and exact-occurrence checks; see `source-proposals.md`. Automatic approval review blocked the new real-résumé AI submission pending explicit permission to transfer the complete extraction to OpenAI. The export approval does not include that transfer.
 - Generated-template visual approval and source-refinement acceptance were subsequently tested under the Owner's staging UI authorization; see `source-refinement.md`. Hosted password recovery and production publication remain separate gates. This journey does not release V1 or publish production.
+
+## Timed prepared-workspace session — 2026-09-05
+
+A fresh agent-operated session completed in **4 minutes 23 seconds** (262,378 ms through the last completed download). It started at `2026-09-06T01:41:12.492Z` with the existing USAA job, manual Requirement Map, selected Draft evidence and reusable library content already populated. This satisfies the measured prepared-workspace tailoring case. It does not measure initial intake, first-use learning or unaided Owner speed.
+
+The session reviewed the requirements and explicit gaps, created a separate Classic draft, inspected and placed five exact library sections, revised the deployment bullet to lead with supported troubleshooting work and moved HackKit before Napkin to prioritize authentication/testing experience. The wording and ordering changes are local overrides. No reusable revision was promoted or evidence verified.
+
+The exact saved revision was captured, all 29 Draft issues were individually acknowledged under staging test authorization, and the one-page PDF, complete extracted text and report were inspected. Compilation passed on attempt one in 10,089.96 ms. Completeness, multiplicity and reading order pass with 1,801 expected / 1,820 extracted UTF-16 units. Export completed at 20:45:07 America/Chicago. All four browser downloads finished by 20:45:34.870; their SHA-256 hashes match the retained files.
+
+- Draft: `01a07460-b1db-7167-a1f8-c3a5c6da0800`, saved revision 6.
+- [Timed checkpoint](https://river-staging.jilva.workers.dev/checkpoints/01a07463-0ac8-7287-a377-e408a1753763): `01a07463-0ac8-7287-a377-e408a1753763`.
+- Document Operation: `01a07463-0ac8-7a7e-bc29-733d19919a27`.
+- Export digest: `307c3a4ea18db503d3dee955ca08c24acb751eba2c960bcb588a43b6b8937915`.
+- Local files: `test-results/owner-usaa/river-usaa-timed.{pdf,tex,txt,json}`; exact timestamps and hashes: `timed-proof.json` in that directory.
+
+The original USAA export retains its exact digest and 29 original acknowledgments. The new files are test acceptance artifacts; no application was submitted and no real résumé text was sent to an AI provider during this session.
