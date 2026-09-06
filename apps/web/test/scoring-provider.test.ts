@@ -47,13 +47,18 @@ it("normalizes known suggestion aliases and rejects unknown or duplicate simulat
     ...canonical,
     results: canonical.results.map((result) => ({
       ...result,
-      system: result.system === "SuccessFactors" ? "SAP SuccessFactors" : result.system,
+      system:
+        result.system === "SuccessFactors"
+          ? "SAP SuccessFactors"
+          : result.system === "Taleo"
+            ? "Oracle Taleo"
+            : result.system,
       suggestions: [
         {
           summary: "Synthetic alias finding",
           details: [],
           impact: "low",
-          platforms: ["SAP SuccessFactors"],
+          platforms: ["SAP SuccessFactors", "Oracle Taleo"],
         },
       ],
     })),
@@ -62,8 +67,9 @@ it("normalizes known suggestion aliases and rejects unknown or duplicate simulat
   const result = await scoreCheckpointText(profile, input, syntheticScoringVersion, transport);
   expect(result.raw).toEqual(raw);
   expect(result.response.results[5]?.suggestions[0]).toMatchObject({
-    platforms: ["SuccessFactors"],
+    platforms: ["SuccessFactors", "Taleo"],
   });
+  expect(result.response.results[1]?.system).toBe("Taleo");
   for (const invalid of [
     {
       ...raw,
@@ -84,6 +90,22 @@ it("normalizes known suggestion aliases and rejects unknown or duplicate simulat
         suggestions: item.suggestions.map((suggestion) => ({
           ...suggestion,
           platforms: ["SuccessFactors", "SAP SuccessFactors"],
+        })),
+      })),
+    },
+    {
+      ...raw,
+      results: raw.results.map((item, index) =>
+        index === 0 ? { ...item, system: "Taleo" } : item,
+      ),
+    },
+    {
+      ...raw,
+      results: raw.results.map((item) => ({
+        ...item,
+        suggestions: item.suggestions.map((suggestion) => ({
+          ...suggestion,
+          platforms: ["Taleo", "Oracle Taleo"],
         })),
       })),
     },

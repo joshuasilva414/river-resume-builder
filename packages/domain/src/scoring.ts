@@ -94,10 +94,11 @@ export const AtsScoringResponse = Schema.Struct({
 });
 export type AtsScoringResponse = typeof AtsScoringResponse.Type;
 
-// The provider also uses SAP's full product name. Canonicalize only that known alias;
+// The provider also uses vendor-prefixed product names. Canonicalize only known aliases;
 // the domain validator still enforces bounds and unique simulations after decoding.
 const ProviderPlatform = Schema.Union([
   ScoringPlatform,
+  Schema.Literal("Oracle Taleo").transform("Taleo"),
   Schema.Literal("SAP SuccessFactors").transform("SuccessFactors"),
 ]);
 const ProviderResponse = Schema.Struct({
