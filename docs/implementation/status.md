@@ -48,8 +48,8 @@ The latest complete suite passes 158 Workers tests in 26 files. Five domain test
 
 ## Remaining release work
 
-- Complete the approved production activation and final-domain acceptance. The private document service is deployed; GitHub requires Owner confirmation before generating the production OAuth client secret. The isolated production web build/dry run passes.
+- Complete final-domain document/export and backup acceptance. Production publication, all five secret installations and Owner GitHub login are complete. The fictional document test is paused for explicit production-test approval.
 
-Production has isolated, empty D1/R2 resources and a passing empty-schema restore. Its private document Worker and Container are deployed. Web publication, secret installation, Owner bootstrap and final-domain acceptance remain pending. See [production activation](production.md).
+Production is live at https://river.jilva.dev with its own D1/R2, private document Worker/Container and 11 Workflows. The landing and diagnostic restrictions pass. Staging records were not copied. See [production activation](production.md).
 
-The Owner authorizes overriding staging UI decisions for testing. Test acknowledgments and lifecycle approvals must remain identified as tests. This does not establish evidence verification or production approval. The optional complete-Owner-résumé AI rerun remains pending explicit transfer permission; synthetic v2 verification is complete and the optional rerun is not a release gate.
+The Owner authorizes overriding staging UI decisions for testing. Test acknowledgments and lifecycle approvals must remain identified as tests. This does not establish evidence verification. Production publication and credentials were approved separately. The optional complete-Owner-résumé AI rerun remains pending explicit transfer permission; synthetic v2 verification is complete and the optional rerun is not a release gate.

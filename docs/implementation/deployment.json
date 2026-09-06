@@ -52,7 +52,7 @@
     "jobAnalysis": "Passed: hosted live v2 requirement extraction and complete-map acceptance; v3 ranking with one cited Draft match and two explicit gaps; review alone leaves selections empty, separate exact-revision selection persists. Weak v2 ranking rejected with null payload. Fictional job and claims archived. Citation fix: 136 Workers tests; latest ranking guard: 10 focused tests; workspace types/lint and staging build pass.",
     "streamedRestoreDrill": "passed: v2 format derived from a real 42-table staging snapshot; isolated SQLite, FTS, foreign keys, one citation, 14 retained objects, one export; live scheduled export remains unverified",
     "wording": "Passed: live local and hosted gpt-5.4-mini-2026-03-17 generation and complete inline review on synthetic fixtures. Local unrelated rename, acceptance r8, undo r9, redo r10; hosted visible name-formatting acceptance r3, undo r4, retained r3 decision. Actual PDFs and 75% zoom retained. 14 focused Workers tests, workspace types/lint and staging build pass.",
-    "sourceProposals": "Passed: v2 hosted synthetic retry yields five Pending candidates with exact Unicode and distinct repeated-line citations. First attempt rejected invented context atomically. New Owner r\u00e9sum\u00e9 run awaits explicit OpenAI transfer permission.",
+    "sourceProposals": "Passed: v2 hosted synthetic retry yields five Pending candidates with exact Unicode and distinct repeated-line citations. First attempt rejected invented context atomically. New Owner résumé run awaits explicit OpenAI transfer permission.",
     "duplicateComparison": "Passed: hosted first-attempt generation, full findings/captured/current inspection, independent acknowledgment preserving both claims, separate attributed Keep separate decision and saved access through both claim histories. Fictional claims archived. Model inconsistency retained and identified in review rationale.",
     "templateStudio": "Passed: local real fixture validation, approval, concurrent preservation, mixing, exact draft/preview/checkpoint, retirement and retained export. Hosted third validation passed all four fixtures twice after fixing Container RPC stream ownership. Hosted graph remains Validated pending Owner visual approval. Anonymous PDF request returns 401.",
     "templateGeneration": "Hosted real model response and first-attempt 11-point PDF passed graph, text-integrity and runtime checks. Full component change, PDF, text and report reviewed; accepted into immutable Draft. All 86 Workers tests through conversations and eight focused backup tests pass; workspace checks/lint/build pass.",
@@ -545,5 +545,30 @@
       "citations": 24,
       "exports": 4
     }
+  },
+  "productionActivation": {
+    "status": "published; final document/export and backup acceptance in progress",
+    "releaseCommit": "c006a46",
+    "codeCommit": "316c2b5",
+    "accountId": "a91c30d69981b341efe3b656a263f6da",
+    "applicationUrl": "https://river.jilva.dev",
+    "documentWorkerVersion": "02f4fe23-a7f4-4897-966a-192a4f4897c5",
+    "containerApplicationId": "a03812b3-f348-4754-a11a-f89ee4ab21b8",
+    "containerImageDigest": "sha256:1aa23e49fbe6e678fb0247e8a9c08bbc691d42ed9cdf417a845ec9b25ae6e807",
+    "githubApplicationId": "3839803",
+    "githubClientId": "Ov23liZjSClopimWF5Jz",
+    "webBuildDryRun": true,
+    "webPublished": true,
+    "productionAccepted": false,
+    "webVersion": "6b809303-ccd0-4f1a-b338-3f27ba23783b",
+    "ownerGithubSignIn": true,
+    "productionRuntimeRedirect": true,
+    "secretsInstalled": [
+      "AUTH_SECRET",
+      "GITHUB_CLIENT_ID",
+      "GITHUB_CLIENT_SECRET",
+      "OPENAI_API_KEY",
+      "D1_EXPORT_API_TOKEN"
+    ]
   }
 }
