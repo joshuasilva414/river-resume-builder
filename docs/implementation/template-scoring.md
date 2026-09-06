@@ -1,6 +1,6 @@
 # Canonical template ATS qualification
 
-Canonical qualification, durable fixture runs, Owner application services, a bounded Workflow, protected artifact inspection and Paper’s review interface are deployed to personal staging on 2026-09-05. The Paper contract is board 75 in `history-scoring-design.md`. Live provider qualification remains unverified; no live template has an `ATS Screener tested` designation from this work.
+Canonical qualification, durable fixture runs, Owner application services, a bounded Workflow, protected artifact inspection and Paper’s review interface are deployed to personal staging on 2026-09-05. The Paper contract is board 75 in `history-scoring-design.md`. All three fixed packs have now completed hosted qualification attempts. None qualified; no live template has an `ATS Screener tested` designation from this work. See the latest results below.
 
 ## Exact synthetic inputs
 
@@ -65,3 +65,20 @@ Classic run `01a073fd-5509-7616-a7ac-563f1046094e` rendered and retained all thr
 Cloudflare's Workflow boundary converted the adapter's typed `ScoringProviderError` exceptions into plain errors. The outer handler consequently recorded these two failures as `Interrupted`, losing the specific `InvalidResponse` classification. External render/submission callbacks now return a serialized safe failure inside the step boundary. Both checkpoint and template scoring preserve the code and retry time without retaining private exception text. Persistence and publication steps retain their existing retry behavior. This corrects failure reporting; it does not make invalid provider output acceptable.
 
 The focused 28 scoring tests and all 153 Workers tests pass, as do workspace types/lint and the clean staging build. The added test checks JSON round-trip preservation of rate-limit identity and retry timing, successful completion, and sanitization of unknown failures. Logs: `/tmp/river-workflow-failures-{tests,full,types,lint,build}.log`.
+
+
+## Hosted results for all fixed packs
+
+All nine canonical documents rendered successfully and remain retained with their LaTeX, complete extracted text and validation reports. Every fixed pack was inspected through its populated canonical-fixture review. No designation was awarded.
+
+| Pack | Run | Attempts | Complete valid provider results | Latest report SHA-256 |
+| --- | --- | ---: | ---: | --- |
+| Classic | `01a073fd-5509-7616-a7ac-563f1046094e` | 2 of 3 | 1 of 3 | `455cf5ec72b49334fa78e9cd6120e3e6bd9b526f213497b869b750b5572305d9` |
+| Minimal | `01a07420-24a3-77f3-8f7e-27c01fb6040f` | 1 of 3 | 0 of 3 | `e835a7ca35935c65653511f000ddf7cc73a9447877cd701cc750aedf4c6ab05a` |
+| Technical | `01a07423-7ac2-7097-b939-5dd14903407d` | 1 of 3 | 0 of 3 | `f109d62a4fb1c8a8fb7b437bcf8919f9665dcc4a9ee0dfba1f9e08a945d707de` |
+
+The eight missing results failed strict validation with `InvalidResponse`. Their rejected raw bodies were not retained, so the precise provider-schema defect remains undiagnosed. The Workflow failure correction now preserves this classification. The Classic retry reused its successful fixture documents and complete `experienced-platform` response without resubmission; its response digest remained `b940629d344453d2a36772d836df5473a82d5221832445b24604abaccc77cab1`.
+
+That one valid response reports Workday 79, Taleo 68, iCIMS 84, Greenhouse 82, Lever 80 and SuccessFactors 83. Taleo reports a failed filter. These are provider simulations, not measured behavior of those vendors' systems. The qualification gate correctly rejects both this failed simulation and incomplete fixture coverage.
+
+Latest Operations: Classic `01a0740c-0005-7d83-9253-40e99146d94c`, Minimal `01a07420-24a3-7526-93ca-c269a7cee2f4`, Technical `01a07423-7ac2-74e1-b960-a7c6a954a701`. All finished Failed with retained reports. This verifies live failure handling, populated review and partial-result preservation on retry. Successful scoring retry, passing canonical qualification and phone inspection of populated qualification remain open. Export remains available throughout.

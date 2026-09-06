@@ -101,3 +101,14 @@ After the approved OAuth setup and real scoring acceptance, a fresh private stag
 Report: `test-results/recovery/drill-1b616dbe-170a-488e-9db1-6e29015be5cd/report.json`. Additional read-only assertions confirmed both completed scoring runs, exact 17/95-unit captured inputs, all six results, SHA-256 equality for each complete canonical raw response, unchanged scoring identity on the cached result, and matching platform scores. The restored Owner retains both password and GitHub account linkage. No credential values were printed, no remote data was replaced, and no restored Operation was dispatched. Template qualification is still unpopulated; this is checkpoint-scoring recovery proof.
 
 Logs: `/tmp/river-approved-scoring-backup.log` and `/tmp/river-approved-scoring-restore.log`. This manual snapshot preserves the earlier daily backup's date and three-attempt history.
+
+
+## Real Owner export and populated qualification restore — 2026-09-05
+
+The post-export manual snapshot retained all 72 base tables at `backups/database/staging/2026-09-06T00-44-21.561Z-45d4c002-e71b-4fa7-9e65-1ae389d11140/snapshot.json.gz` (SHA-256 `eba804e50673b8129edf521507200498ee9631d158dd3d4ed12538aecda31839`). The UTC key falls on September 6; the Owner's America/Chicago date remains September 5. The first attempt failed before export at its catalog query. A read-only connection check passed and one retry succeeded; the original failure's cause remains unknown. No daily attempt count was changed.
+
+The isolated unpublished restore passed schema/data integrity, foreign keys, exact FTS equality, 24 exact citations, both exported checkpoints and all 140 retained objects. Report: `test-results/recovery/drill-3d462133-e158-44c4-a982-73679a241fd6/report.json`. This supersedes the earlier empty-template-scoring restore coverage.
+
+Additional read-only assertions against the restored database checked the real USAA export digest, all 29 exact issue acknowledgments and all 16 source-linked claims remaining Draft. All nine canonical template documents matched their captured document digests and four artifact hashes. The sole valid provider response matched its raw-response digest. All four immutable qualification reports matched their digests and withheld qualification. The five Pending v2 source candidates retained separate repeated-text occurrences. Supplemental proof: `test-results/recovery/drill-3d462133-e158-44c4-a982-73679a241fd6/acceptance-proof.json`.
+
+No remote data was replaced, no restored Operation was dispatched and no private résumé content was committed. Logs: `/tmp/river-owner-export-backup-retry.log` and `/tmp/river-owner-export-restore.log`.

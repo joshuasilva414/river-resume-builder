@@ -6,7 +6,7 @@ Updated 2026-09-05. Phase 2 source-to-claim review is implemented. The Owner-app
 
 The Owner selects one current Ready extraction, zero to ten current context revisions, and an optional 2,000-character focus. The server reads the complete private extraction, verifies its stored SHA-256, and captures exact source/processing identities, parser/version, UTF-16 locators, context values, and context aggregate revisions. A shared capture function supplies both preflight and execution. The preflight displays the actual serialized input length; more than 160,000 UTF-16 units blocks generation without truncation or hidden splitting.
 
-The `river-source-claims-v1` profile pins `gpt-5.4-mini-2026-03-17`, a 60-second provider deadline, and 12,000 output tokens. It uses the common strict Responses adapter with no tools, streaming, provider storage, implicit context, or SDK retry. A persisted Operation and dispatch precede the `SourceAiWorkflow`. At most two job, wording, and source AI operations may be active together. Each task permits three explicit attempts using the same captured profile/input. Cancelled and obsolete results cannot publish.
+The current `river-source-claims-v2` profile pins `gpt-5.4-mini-2026-03-17`, a 60-second provider deadline, and 12,000 output tokens. It uses the common strict Responses adapter with no tools, streaming, provider storage, implicit context, or SDK retry. A persisted Operation and dispatch precede the `SourceAiWorkflow`. At most two job, wording, and source AI operations may be active together. Each task permits three explicit attempts using the same captured profile/input. Cancelled and obsolete results cannot publish.
 
 The output contains at most twenty independent candidates. Each has an assertion, at least one exact citation, selected-context references, metadata, explanation, and up to five distinct clarification questions. All candidates validate before publication. Quotes must match the exact UTF-16 occurrence in the captured processing result; parser locators and attestation labels are derived by River. Zero candidates is a valid completed result. Malformed output is a failed operation.
 
@@ -98,3 +98,14 @@ New runs use `river-source-claims-v2`. River indexes each nonblank line occurren
 Job requirement extraction and source intake share the deterministic text-span indexer. Existing job identities and retained source v1 inputs remain compatible; this change needs no database migration or new page design. Existing v1 runs remain inspectable, and new generation explicitly captures the v2 profile.
 
 Verification: 20 focused source/job tests, all 156 Workers tests, five domain tests, workspace types/lint and the clean staging build pass. New coverage includes repeated occurrences, long Unicode lines, invalid batch rollback, exact persisted citations and a bounded provider request with the anchored output schema. Logs: `/tmp/river-source-anchors-{tests,full,domain,types,lint,build}.log`.
+
+
+## Hosted occurrence-contract verification
+
+Commit `5a9fa16` is deployed as web version `4d91f980-cfbb-41b7-bdf1-652d0e5e31c3`. Task `01a07424-fc91-717b-b80c-a14feb7bd80e` used the existing fictional intake source and six captured passage anchors under `river-source-claims-v2`.
+
+The first attempt failed because a candidate invented an unselected context identity. The complete batch was rejected and no candidates were published. One explicit retry of the same captured inputs succeeded under Operation `01a07426-d712-748c-b6db-4ffb3a6eadd7`, producing five Pending candidates. No candidates were accepted and no new evidence was created.
+
+Browser inspection and a read-only D1 query confirmed the Unicode quotation at line 4, offsets 301–334. The repeated-text candidate retains two separate citations with the same quote at line 5, offsets 335–357, and line 6, offsets 358–380. Both preserve the exact source and processing identities. This proves hosted occurrence selection and bounded recovery while leaving the context validator intact. It does not guarantee valid output on every generation attempt.
+
+A new v2 run on the complete Owner résumé remains pending explicit permission for the OpenAI transfer after automatic approval review rejected that action. The earlier v1 attempt had already submitted and failed citation validation. Synthetic v2 verification and the approved manual export completed independently.
