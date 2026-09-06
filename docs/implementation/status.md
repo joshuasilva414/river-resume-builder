@@ -48,7 +48,7 @@ The latest complete suite passes 158 Workers tests in 26 files. Five domain test
 
 ## Remaining release work
 
-- Complete final-domain document/export and backup acceptance. Production publication, all five secret installations and Owner GitHub login are complete. The fictional document test is paused for explicit production-test approval.
+- Complete final-domain document/export and email delivery acceptance. Production publication, all five secret installations, Owner GitHub login, the first scheduled backup and its isolated restore are complete. The fictional document test is paused for explicit production-test approval.
 
 Production is live at https://river.jilva.dev with its own D1/R2, private document Worker/Container and 11 Workflows. The landing and diagnostic restrictions pass. Staging records were not copied. See [production activation](production.md).
 

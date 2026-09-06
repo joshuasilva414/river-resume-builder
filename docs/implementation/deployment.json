@@ -547,7 +547,7 @@
     }
   },
   "productionActivation": {
-    "status": "published; final document/export and backup acceptance in progress",
+    "status": "published; final document/export and email delivery acceptance open",
     "releaseCommit": "c006a46",
     "codeCommit": "316c2b5",
     "accountId": "a91c30d69981b341efe3b656a263f6da",
@@ -576,6 +576,18 @@
       "isolatedRestorePassed": true,
       "tables": 72,
       "retainedObjects": 0
+    },
+    "scheduledBackup": {
+      "operationId": "01a074cd-5d40-70f2-b262-785b5593743a",
+      "date": "2026-09-06",
+      "attempts": 1,
+      "completedAt": "2026-09-06T03:40:20.659Z",
+      "key": "backups/database/production/2026-09-06-01a074cd-5d40-70f2-b262-785b5593743a/manifest.json",
+      "sha256": "858f84e83201ff8c7d62973d4c610ad0358aa24a797750a8e7d35f2db04ce0c9",
+      "isolatedRestorePassed": true,
+      "tables": 72,
+      "retainedObjects": 0,
+      "report": "test-results/recovery/drill-d7ba9a43-c3fc-4188-8f45-86a4b3f73f02/report.json"
     }
   }
 }

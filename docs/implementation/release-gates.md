@@ -4,7 +4,7 @@ Updated 2026-09-05. V1 is not released. This maps the remaining plan gates to co
 
 ## Service and persistence gate
 
-The complete Workers run recorded in `/tmp/river-score-diagnostics-full.log` passed 158 tests in 26 files, including source occurrence anchors, safe scoring diagnostics across Workflow steps, password-reset session revocation and dialog focus. Five domain tests, all workspace type/lint checks and the clean staging build passed. The current production build/dry run also passes with the final scoring-origin configuration; see `production.md`. Production remains unpublished. The following assertions satisfy M6's focused integration-test gate; hosted credential and provider acceptance remain separate.
+The complete Workers run recorded in `/tmp/river-score-diagnostics-full.log` passed 158 tests in 26 files, including source occurrence anchors, safe scoring diagnostics across Workflow steps, password-reset session revocation and dialog focus. Five domain tests, all workspace type/lint checks and the clean staging build passed. The current production build/dry run also passes with the final scoring-origin configuration; see `production.md`. Production is published; final-domain document/export and email delivery acceptance remain open. The following assertions satisfy M6's focused integration-test gate; hosted credential and provider acceptance remain separate.
 
 | Contract | Verification |
 | --- | --- |
@@ -28,7 +28,7 @@ The Owner confirmed hosted password-reset completion on September 5. Subsequent 
 
 The following work still prevents V1 release:
 
-- Production secret/authentication setup, `river.jilva.dev` deployment and final production acceptance. Isolated personal-account D1/R2 resources, all 28 migrations, environment-specific backup handling and an empty production restore are prepared; see `production.md`.
+- Final-domain document/export and email delivery acceptance. Production publication, all five secret installations, Owner GitHub login and the first automatic backup plus isolated restore pass. The fictional document acceptance fixture is paused for explicit production-test approval; see `production.md`.
 
 Successful bounded scoring retry and complete canonical result handling now pass: Minimal retains all three six-platform responses, with the badge correctly withheld for failing simulations. Actual phone qualification review also passes. See `template-scoring.md` and `mobile-review.md`.
 
@@ -36,7 +36,7 @@ Hosted finding-review persistence also passes on the existing synthetic checkpoi
 
 M5's real-content rendering exit passes for all three starter packs. Minimal and Technical now retain separate one-page USAA checkpoints with complete text validation, visual inspection and unchanged wording/provenance. The original Classic export is preserved. See `owner-tailoring.md`.
 
-The three approved setup actions completed. The later staging UI testing authorization also enabled synthetic source-refinement acceptance/export/structured return/promotion and generated-template visual approval. These now pass; see `source-refinement.md` and `template-generation.md`. Production publication remains separate. Original sources and checkpoint artifacts remain retained. Production storage exists, with no application or domain publication. ACM UTSA remains untouched.
+The three approved setup actions completed. The later staging UI testing authorization also enabled synthetic source-refinement acceptance/export/structured return/promotion and generated-template visual approval. These now pass; see `source-refinement.md` and `template-generation.md`. Production publication and credentials were approved separately and are now deployed. Original sources and checkpoint artifacts remain retained. ACM UTSA remains untouched.
 
 The deployed request-lifetime gate now has a captured Cloudflare `canceled` invocation, a subsequent expected authorization response and a successful authenticated synthetic compile. See `request-lifetime.md`. The approved temporary Agent Credential completed its six-scope hosted journey and is revoked. Fictional claim/job fixtures are archived.
 

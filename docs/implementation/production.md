@@ -1,6 +1,6 @@
 # Production activation
 
-Updated 2026-09-05. The Owner approved production publication, explicitly approved the new personal River OAuth app, and explicitly approved all five production secrets. Both Workers, the document Container, 11 Workflows and https://river.jilva.dev are live in the personal account. Owner GitHub sign-in and production diagnostic exclusion pass. Final document/export and backup acceptance are in progress. Staging records were not copied; ACM UTSA remains excluded.
+Updated 2026-09-05. The Owner approved production publication, explicitly approved the new personal River OAuth app, and explicitly approved all five production secrets. Both Workers, the document Container, 11 Workflows and https://river.jilva.dev are live in the personal account. Owner GitHub sign-in and production diagnostic exclusion pass. Scheduled backup and isolated restore acceptance pass. Final document/export and final-domain email delivery acceptance remain open. Staging records were not copied; ACM UTSA remains excluded.
 
 ## Resource identities
 
@@ -78,3 +78,8 @@ A clearly labeled fictional acceptance job, empty draft, name Content Item and c
 
 
 The first manual post-publication backup retains all 72 base tables at `backups/database/production/2026-09-06T03-38-37.323Z-3f20c91e-1778-466e-bf8a-3a41ce59d8f2/snapshot.json.gz`, SHA-256 `0877685ad54cea93b763bfa941f18e67ed01f4c567a791682be8685db071da11`. Its isolated local restore passes integrity, foreign keys, FTS equality and table counts. Report: `/private/tmp/river-production-release-c006a46/test-results/recovery/drill-19a7db6f-8604-4fe9-82d6-8ec6a2663276/report.json`. There are no retained document objects, citations or exports yet. The latest scheduled-backup status is empty; the cron is installed, but a successful automatic export is not yet claimed. Logs: `/tmp/river-production-activation-{backup,restore}.log` and `/tmp/river-production-daily-status.log`.
+
+
+## Scheduled production backup verified — 2026-09-05
+
+The first daily Workflow succeeded on application attempt 1 at `2026-09-06T03:40:20.659Z`: Operation `01a074cd-5d40-70f2-b262-785b5593743a`, retained manifest SHA-256 `858f84e83201ff8c7d62973d4c610ad0358aa24a797750a8e7d35f2db04ce0c9`. Its independent local restore passes hashes, 72 table counts, integrity, foreign keys and exact FTS equality. Main-workspace report: `test-results/recovery/drill-d7ba9a43-c3fc-4188-8f45-86a4b3f73f02/report.json`. This closes the scheduled-backup gate; see `recovery.md` for the exact key and scope. Production document/export and final-domain email delivery still need acceptance.
