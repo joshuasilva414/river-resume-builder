@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 import { ApplicationError, Revision } from "./core";
 import {
+  CitationInput,
   CitationLocator,
   ContextData,
   EvidenceMaterial,
@@ -9,17 +10,27 @@ import {
   RecordId,
   resolveCitation,
 } from "./evidence";
+import { indexTextPassages } from "./text-passages";
 export const SourceAiProfile = Schema.Struct({
   model: Schema.NonEmptyString,
-  contract: Schema.Literal("river-source-claims-v1"),
+  contract: Schema.Literals(["river-source-claims-v1", "river-source-claims-v2"]),
   maxInputCharacters: Schema.Literal(160000),
   maxOutputTokens: Schema.Literal(12000),
   timeoutMs: Schema.Literal(60000),
 });
 export type SourceAiProfile = typeof SourceAiProfile.Type;
+export const SourcePassageAnchor = Schema.Struct({
+  index: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  ...CitationInput.fields,
+});
+export function indexSourcePassages(text: string, sourceId: string, processingId: string) {
+  return indexTextPassages(text).map((anchor) => ({ ...anchor, sourceId, processingId }));
+}
 export const SourceAiInput = Schema.Struct({
   type: Schema.Literal("source-claims"),
   focus: Schema.String.check(Schema.isMaxLength(2000)),
+  // Retained v1 tasks predate occurrence anchors and remain readable under their original contract.
+  sourceAnchors: Schema.optionalKey(Schema.Array(SourcePassageAnchor)),
   source: Schema.Struct({
     id: RecordId,
     revision: Revision,
@@ -55,17 +66,60 @@ export const SourceCandidateOutput = Schema.Struct({
 export const SourceAiOutput = Schema.Struct({
   candidates: Schema.Array(SourceCandidateOutput).check(Schema.isMaxLength(20)),
 });
+const { citations: _citations, ...materialFields } = EvidenceMaterialInput.fields;
+export const AnchoredSourceAiOutput = Schema.Struct({
+  candidates: Schema.Array(
+    Schema.Struct({
+      ...SourceCandidateOutput.fields,
+      material: Schema.Struct({
+        ...materialFields,
+        passageIndexes: Schema.Array(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))).check(
+          Schema.isMinLength(1),
+          Schema.isMaxLength(20),
+        ),
+      }),
+    }),
+  ).check(Schema.isMaxLength(20)),
+});
 export const SourceCandidate = Schema.Struct({
   ...SourceCandidateOutput.fields,
   material: EvidenceMaterial,
 });
 export type SourceCandidate = typeof SourceCandidate.Type;
+function decodeSourceCandidates(input: SourceAiInput, output: unknown) {
+  const anchors = input.sourceAnchors;
+  if (!anchors) return Schema.decodeUnknownSync(SourceAiOutput)(output);
+  const generated = Schema.decodeUnknownSync(AnchoredSourceAiOutput)(output);
+  return {
+    candidates: generated.candidates.map((candidate) => {
+      const { passageIndexes, ...material } = candidate.material;
+      const selected = new Set<number>();
+      return {
+        ...candidate,
+        material: {
+          ...material,
+          citations: passageIndexes.map((index) => {
+            const anchor = anchors[index];
+            if (!anchor || anchor.index !== index || selected.has(index))
+              throw new ApplicationError({
+                code: "InvalidInput",
+                message: "The proposal selected an unknown or repeated source passage.",
+              });
+            selected.add(index);
+            const { index: _index, ...citation } = anchor;
+            return citation;
+          }),
+        },
+      };
+    }),
+  };
+}
 /** Validate and resolve exact original occurrences; never repair quotations or infer locators from model text. */
 export function validateSourceCandidates(
   input: SourceAiInput,
   output: unknown,
 ): readonly SourceCandidate[] {
-  const decoded = Schema.decodeUnknownSync(SourceAiOutput)(output);
+  const decoded = decodeSourceCandidates(input, output);
   const invalid = (message: string): never => {
     throw new ApplicationError({ code: "InvalidInput", message });
   };

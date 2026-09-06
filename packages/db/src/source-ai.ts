@@ -8,6 +8,7 @@ import {
   ApplicationError,
   canonicalJson,
   fingerprint,
+  indexSourcePassages,
   newId,
   type Principal,
   type SourceAiInput,
@@ -91,6 +92,7 @@ export function createSourceAiRepository(db: Database) {
     actor: Principal,
     request: StartSourceAiRequest,
     extraction: ExtractionResult,
+    contract: SourceAiProfile["contract"] = "river-source-claims-v2",
   ) => {
     owner(actor);
     const source = await sources.getSource(actor.ownerId, request.sourceId),
@@ -170,6 +172,9 @@ export function createSourceAiRepository(db: Database) {
         })),
       },
       contexts,
+      ...(contract === "river-source-claims-v2"
+        ? { sourceAnchors: indexSourcePassages(extraction.text, source.id, processing.id) }
+        : {}),
     };
     if (!input.source.text.trim())
       throw new ApplicationError({
@@ -199,7 +204,7 @@ export function createSourceAiRepository(db: Database) {
               message:
                 "Source claim assistance is unavailable. Create claims manually from exact passages.",
             });
-          const input = await captureSourceAiInput(actor, request, extraction);
+          const input = await captureSourceAiInput(actor, request, extraction, profile.contract);
           if (canonicalJson(input).length > profile.maxInputCharacters)
             throw new ApplicationError({
               code: "InvalidInput",

@@ -8,6 +8,7 @@ import {
   PostingPassage,
   RequirementFields,
 } from "./jobs";
+import { indexTextPassages } from "./text-passages";
 
 export const JobAiTask = Schema.Literals(["extract-requirements", "rank-evidence"]);
 export type JobAiTask = typeof JobAiTask.Type;
@@ -48,19 +49,7 @@ export const PostingAnchor = Schema.Struct({
 });
 /** Address each nonempty line occurrence before generation; long lines use bounded UTF-16 spans. */
 export function indexPostingPassages(posting: string, snapshotId: string) {
-  const anchors: Array<typeof PostingAnchor.Type> = [];
-  for (const line of posting.matchAll(/[^\r\n]+/g)) {
-    const limit = line.index + line[0].length;
-    for (let start = line.index; start < limit; ) {
-      let end = Math.min(start + 4000, limit);
-      // Preserve a Unicode code point that crosses the passage-size boundary.
-      if (end < limit && /[\uD800-\uDBFF]/.test(posting[end - 1] ?? "")) end--;
-      const quote = posting.slice(start, end);
-      if (quote.trim()) anchors.push({ index: anchors.length, snapshotId, quote, start, end });
-      start = end;
-    }
-  }
-  return anchors;
+  return indexTextPassages(posting).map((anchor) => ({ ...anchor, snapshotId }));
 }
 export const JobAiInput = Schema.Struct({
   task: JobAiTask,

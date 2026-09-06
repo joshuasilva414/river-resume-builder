@@ -5,6 +5,7 @@ import { createRepository, schema } from "@river/db";
 import {
   canonicalJson,
   fingerprint,
+  indexSourcePassages,
   newId,
   type Principal,
   type SourceAiProfile,
@@ -16,6 +17,11 @@ import { beforeAll, expect, it } from "vitest";
 import { runEvidenceCommand } from "../src/server/evidence";
 import { Actor, Store } from "../src/server/services";
 import { previewSourceAi } from "../src/server/source-ai";
+import {
+  generateSourceCandidates,
+  sourceAiOutputSchema,
+  sourceAiProfile,
+} from "../src/server/source-ai-provider";
 import { createSource } from "../src/server/sources";
 
 beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
@@ -396,6 +402,113 @@ it("reports the complete preflight size without truncation and checks stored ext
   await expect(
     Effect.runPromise(previewSourceAi(env, request).pipe(Effect.provide(layer))),
   ).rejects.toMatchObject({ code: "Unavailable" });
+});
+
+it("captures v2 passage occurrences and atomically publishes exact citations without model offsets", async () => {
+  const { repository, actor, request, extraction, candidate } = await fixture();
+  const task = await repository.startSourceAi(
+    actor,
+    request,
+    { ...profile, contract: "river-source-claims-v2" },
+    extraction,
+  );
+  if (!task.revisionId) throw Error("Missing operation");
+  const captured = await repository.inspectSourceAi(actor.id, task.id);
+  expect(captured.task.input.sourceAnchors).toEqual([
+    expect.objectContaining({ index: 0, start: 0, end: 17, quote: "Repeated passage." }),
+    expect.objectContaining({ index: 1, start: 18, end: 35, quote: "Repeated passage." }),
+  ]);
+  const anchored = {
+    ...candidate,
+    material: {
+      assertion: candidate.material.assertion,
+      contexts: candidate.material.contexts,
+      passageIndexes: [1],
+    },
+  };
+  for (const passageIndexes of [[999], [1, 1], []]) {
+    await expect(
+      repository.publishSourceAi(actor.id, task.id, task.revisionId, {
+        candidates: [anchored, { ...anchored, material: { ...anchored.material, passageIndexes } }],
+      }),
+    ).rejects.toThrow();
+    expect((await repository.inspectSourceAi(actor.id, task.id)).candidates).toEqual([]);
+  }
+  await repository.publishSourceAi(actor.id, task.id, task.revisionId, { candidates: [anchored] });
+  const saved = (await repository.inspectSourceAi(actor.id, task.id)).candidates[0];
+  expect(saved?.payload?.material.citations).toEqual([
+    expect.objectContaining(candidate.material.citations[0]),
+  ]);
+  expect(saved?.state).toBe("Pending");
+  expect(saved?.claimId).toBeNull();
+  const corrupted = {
+    ...captured.task.input,
+    sourceAnchors: captured.task.input.sourceAnchors?.map((anchor) => ({
+      ...anchor,
+      sourceId: newId(),
+    })),
+  };
+  expect(() => validateSourceCandidates(corrupted, { candidates: [anchored] })).toThrow();
+});
+
+it("indexes long and repeated source lines without splitting Unicode or changing whitespace", () => {
+  const text = `  résumé 😀\r\n\r\n${"x".repeat(3999)}😀tail\n  résumé 😀\n`;
+  const anchors = indexSourcePassages(text, newId(), newId());
+  expect(anchors).toHaveLength(4);
+  expect(anchors[0]?.quote).toBe("  résumé 😀");
+  expect(anchors[3]?.quote).toBe(anchors[0]?.quote);
+  expect(anchors[3]?.start).toBeGreaterThan(anchors[0]?.start ?? 0);
+  expect(anchors[1]?.quote).toHaveLength(3999);
+  expect(anchors[2]?.quote).toBe("😀tail");
+  for (const anchor of anchors) expect(text.slice(anchor.start, anchor.end)).toBe(anchor.quote);
+});
+
+it("uses the anchored source schema and complete captured input in one bounded provider request", async () => {
+  const { repository, actor, request, extraction } = await fixture();
+  const input = await repository.captureSourceAiInput(actor, request, extraction);
+  const current = sourceAiProfile({
+    OPENAI_API_KEY: "synthetic-test-key",
+    OPENAI_SOURCE_CLAIMS_MODEL: profile.model,
+  });
+  if (!current) throw Error("Missing profile");
+  expect(current.contract).toBe("river-source-claims-v2");
+  const output = { candidates: [] };
+  let calls = 0;
+  const result = await generateSourceCandidates(
+    "synthetic-test-key",
+    input,
+    current,
+    async (_url, init) => {
+      calls++;
+      const body = JSON.parse(String(init?.body));
+      expect(body.input[0].content).toBe(canonicalJson(input));
+      expect(body.instructions).toContain("Do not calculate offsets");
+      expect(body.store).toBe(false);
+      expect(body.truncation).toBe("disabled");
+      const material = body.text.format.schema.properties.candidates.items.properties.material;
+      expect(material.required).toContain("passageIndexes");
+      expect(material.properties).not.toHaveProperty("citations");
+      return Response.json({
+        id: "resp_fixture",
+        object: "response",
+        model: current.model,
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            role: "assistant",
+            content: [{ type: "output_text", text: JSON.stringify(output), annotations: [] }],
+          },
+        ],
+      });
+    },
+  );
+  expect(result).toEqual(output);
+  expect(calls).toBe(1);
+  for (const contract of ["river-source-claims-v1", "river-source-claims-v2"] as const)
+    expect(JSON.stringify(sourceAiOutputSchema(contract))).not.toMatch(
+      /"(?:allOf|not|if|then|else)":/,
+    );
 });
 
 it("commits one competing decision, prevents cross-owner review, and rolls back dependent claim writes", async () => {

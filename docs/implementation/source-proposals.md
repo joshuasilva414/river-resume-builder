@@ -88,3 +88,13 @@ The launch captured 1,351 UTF-16 units, zero contexts and input SHA-256 `2c19171
 This is a hosted provider and persistence check of the existing implementation. No application code changed and no service tests were rerun for this documentation update. The latest complete Workers suite remains the 141-test upload-recovery run.
 
 A subsequent 72-table/88-object isolated restore preserved the answered question, both Evidence Revisions, exact answering citation, archived Draft state and rejected payload removal. Seven citations and the exported checkpoint passed full artifact verification. See `recovery.md` for the immutable snapshot and report identities.
+
+## Source occurrence contract v2
+
+The real Owner DOCX intake exposed a v1 limitation: the provider returned citation offsets that did not match the captured extraction. Task `01a0740d-4547-7639-a2de-4f3a1d83f711` failed atomically with zero candidates. Manual cited intake continued and produced a complete review checkpoint. The failed task remains under its original profile and attempt budget.
+
+New runs use `river-source-claims-v2`. River indexes each nonblank line occurrence before generation, splitting long lines into spans of at most 4,000 UTF-16 units without splitting surrogate pairs. The provider selects passage indexes; River supplies the exact captured source/processing identities, quotations, offsets and locators. Complete text, anchors, context and focus all count toward the unchanged 160,000-unit input limit. No fuzzy matching or repaired quotations are used. Unknown, repeated, mismatched or altered anchors reject the complete proposal batch. Accepted candidates still become Draft claims only after individual review.
+
+Job requirement extraction and source intake share the deterministic text-span indexer. Existing job identities and retained source v1 inputs remain compatible; this change needs no database migration or new page design. Existing v1 runs remain inspectable, and new generation explicitly captures the v2 profile.
+
+Verification: 20 focused source/job tests, all 156 Workers tests, five domain tests, workspace types/lint and the clean staging build pass. New coverage includes repeated occurrences, long Unicode lines, invalid batch rollback, exact persisted citations and a bounded provider request with the anchored output schema. Logs: `/tmp/river-source-anchors-{tests,full,domain,types,lint,build}.log`.
