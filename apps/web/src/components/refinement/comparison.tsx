@@ -302,18 +302,18 @@ export function DocumentComparison({
   candidateOperationId: string | null;
 }) {
   return (
-    <Tabs defaultValue="base" className="min-w-0 space-y-5">
-      <TabsList className="grid h-auto w-full grid-cols-2 gap-2 lg:grid-cols-4">
-        <TabsTrigger className="min-h-11" value="base">
+    <Tabs defaultValue="base" className="min-w-0 gap-4">
+      <TabsList className="grid w-full shrink-0 grid-cols-2 gap-2 p-0 group-data-[orientation=horizontal]/tabs:h-auto lg:grid-cols-4">
+        <TabsTrigger className="h-11 min-w-0 whitespace-normal" value="base">
           Original PDF
         </TabsTrigger>
-        <TabsTrigger className="min-h-11" value="candidate">
+        <TabsTrigger className="h-11 min-w-0 whitespace-normal" value="candidate">
           Proposed PDF
         </TabsTrigger>
-        <TabsTrigger className="min-h-11" value="base-report">
+        <TabsTrigger className="h-11 min-w-0 whitespace-normal" value="base-report">
           Original report
         </TabsTrigger>
-        <TabsTrigger className="min-h-11" value="candidate-report">
+        <TabsTrigger className="h-11 min-w-0 whitespace-normal" value="candidate-report">
           Proposed report
         </TabsTrigger>
       </TabsList>
@@ -358,18 +358,18 @@ export function SourceComparisonViews({
   candidateOperationId: string | null;
 }) {
   return (
-    <Tabs defaultValue="source" className="min-w-0 space-y-6">
-      <TabsList className="grid h-auto w-full grid-cols-2 gap-2 lg:grid-cols-4">
-        <TabsTrigger className="min-h-11" value="source">
+    <Tabs defaultValue="source" className="min-w-0 gap-5">
+      <TabsList className="grid w-full shrink-0 grid-cols-2 gap-2 p-0 group-data-[orientation=horizontal]/tabs:h-auto lg:grid-cols-4">
+        <TabsTrigger className="h-11 min-w-0 whitespace-normal" value="source">
           Source diff
         </TabsTrigger>
-        <TabsTrigger className="min-h-11" value="fields">
+        <TabsTrigger className="h-11 min-w-0 whitespace-normal" value="fields">
           Expected fields
         </TabsTrigger>
-        <TabsTrigger className="min-h-11" value="text">
+        <TabsTrigger className="h-11 min-w-0 whitespace-normal" value="text">
           Extracted text
         </TabsTrigger>
-        <TabsTrigger className="min-h-11" value="pdf">
+        <TabsTrigger className="h-11 min-w-0 whitespace-normal" value="pdf">
           PDF / report
         </TabsTrigger>
       </TabsList>

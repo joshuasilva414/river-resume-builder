@@ -35,7 +35,7 @@ Use `get_jsx` for the above subtree and `get_computed_styles` for exact values w
 | Coverage | `A61-0`: 16px vertical gap; checkbox/label row has 12px gap; visible unchecked square 16px; label Instrument Sans 14px/20px; desktop actions 40px minimum height and 4px radius |
 | Original review footer | `31L-0` stacks coverage above `9ZB-0`; the action row retains a 550px scope-description lane, flexible spacer, 73px Reject and 193px Accept controls. Paper uses matching min/max widths to prevent inherited fill sizing from stretching these original controls. |
 | Dark recovery | `A0C-0` / `A0E-0` 676px each; 24px padding, 18px gap, 8px radius; `--color-dark-surface`, `--color-dark-rule`, `--color-dark-text`, `--color-dark-muted` |
-| Mobile | `AC1-0`: 24px vertical and 20px horizontal padding, 20px gap; 16px/23px body text; tabs `ACA-0` have two flex rows, 10px vertical gap, 169px controls with 12px horizontal gap; all actions at least 44px tall |
+| Mobile | `AC1-0`: 24px vertical and 20px horizontal padding, 20px gap; 16px/23px body text; tabs `ACA-0` have two flex rows, 8px gaps, 171px controls and intrinsic height; all actions at least 44px tall |
 | State/action colors | Existing `--color-editor` / `--color-dark-editor` primary; `--color-rule` with `--color-graphite` for disabled light acceptance; established warning and approved tokens. State is always named in text. |
 
 Paper exports presentation divs. Implement semantic buttons, labeled form fields, real checkboxes and accessible tabs/disclosures using River's components rather than copying nonsemantic markup. Full source, manifests and extracted text use scrollable regions without truncation. Keep focus visible and restore it when leaving an inspector.
@@ -98,3 +98,18 @@ Use the existing source-refinement task/detail/retry/review contracts, protected
 Mobile reuses the existing header, full text/source inspectors and PDF viewer. Its four tabs stack into two rows with full-size controls; selected fields, support and coverage remain complete. Failed publication has the same reserved-checkpoint and fresh-review behavior as desktop. Status announcements should not steal focus or replace the Owner's inspected candidate. For long data, use scrollable full content and real pagination, not clipped cards.
 
 Paper review covered the original page updates and new desktop, dark and 390px mobile sheets for spacing, typography, contrast, fixed row lanes and content fit. Existing node identities and the current logo were preserved. All edited boards were finalized. No implementation verification or deployment was performed by this design task.
+
+## Narrow tab-height correction — 2026-09-05
+
+Staging QA found overlapping outer review tabs, inner artifact tabs and PDF controls at approximately 610px. Paper preserves the existing two-column arrangement; the correction is that both complete rows contribute to the tab list's height. The existing mobile board now uses the current **Source diff** and **Expected fields** labels and consistent 8px tab gaps.
+
+| Focused Paper reference | Outer tabs | PDF/report panel | Inner tabs | Viewer |
+| --- | --- | --- | --- | --- |
+| 100 · Source review tabs · 610px — `ADW-0` | `AE2-0` | `AEI-0` | `AEJ-0` | `AEV-0` |
+| 101 · Source review tabs · 390px — `AF8-0` | `AFY-0` | `AFA-0` | `AFN-0` | `AFB-0` |
+
+Both tab groups use two equal columns below the existing desktop breakpoint, 8px horizontal/vertical gaps, `min-width: 0`, and intrinsic height without shrinking. Controls are at least 44px tall with 12px horizontal padding, 4px corners and Instrument Sans 14px/20px semibold. The examples have a 96px tab list (two 44px rows plus the 8px gap), 20px between the outer list and its panel, and 16px from the inner list to the viewer. Widths are 277px per control within the 610px board's 562px content area, and 171px within the 390px board's 350px content area. Preserve the current semantic light/dark tokens and full labels: **Source diff**, **Expected fields**, **Extracted text**, **PDF/report**; **Original PDF**, **Proposed PDF**, **Original report**, **Proposed report**. The grey viewer is an illustrative viewport, not missing-document UI.
+
+Implementation may keep the existing responsive CSS grid and desktop four-column breakpoint. Ensure its horizontal-orientation styles cannot reapply a one-row fixed height to either list. Keep the viewer and panels in normal document flow. Use the existing semantic tabs, separate accessible names for the outer and inner tab lists, visible focus and their keyboard navigation; no dropdown substitution or new review step is needed. A focused fix need not restyle the existing PDF toolbar.
+
+Paper screenshot review passed at 610px and 390px: readable complete labels, aligned controls, visible selected states, clear group spacing and no overlap or clipping. The updated original mobile board was also reviewed. Direct JSX and computed styles were inspected, and all three boards were finalized. Application implementation and browser verification remain separate.
