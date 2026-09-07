@@ -218,7 +218,9 @@ it.each(["openai", "anthropic", "google", "openrouter"] satisfies AiProvider[])(
     };
     const transport: typeof fetch = async (_url, init) => {
       calls++;
-      expect(init?.redirect).toBe("error");
+      // Validate options in workerd as real fetch does, before returning the synthetic response.
+      new Request(_url, init);
+      expect(init?.redirect).toBe("manual");
       const body = JSON.parse(String(init?.body));
       expect(body.tools).toBeUndefined();
       if (provider === "openai")
@@ -318,6 +320,42 @@ it.each(["openai", "anthropic", "google", "openrouter"] satisfies AiProvider[])(
     expect(calls).toBe(1);
   },
 );
+
+it("rejects provider redirects without following them or exposing response content", async () => {
+  let calls = 0;
+  await expect(
+    generateAiProposal(
+      "synthetic-private-key",
+      { text: "synthetic-private-source" },
+      {
+        connection: { id: newId(), revision: 0, provider: "openai" },
+        model: "synthetic-model",
+        maxInputCharacters: 1000,
+        maxOutputTokens: 100,
+        timeoutMs: 1000,
+      },
+      "Return JSON",
+      "sample",
+      { type: "object" },
+      async (url, init) => {
+        calls++;
+        const request = new Request(url, init);
+        expect(request.url).toBe("https://api.openai.com/v1/responses");
+        expect(request.redirect).toBe("manual");
+        return new Response("synthetic-private-source", {
+          status: 302,
+          headers: { Location: "https://unexpected.example/collect" },
+        });
+      },
+    ),
+  ).rejects.toMatchObject({
+    code: "Unavailable",
+    diagnostic: { category: "request_rejected", httpStatus: 302 },
+    message:
+      "Your provider rejected the request for this model. Choose another model for a new task or contact support.",
+  });
+  expect(calls).toBe(1);
+});
 
 it("saves starters atomically, rejects incomplete fields, and derives onboarding from account work", async () => {
   const { store, actor } = await fixture();
