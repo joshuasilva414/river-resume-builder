@@ -2,6 +2,8 @@ import { AgentScope, IntendedTextManifest, ResumeDocument, Revision, Theme } fro
 import { TemplateGraph, ValidationReport } from "@river/templates";
 import { Schema } from "effect";
 
+export * from "./feedback";
+
 export const CompileRequest = Schema.Struct({
   type: Schema.Literal("compile-resume"),
   templateGraph: Schema.optional(TemplateGraph),

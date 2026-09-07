@@ -1,4 +1,9 @@
-import type { ArtifactManifest, CreateSourceRequest } from "@river/contracts";
+import type {
+  ArtifactManifest,
+  CreateSourceRequest,
+  FeedbackKind,
+  FeedbackStatus,
+} from "@river/contracts";
 import type {
   AgentScope,
   AiExecutionMetadata,
@@ -88,6 +93,27 @@ export const user = sqliteTable("user", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
+export const feedback = sqliteTable(
+  "feedback",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id),
+    kind: text("kind").$type<FeedbackKind>().notNull(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    status: text("status").$type<FeedbackStatus>().notNull().default("New"),
+    response: text("response").notNull().default(""),
+    revision: integer("revision").notNull().default(0),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+  },
+  (table) => [
+    index("feedback_owner_created_idx").on(table.ownerId, table.createdAt, table.id),
+    index("feedback_status_created_idx").on(table.status, table.createdAt, table.id),
+  ],
+);
 export const aiConnections = sqliteTable(
   "ai_connections",
   {

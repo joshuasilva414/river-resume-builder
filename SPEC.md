@@ -10,6 +10,8 @@ V1 includes all three delivery phases. Phase 1 is the first usable MVP. The host
 
 Each account is the Owner of one private workspace. Accounts have no sharing or collaboration features. `ADMIN_EMAIL` identifies the service administrator and `ALLOWED_EMAILS` admits additional accounts. Administrator access grants backup and runtime maintenance capabilities, never access to another account's content. The production hostname is `river.jilva.dev`. Deployment belongs to the personal Cloudflare account; the ACM UTSA workspace is excluded.
 
+Every admitted account can submit private bug reports and feature requests in River. The account can read its own submissions and administrator responses. The service administrator can read the feedback inbox, update report status, and respond. This access covers explicitly submitted feedback and reporter identity only; it does not grant access to the reporter's workspace records. Feedback does not require GitHub access and never attaches résumé content or diagnostics automatically.
+
 The product remains user-directed:
 
 - AI recommends, extracts, ranks, and proposes changes.

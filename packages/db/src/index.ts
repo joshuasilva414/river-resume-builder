@@ -17,6 +17,7 @@ import { createClarificationRepository } from "./clarifications";
 import { createCompositionRepository } from "./composition";
 import { createDuplicateAiRepository } from "./duplicate-ai";
 import { createEvidenceRepository } from "./evidence";
+import { createFeedbackRepository } from "./feedback";
 import { createHistoryRepository } from "./history";
 import { createJobAiRepository } from "./job-ai";
 import { createJobRepository } from "./jobs";
@@ -73,6 +74,7 @@ export function createRepository(binding: D1Database) {
     ...createCompositionRepository(db),
     ...createClarificationRepository(db),
     ...createEvidenceRepository(db),
+    ...createFeedbackRepository(db),
     ...createDuplicateAiRepository(db),
     ...createJobRepository(db),
     ...createJobAiRepository(db),
