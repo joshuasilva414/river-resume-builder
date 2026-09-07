@@ -85,6 +85,8 @@ export function createAuth(env: Env, deliver?: (message: AuthMail) => Promise<vo
       },
     },
     session: { expiresIn: 60 * 60 * 24 * 30, cookieCache: { enabled: false } },
+    // Better Auth supports legacy plaintext reads; new and refreshed tokens are encrypted.
+    account: { encryptOAuthTokens: true },
     databaseHooks: {
       session: {
         create: {

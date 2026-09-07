@@ -35,6 +35,14 @@ await run(
 // This is the private companion Worker, not the web Worker attached to Workers Builds.
 // Keep Cloudflare's name/tag guards for the web deploy; remove them only for this command.
 await run(
+  ["--filter", "@river/web", "exec", "wrangler", "deploy", "--config", "wrangler.telemetry.jsonc", "--env", target.environment],
+  {
+    CLOUDFLARE_ENV: undefined,
+    WRANGLER_CI_MATCH_TAG: undefined,
+    WRANGLER_CI_OVERRIDE_NAME: undefined,
+  },
+);
+await run(
   ["--filter", "@river/documents", "exec", "wrangler", "deploy", "--env", target.environment],
   {
     CLOUDFLARE_ENV: undefined,
