@@ -1,4 +1,4 @@
-import { applyD1Migrations } from "cloudflare:test";
+import { applyD1Migrations, introspectWorkflowInstance } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import type { ExtractionResult } from "@river/contracts";
 import { createRepository, schema } from "@river/db";
@@ -166,6 +166,26 @@ async function fixture(text = "Repeated passage.\nRepeated passage.\n") {
     objectKey,
   };
 }
+it("preserves an unavailable connection failure across a real Workflow step", async () => {
+  const { repository, actor, request, extraction } = await fixture();
+  const task = await repository.startSourceAi(actor, request, profile, extraction);
+  if (!task.revisionId) throw Error("Missing operation");
+  if (!env.SOURCE_AI_WORKFLOW) throw Error("Missing source Workflow binding");
+  await using workflow = await introspectWorkflowInstance(env.SOURCE_AI_WORKFLOW, task.revisionId);
+  await env.SOURCE_AI_WORKFLOW.create({
+    id: task.revisionId,
+    params: { operationId: task.revisionId },
+  });
+  await workflow.waitForStatus("errored");
+  const detail = await repository.inspectSourceAi(actor.id, task.id);
+  expect(detail.operation).toMatchObject({
+    state: "Failed",
+    failure:
+      "This AI connection changed or was removed. Choose an active connection and start a new task.",
+  });
+  expect(detail.candidates).toEqual([]);
+});
+
 it("accepts candidates independently into Draft claims, keeps exact occurrences, and erases rejected payloads", async () => {
   const { repository, actor, source, request, extraction, generate } = await fixture();
   const { task, first, second, review } = await generate();
