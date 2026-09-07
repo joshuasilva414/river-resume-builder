@@ -218,6 +218,7 @@ it.each(["openai", "anthropic", "google", "openrouter"] satisfies AiProvider[])(
     };
     const transport: typeof fetch = async (_url, init) => {
       calls++;
+      expect(init?.redirect).toBe("error");
       const body = JSON.parse(String(init?.body));
       expect(body.tools).toBeUndefined();
       if (provider === "openai")

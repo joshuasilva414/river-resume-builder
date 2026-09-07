@@ -5,6 +5,7 @@ import { deploymentTarget, readJson, validateBundle } from "./deployment.mjs";
 const source = await readJson("apps/web/wrangler.jsonc");
 const bundleFor = (environment) => ({
   account_id: source.account_id,
+  observability: structuredClone(source.observability),
   ...structuredClone(source.env[environment]),
 });
 
@@ -37,5 +38,17 @@ test("accepts correct environment bindings with Vite-resolved migration paths", 
     const bundle = bundleFor(environment);
     bundle.d1_databases[0].migrations_dir = "/build/packages/db/migrations";
     validateBundle(bundle, source, deploymentTarget(environment, {}));
+  }
+});
+
+test("rejects bundles that persist unsanitized URL metadata or omit the sanitizer", () => {
+  for (const modify of [
+    (bundle) => { bundle.observability.logs.persist = true; },
+    (bundle) => { bundle.observability.redact_query_string = false; },
+    (bundle) => { bundle.tail_consumers = []; },
+  ]) {
+    const bundle = bundleFor("production");
+    modify(bundle);
+    assert.throws(() => validateBundle(bundle, source, deploymentTarget("production", {})));
   }
 });
