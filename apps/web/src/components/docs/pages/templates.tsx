@@ -29,8 +29,7 @@ export const templates = {
       body: (
         <>
           <p>
-            Custom template editing includes document structure and source. To create a template,
-            follow these steps.
+            Use the style controls to adjust the template. To create a template, follow these steps.
           </p>
           <ol>
             <li>
@@ -40,14 +39,19 @@ export const templates = {
               Select <strong>Create template</strong>.
             </li>
             <li>Choose a base.</li>
-            <li>Edit the design's structure, style, or source as needed.</li>
+            <li>Open the template editor and adjust its Appearance settings.</li>
             <li>
-              Select <strong>Save new Draft revision</strong>.
+              Select <strong>Save draft version</strong>.
             </li>
           </ol>
           <p>
             If you use AI template assistance, describe the layout and constraints you want. Follow{" "}
             <GuideLink slug="ai">Review AI suggestions</GuideLink> before accepting the proposal.
+          </p>
+          <p>
+            In the proposal, inspect the <strong>PDF</strong>, <strong>Extracted text</strong>, and{" "}
+            <strong>Checks</strong> tabs. Select <strong>Review current preview</strong> if a newer
+            preview has finished, then <strong>Accept as Draft</strong> when it is ready.
           </p>
         </>
       ),
@@ -57,14 +61,17 @@ export const templates = {
       title: "Validate and approve the revision",
       body: (
         <>
+          <p>Code editing is optional and lives in Settings → Advanced tools.</p>
           <p>Run validation on the exact saved revision you want to approve.</p>
           <ol>
-            <li>Open the template revision's validation controls.</li>
-            <li>Start validation.</li>
+            <li>Open the saved template version.</li>
+            <li>
+              Select <strong>Test with sample résumés</strong>.
+            </li>
             <li>Wait for the sample documents to finish.</li>
-            <li>Inspect each sample PDF and validation report.</li>
+            <li>Inspect every sample PDF, including each page of longer samples.</li>
             <li>If validation fails, correct the template and save a new Draft revision.</li>
-            <li>After validation passes, confirm that you have visually reviewed the outputs.</li>
+            <li>After validation passes, review the sample PDFs and any layout warnings.</li>
             <li>
               Select <strong>Approve this template revision</strong>.
             </li>

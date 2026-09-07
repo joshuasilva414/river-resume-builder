@@ -1,18 +1,19 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { CompiledResult } from "@river/contracts";
 import { createRepository } from "@river/db";
-import { canonicalJson, fingerprint } from "@river/domain";
+import { fingerprint } from "@river/domain";
 import {
   refinedSourceIdentity,
   SOURCE_RENDERER_VERSION,
   validateRefinedSource,
 } from "@river/templates";
 import { Schema } from "effect";
+import { loadAiCredential } from "./ai-settings";
 import { storeCompiledArtifacts } from "./compiled-artifacts";
 import type { Env } from "./env";
 import { retainRefinementArtifacts } from "./refinement-artifacts";
 import { cleanRejectedSourceRefinements } from "./refinement-cleanup";
-import { generateSourceRefinement, sourceRefinementProfile } from "./refinement-provider";
+import { generateSourceRefinement } from "./refinement-provider";
 
 export class SourceRefinementWorkflow extends WorkflowEntrypoint<Env, { operationId: string }> {
   async run(event: WorkflowEvent<{ operationId: string }>, step: WorkflowStep) {
@@ -97,22 +98,24 @@ export class SourceRefinementWorkflow extends WorkflowEntrypoint<Env, { operatio
             operation.input.taskId,
           );
           if (detail.task.latestOperationId !== id || detail.proposal) return;
-          const profile = sourceRefinementProfile(this.env);
-          if (
-            !profile ||
-            !this.env.OPENAI_API_KEY ||
-            canonicalJson(profile) !== canonicalJson(detail.task.profile) ||
-            detail.staleReasons.length
-          )
-            throw new Error("Source profile or input changed");
+          const profile = detail.task.profile;
+          const apiKey = await loadAiCredential(
+            this.env,
+            repository,
+            operation.ownerId,
+            profile.connection,
+          );
+          if (detail.staleReasons.length) throw new Error("Input changed");
           await repository.updateOperation(id, {
             state: "Running",
             stage: "Generating complete source and intended-text proposal",
           });
           const output = await generateSourceRefinement(
-            this.env.OPENAI_API_KEY,
+            apiKey,
             detail.task.input,
             profile,
+            fetch,
+            (metadata) => repository.recordAiExecution(operation.ownerId, id, metadata),
           );
           if (
             !(await repository.publishSourceRefinementCandidate(

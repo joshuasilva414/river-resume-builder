@@ -3,7 +3,7 @@ import type {
   RetryTemplateAiRequest,
   ReviewTemplateAiRequest,
 } from "@river/contracts";
-import { scopedTemplate, templateFixtures } from "@river/templates";
+import { templateFixtures } from "@river/templates";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { EvidenceDialog, Failure, unwrap } from "~/components/evidence/shared";
@@ -18,7 +18,7 @@ import {
   getTemplateAiTask,
   retryTemplateAiTask,
 } from "~/server/template-ai-functions";
-import { CodePayload, ComponentPayload, GraphView, scopeLabel, useTemplateCommand } from "./shared";
+import { CodePayload, scopeLabel, useTemplateCommand } from "./shared";
 
 type Detail = Extract<Awaited<ReturnType<typeof getTemplateAiTask>>, { ok: true }>["value"];
 export function TemplateAiReview({
@@ -33,7 +33,7 @@ export function TemplateAiReview({
   return (
     <EvidenceDialog
       title="Review template proposal"
-      description="Inspect the complete candidate graph and the synthetic preview for this exact proposal."
+      description="Review the sample PDF and layout warnings before saving this template."
       onClose={onClose}
       className="sm:max-w-[min(1280px,calc(100vw-3rem))]"
     >
@@ -251,27 +251,7 @@ function TemplateAiReviewBody({
           Review current preview
         </Button>
       )}
-      <details>
-        <summary className="cursor-pointer text-sm font-semibold">
-          Exact brief, base, scope and synthetic input
-        </summary>
-        <div className="mt-4 grid min-w-0 gap-5 lg:grid-cols-2">
-          <CodePayload label="Complete captured input" value={task.input} />
-          <CodePayload
-            label="Generation identity"
-            value={{
-              taskId: task.id,
-              generationOperationId: current.proposal?.operationId,
-              latestOperationId: task.latestOperationId,
-              inputDigest: task.inputDigest,
-              profile: task.profile,
-              base: task.base,
-              dependency: task.dependency,
-              sourcePromotion: current.sourcePromotion,
-            }}
-          />
-        </div>
-      </details>
+
       {rejected ? (
         <p className="rounded-sm border p-5">
           The generated candidate was discarded. Its preview files are no longer available. Your
@@ -288,10 +268,7 @@ function TemplateAiReviewBody({
                 className="flex max-w-full flex-wrap justify-start gap-y-3 group-data-[orientation=horizontal]/tabs:h-auto [&>[data-slot=tabs-trigger]]:h-9"
                 variant="line"
               >
-                <TabsTrigger value="preview">Synthetic preview</TabsTrigger>
-                <TabsTrigger value="component">Component change</TabsTrigger>
-                <TabsTrigger value="graph">Complete graph</TabsTrigger>
-                <TabsTrigger value="identity">Review identity</TabsTrigger>
+                <TabsTrigger value="preview">Sample preview</TabsTrigger>
               </TabsList>
               <TabsContent value="preview">
                 <div className="min-w-0 space-y-4 pt-3">
@@ -299,8 +276,8 @@ function TemplateAiReviewBody({
                     {task.input.fixtureSet.fixtures[0].name} · Candidate preview
                   </h3>
                   <p className="text-base md:text-sm text-muted-foreground">
-                    One canonical synthetic fixture covers all seven content types. Full Draft
-                    validation remains separate.
+                    This sample includes every résumé section. Saved templates receive a complete
+                    set of checks.
                   </p>
                   {path && artifacts ? (
                     <CandidateArtifacts path={path} taskId={task.id} artifacts={artifacts} />
@@ -319,47 +296,6 @@ function TemplateAiReviewBody({
                   )}
                 </div>
               </TabsContent>
-              <TabsContent value="component">
-                <div className="mt-5 grid min-w-0 gap-6 lg:grid-cols-2">
-                  <ComponentPayload
-                    label="Captured component"
-                    template={scopedTemplate(task.input.baseGraph, task.input.scope)}
-                  />
-                  <ComponentPayload
-                    label="Proposed component"
-                    template={scopedTemplate(proposal.payload.graph, task.input.scope)}
-                  />
-                </div>
-              </TabsContent>
-              <TabsContent value="graph">
-                <div className="mt-5 space-y-5">
-                  <GraphView graph={proposal.payload.graph} original={task.input.baseGraph} />
-                  <div className="grid min-w-0 gap-5 lg:grid-cols-2">
-                    <CodePayload label="Complete captured graph" value={task.input.baseGraph} />
-                    <CodePayload label="Complete proposed graph" value={proposal.payload.graph} />
-                  </div>
-                </div>
-              </TabsContent>
-              <TabsContent value="identity">
-                <div className="mt-5">
-                  <CodePayload
-                    label="Exact reviewed candidate and preview"
-                    value={{
-                      proposalId: proposal.id,
-                      candidateDigest: proposal.digest,
-                      graphDigest: displayed.candidateGraphDigest,
-                      revision: proposal.revision,
-                      previewOperationId: proposal.previewOperationId,
-                      previewReportDigest: proposal.previewDigest,
-                      artifacts,
-                      fixtureSet: {
-                        version: task.input.fixtureSet.version,
-                        digest: task.input.fixtureSet.digest,
-                      },
-                    }}
-                  />
-                </div>
-              </TabsContent>
             </Tabs>
           </>
         )
@@ -367,8 +303,8 @@ function TemplateAiReviewBody({
       {pending && (
         <div className="space-y-4 border-t pt-5">
           <p className="text-base md:text-sm text-muted-foreground">
-            Accepting creates a new immutable Draft. It still needs {templateFixtures.length}{" "}
-            fixtures rendered twice, then separate visual approval.
+            Accepting creates a new immutable Draft. It still needs {templateFixtures.length} sample
+            PDFs checked automatically, followed by your review.
           </p>
           <div className="flex flex-wrap gap-3">
             <Button
@@ -451,25 +387,26 @@ function CandidateArtifacts({
   taskId: string;
   artifacts: ArtifactManifest;
 }) {
+  const [tab, setTab] = useState("pdf");
   const query = useQuery({
     queryKey: ["templates", "ai-artifact", taskId, path],
+    enabled: tab === "text",
     queryFn: async () => {
-      const [text, report] = await Promise.all([fetch(`${path}/text`), fetch(`${path}/report`)]);
-      if (!text.ok || !report.ok)
+      const text = await fetch(`${path}/text`);
+      if (!text.ok)
         throw Error(
           "The preview files are unavailable or expired. Refresh this task before accepting.",
         );
-      const reportValue: unknown = await report.json();
-      return { text: await text.text(), report: reportValue };
+      return text.text();
     },
     staleTime: 0,
   });
   return (
-    <Tabs defaultValue="pdf" className="min-w-0">
+    <Tabs value={tab} onValueChange={setTab} className="min-w-0">
       <TabsList variant="line">
         <TabsTrigger value="pdf">PDF</TabsTrigger>
         <TabsTrigger value="text">Extracted text</TabsTrigger>
-        <TabsTrigger value="report">Report</TabsTrigger>
+        <TabsTrigger value="report">Checks</TabsTrigger>
       </TabsList>
       <Failure error={query.error} />
       <TabsContent value="pdf">
@@ -478,43 +415,38 @@ function CandidateArtifacts({
             <PdfPreview url={`${path}/pdf`} />
           </div>
           <aside className="min-w-0 space-y-4 py-3">
-            <h3 className="font-sans text-base font-semibold">One synthetic fixture</h3>
-            <p className="text-base md:text-sm">Graph checks · Passed</p>
+            <h3 className="font-sans text-base font-semibold">Sample résumé</h3>
+            <p className="text-base md:text-sm">Layout checks · Passed</p>
             <p className="text-base md:text-sm">
               Text integrity · {artifacts.validationPassed ? "Passed" : "Failed"}
             </p>
-            <p className="text-base md:text-sm">Runtime identity · Matches</p>
-            <p className="break-all font-mono text-xs text-muted-foreground">
-              {artifacts.rendererVersion}
-            </p>
             <p className="text-base md:text-sm text-muted-foreground">
               Use the page and zoom controls to inspect the complete PDF. Review the extracted text
-              and report before accepting.
+              and checks before accepting.
             </p>
           </aside>
         </div>
       </TabsContent>
       <TabsContent value="text">
-        <CodePayload label="Complete extracted text" value={query.data?.text ?? "Loading text…"} />
+        <p className="max-h-[440px] overflow-auto rounded-sm border p-4 text-sm whitespace-pre-wrap">
+          {query.data ?? (query.isPending ? "Loading text…" : "Text unavailable.")}
+        </p>
       </TabsContent>
       <TabsContent value="report">
-        <CodePayload
-          label="Complete validation report"
-          value={query.data?.report ?? "Loading report…"}
-        />
+        <div className="space-y-3 rounded-sm border p-4 text-sm">
+          <p>Layout checks passed.</p>
+          <p>
+            {artifacts.validationPassed
+              ? "Required text is present and in the expected order."
+              : "Text checks failed. Review the sample before trying again."}
+          </p>
+          <p>Inspect the PDF for spacing, readability, and page breaks before saving.</p>
+        </div>
       </TabsContent>
       <div className="mt-3 flex flex-wrap gap-2">
-        {(["pdf", "tex", "text", "report"] as const).map((kind) => (
+        {(["pdf", "text"] as const).map((kind) => (
           <Button key={kind} variant="outline" size="sm" asChild>
-            <a href={`${path}/${kind}?download`}>
-              {kind === "tex"
-                ? "LaTeX"
-                : kind === "text"
-                  ? "Text"
-                  : kind === "report"
-                    ? "Report"
-                    : "PDF"}
-            </a>
+            <a href={`${path}/${kind}?download`}>{kind === "text" ? "Text" : "PDF"}</a>
           </Button>
         ))}
       </div>

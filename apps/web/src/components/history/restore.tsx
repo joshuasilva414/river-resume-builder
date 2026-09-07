@@ -47,8 +47,8 @@ export function RestoreCheckpoint({
         <div className="space-y-4">
           <p>
             This checkpoint has accepted source changes. Structured editing starts from its original
-            structured base and regenerates LaTeX. Review all excluded changes before creating that
-            branch.
+            original editable content and rebuilds the document. Review all excluded changes before
+            creating that branch.
           </p>
           <Button onClick={() => setRegenerate(true)}>Review excluded changes</Button>
         </div>

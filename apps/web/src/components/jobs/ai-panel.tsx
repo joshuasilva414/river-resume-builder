@@ -1,7 +1,9 @@
 import type { RetryJobAiRequest, ReviewJobAiRequest, StartJobAiRequest } from "@river/contracts";
+import type { AiSelection } from "@river/domain";
 import { canonicalJson, type JobAiTask } from "@river/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
+import { AiSelector } from "~/components/ai-selection";
 import {
   EvidenceDialog,
   Failure,
@@ -231,14 +233,13 @@ function Launch({
   onClose: () => void;
   onSaved: (id: string) => void;
 }) {
+  const [ai, setAi] = useState<AiSelection>();
   const [scope, setScope] = useState("");
   const action = useAiAction(onSaved);
   return (
     <EvidenceDialog
       title={
-        task === "extract-requirements"
-          ? "Propose a Requirement Map"
-          : "Rank a bounded evidence set"
+        task === "extract-requirements" ? "Suggest job requirements" : "Find relevant evidence"
       }
       description="The result requires your review. Generating a proposal preserves your saved work."
       onClose={onClose}
@@ -250,12 +251,9 @@ function Launch({
           {detail.job.details.role} · {detail.job.details.company}
         </p>
         <div className="space-y-2 rounded-sm border bg-muted p-4 text-sm">
-          <p>Job revision {detail.job.revision}</p>
-          <p className="font-mono text-[11px] break-all">Posting {detail.snapshot.id}</p>
-          <p className="font-mono text-[11px] break-all">Map {detail.workspace.id}</p>
           <p>
             {detail.workspace.data.requirements.length} requirements · {detail.selected.length}{" "}
-            evidence associations
+            evidence selections
           </p>
         </div>
         {task === "rank-evidence" && (
@@ -276,26 +274,19 @@ function Launch({
               </select>
             </FormField>
             <p className="text-sm">
-              The server supplies up to 30 active evidence matches from keyword search. AI can rank
-              only those exact revisions. Missing evidence remains an explicit gap.
+              Uses up to 30 matching claims from your evidence bank. Review each suggestion before
+              selecting it. Missing qualifications remain visible as gaps.
             </p>
           </>
         )}
         {task === "extract-requirements" && (
           <p className="text-sm">
-            Review the complete original and proposed maps before accepting. Removing a requirement
-            can remove its evidence associations; those consequences will be shown before
-            acceptance.
+            Compare your saved requirements with the suggestions before accepting. If a requirement
+            is removed, River shows which evidence selections will be affected.
           </p>
         )}
-        <details>
-          <summary className="min-h-11 cursor-pointer py-3 text-sm text-primary">
-            Complete posting supplied to AI
-          </summary>
-          <p className="max-h-72 overflow-y-auto whitespace-pre-wrap break-words text-sm">
-            {detail.snapshot.text}
-          </p>
-        </details>
+
+        <AiSelector value={ai} onChange={setAi} />
         <Failure error={action.error} />
         <div className="flex flex-wrap justify-end gap-3">
           <Button variant="outline" disabled={action.isPending} onClick={onClose}>
@@ -307,6 +298,7 @@ function Launch({
               action.mutate({
                 type: "generate",
                 data: {
+                  ai,
                   jobId: detail.job.id,
                   revision: detail.job.revision,
                   snapshotId: detail.snapshot.id,
@@ -427,37 +419,7 @@ function TaskReview({
                 )}
               </div>
             )}
-            <details>
-              <summary className="min-h-11 cursor-pointer py-3 text-sm text-primary">
-                Captured inputs and current identities
-              </summary>
-              <div className="space-y-3 rounded-sm border p-4 text-sm">
-                <p>
-                  {saved.task.input.details.role} · {saved.task.input.details.company}
-                </p>
-                <p>
-                  Captured job revision {saved.task.input.jobRevision} · current revision{" "}
-                  {detail.job.revision}
-                </p>
-                <p className="font-mono text-[11px] break-all">
-                  Captured posting {saved.task.input.snapshotId}
-                  <br />
-                  Current posting {detail.job.currentSnapshotId}
-                  <br />
-                  Captured map {saved.task.input.workspaceRevisionId}
-                  <br />
-                  Current map {detail.currentWorkspaceRevisionId}
-                </p>
-                <details>
-                  <summary className="min-h-11 cursor-pointer py-3">
-                    Complete immutable task input
-                  </summary>
-                  <pre className="max-h-80 overflow-y-auto font-mono text-[11px] whitespace-pre-wrap break-all">
-                    {JSON.stringify(saved.task.input, null, 2)}
-                  </pre>
-                </details>
-              </div>
-            </details>
+
             {proposal && (
               <div className="flex flex-wrap gap-3">
                 <Badge variant="outline">Review {proposal.state}</Badge>
@@ -478,7 +440,6 @@ function TaskReview({
                     input={saved.task.input}
                     proposal={payload}
                     detail={detail}
-                    accepted={proposal?.state === "Accepted"}
                     readOnly={readOnly}
                     busy={disabled}
                     onChoose={onChoose}
@@ -492,17 +453,12 @@ function TaskReview({
                 review record remain.
               </p>
             )}
-            {proposal?.state === "Pending" && payload && (
+            {proposal?.state === "Pending" && payload?.type === "requirements" && (
               <section className="space-y-4 rounded-sm border border-highlight bg-highlight/10 p-5">
-                <h3 className="text-[17px] font-semibold">
-                  {payload.type === "requirements"
-                    ? "Accept this complete Requirement Map"
-                    : "Record your ranking review"}
-                </h3>
+                <h3 className="text-[17px] font-semibold">Apply these requirements</h3>
                 <p className="text-sm">
-                  {payload.type === "requirements"
-                    ? "Acceptance creates a new immutable map revision. It preserves general evidence selections and associations for retained requirement identities."
-                    : "Acceptance records this review. Evidence selections remain unchanged until you inspect and choose each association."}
+                  This saves the proposed requirements. Evidence stays selected for requirements you
+                  keep, and your general evidence selections are preserved.
                 </p>
                 {removed.length > 0 && (
                   <>
@@ -584,29 +540,31 @@ function TaskReview({
                     <Button variant="outline" disabled={disabled} onClick={onManual}>
                       Continue manually
                     </Button>
-                    <Button
-                      disabled={
-                        disabled ||
-                        readOnly ||
-                        saved.staleReasons.length > 0 ||
-                        (removed.length > 0 && !acknowledged)
-                      }
-                      onClick={() =>
-                        action.mutate({
-                          type: "review",
-                          data: {
-                            id: proposal.id,
-                            revision: proposal.revision,
-                            decision: "Accepted",
-                            acknowledgeRemovedAssociations: acknowledged,
-                          },
-                        })
-                      }
-                    >
-                      {payload.type === "requirements"
-                        ? "Accept complete map"
-                        : "Accept ranking review"}
-                    </Button>
+                    {payload.type === "requirements" && (
+                      <Button
+                        disabled={
+                          disabled ||
+                          readOnly ||
+                          saved.staleReasons.length > 0 ||
+                          (removed.length > 0 && !acknowledged)
+                        }
+                        onClick={() =>
+                          action.mutate({
+                            type: "review",
+                            data: {
+                              id: proposal.id,
+                              revision: proposal.revision,
+                              decision: "Accepted",
+                              acknowledgeRemovedAssociations: acknowledged,
+                            },
+                          })
+                        }
+                      >
+                        {payload.type === "requirements"
+                          ? "Accept complete map"
+                          : "Accept ranking review"}
+                      </Button>
+                    )}
                   </div>
                 )}
               </section>
@@ -660,9 +618,7 @@ function Execution({
         {operation?.stage}
       </p>
       {operation?.failure && <p className="text-sm">{operation.failure}</p>}
-      <p className="font-mono text-[11px] break-all">
-        {saved.task.profile.model} · {saved.task.profile.contract}
-      </p>
+      <p className="text-xs text-muted-foreground">{saved.task.profile.model}</p>
       {active(operation?.state) && (
         <>
           <p className="text-xs text-muted-foreground">

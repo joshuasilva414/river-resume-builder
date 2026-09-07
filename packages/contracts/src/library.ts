@@ -1,4 +1,11 @@
-import { ContentType, LibraryData, LibraryKind, RecordId, Revision } from "@river/domain";
+import {
+  BlockFieldKey,
+  ContentType,
+  LibraryData,
+  LibraryKind,
+  RecordId,
+  Revision,
+} from "@river/domain";
 import { Schema } from "effect";
 import { CommandKey } from "./evidence";
 export const SaveLibraryRequest = Schema.Struct({
@@ -31,3 +38,19 @@ export const SetLibraryArchivedRequest = Schema.Struct({
   rationale: Schema.NonEmptyString.check(Schema.isMaxLength(4000)),
 });
 export type SetLibraryArchivedRequest = typeof SetLibraryArchivedRequest.Type;
+
+/** Starter fields contain only wording entered by the Owner. */
+export const CreateLibraryStarterRequest = Schema.Struct({
+  idempotencyKey: CommandKey,
+  type: ContentType,
+  label: Schema.NonEmptyString.check(Schema.isMaxLength(160)),
+  fields: Schema.Array(
+    Schema.Struct({
+      key: BlockFieldKey,
+      values: Schema.Array(Schema.NonEmptyString.check(Schema.isMaxLength(10000))).check(
+        Schema.isMaxLength(50),
+      ),
+    }),
+  ).check(Schema.isMaxLength(8)),
+});
+export type CreateLibraryStarterRequest = typeof CreateLibraryStarterRequest.Type;

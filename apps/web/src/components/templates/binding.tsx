@@ -8,7 +8,7 @@ import { Failure, unwrap } from "~/components/evidence/shared";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { updateResume } from "~/server/composition-functions";
-import { BasePicker, CodePayload, GraphView, useTemplateBase, useTemplateCommand } from "./shared";
+import { BasePicker, CodePayload, useTemplateBase, useTemplateCommand } from "./shared";
 
 export function compositionBase(data: Composition): TemplateBase {
   return data.template
@@ -35,19 +35,9 @@ export function BindingInspection({ base }: { base: TemplateBase }) {
             rel="noreferrer"
             href={`/templates?revisionId=${base.revisionId}`}
           >
-            Inspect exact graph and fixture previews
+            View template and sample PDFs
           </a>
         </>
-      )}
-      {resolved.graph && (
-        <details>
-          <summary className="cursor-pointer text-sm font-semibold">
-            Exact graph and resolved styles
-          </summary>
-          <div className="mt-4">
-            <GraphView graph={resolved.graph} />
-          </div>
-        </details>
       )}
     </div>
   );
@@ -96,13 +86,13 @@ export function TemplateLayout({ detail, waiting }: { detail: ResumeDetail; wait
       {current.data?.revision.state === "Retired" && (
         <Alert>
           <AlertDescription>
-            This draft and its checkpoints retain the retired graph. Existing preview and export
-            remain available. A new binding requires an eligible graph.
+            This draft keeps its retired template. You can still preview and export it. To change
+            the layout, choose an approved template.
           </AlertDescription>
         </Alert>
       )}
       <BasePicker
-        label="Template graph"
+        label="Template"
         value={selection}
         onChange={setSelection}
         approvedOnly
@@ -118,28 +108,19 @@ export function TemplateLayout({ detail, waiting }: { detail: ResumeDetail; wait
               after: effectiveStyles(selected.graph.tokens, selected.graph.document.manifest),
             }}
           />
-          <details>
-            <summary className="cursor-pointer text-sm font-semibold">
-              Compare all components and inherited styles
-            </summary>
-            <div className="mt-4">
-              <GraphView graph={selected.graph} original={current.graph} />
-            </div>
-          </details>
         </div>
       )}
       <Failure error={apply.error} />
       {!eligible && selected.data && (
         <p role="status" className="text-sm text-muted-foreground">
-          The selected graph is unavailable for a new binding. Your current saved graph is
-          unchanged. Choose an Approved revision.
+          This template is not approved yet. Choose an approved template to apply a new layout.
         </p>
       )}
       <Button
         disabled={waiting || apply.isPending || !eligible || !selected.graph || unchanged}
         onClick={save}
       >
-        {apply.isPending ? "Applying…" : "Apply graph to draft"}
+        {apply.isPending ? "Applying…" : "Apply template to draft"}
       </Button>
       <p className="text-xs leading-5 text-muted-foreground">
         Applying saves a new revision and requests a PDF preview. Wording, evidence, placements, and

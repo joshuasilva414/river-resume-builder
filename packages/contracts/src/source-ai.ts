@@ -1,7 +1,9 @@
 import { ContextReference, RecordId, Revision, SourceAiInput } from "@river/domain";
 import { Schema } from "effect";
+import { AiSelectionFields } from "./ai";
 import { CommandKey } from "./evidence";
 export const StartSourceAiRequest = Schema.Struct({
+  ...AiSelectionFields,
   idempotencyKey: CommandKey,
   sourceId: RecordId,
   revision: Revision,

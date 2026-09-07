@@ -32,6 +32,13 @@ export const Route = createFileRoute("/api/artifacts/$operationId/$kind")({
           return new Response("Artifact not found", { status: 404 });
         const download = new URL(request.url).searchParams.has("download");
         if (
+          (kind === "tex" || (download && kind === "report")) &&
+          !(await repository.getWorkspacePreferences(session.user.id)).preferences.advancedTools
+        )
+          return new Response("Enable Advanced tools in Settings to access technical files", {
+            status: 403,
+          });
+        if (
           "type" in operation.input &&
           (operation.input.type === "source-refinement" ||
             operation.input.type === "source-refinement-accept")

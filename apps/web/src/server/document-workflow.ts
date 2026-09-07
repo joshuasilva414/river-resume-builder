@@ -108,7 +108,7 @@ export class DocumentWorkflow extends WorkflowEntrypoint<Env, { operationId: str
           artifacts,
           failure: artifacts.validationPassed
             ? null
-            : "The PDF text differs from the required content. Inspect the retained report and correct the draft before export.",
+            : "The PDF could not preserve all your wording. Check recent text changes or try another template before exporting.",
         }),
       );
       await step.do("publish-draft-preview", () => repository.publishResumePreview(id));
@@ -117,7 +117,8 @@ export class DocumentWorkflow extends WorkflowEntrypoint<Env, { operationId: str
         repository.updateOperation(id, {
           state: "Failed",
           stage: "Document processing failed",
-          failure: "The document runtime could not produce a valid PDF. Your input is preserved.",
+          failure:
+            "The PDF could not be prepared. Your saved wording is preserved. Try the preview again.",
         }),
       );
       await step.do("record-source-failure", () =>

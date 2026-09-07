@@ -9,7 +9,6 @@ import {
 import {
   effectiveStyles,
   fixedPack,
-  graphTemplates,
   scopedTemplate,
   type TemplateBase,
   type TemplateGraph,
@@ -18,7 +17,7 @@ import {
   validateGraph,
 } from "@river/templates";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef } from "react";
+import { createContext, useContext, useRef } from "react";
 import {
   Failure,
   FormField,
@@ -45,7 +44,7 @@ export const scopeKey = (scope: TemplateScope) => `${scope.level}:${scope.type ?
 export const scopeLabel = (scope: TemplateScope) =>
   scope.level === "document"
     ? "Document"
-    : `${blockDefinitions[scope.type].label} ${scope.level === "section" ? "Section" : "Block"}`;
+    : `${blockDefinitions[scope.type].label} ${scope.level === "section" ? "Section" : "Entry"}`;
 export const baseKey = (base: TemplateBase) =>
   base.kind === "fixed" ? `fixed:${base.theme}` : `saved:${base.revisionId}`;
 export function useTemplate(id: string | null) {
@@ -96,7 +95,7 @@ export function BasePicker({
   value,
   onChange,
   approvedOnly = false,
-  label = "Base complete graph",
+  label = "Base template",
   disabled = false,
 }: {
   value: TemplateBase;
@@ -136,12 +135,12 @@ export function BasePicker({
           {themes.map((theme) => (
             <option key={theme} value={`fixed:${theme}`}>
               {theme[0]?.toUpperCase()}
-              {theme.slice(1)} · built-in revision 1
+              {theme.slice(1)}
             </option>
           ))}
           {value.kind === "saved" &&
             !items.some((item) => item.revisionId === value.revisionId) && (
-              <option value={baseKey(value)}>Captured revision · {value.revisionId}</option>
+              <option value={baseKey(value)}>Saved template</option>
             )}
           {items.map((item) => (
             <option key={item.revisionId} value={`saved:${item.revisionId}`}>
@@ -194,19 +193,17 @@ export function ScopePicker({
     </FormField>
   );
 }
+export const AdvancedRenderingContext = createContext(false);
 export function CodePayload({ value, label }: { value: unknown; label: string }) {
-  return (
-    <div className="min-w-0 space-y-2">
-      <h3 className="font-sans text-sm font-semibold">{label}</h3>
-      <pre
-        // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users must be able to scroll the complete code payload.
-        tabIndex={0}
-        className="max-h-[440px] overflow-auto rounded-sm border bg-muted/50 p-4 font-mono text-xs leading-5"
-      >
+  const advanced = useContext(AdvancedRenderingContext);
+  return advanced ? (
+    <section className="space-y-2">
+      <h3 className="text-sm font-semibold">{label}</h3>
+      <pre className="max-h-[440px] overflow-auto rounded-sm border bg-muted p-4 text-xs">
         {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
       </pre>
-    </div>
-  );
+    </section>
+  ) : null;
 }
 export function ComponentPayload({
   template,
@@ -215,11 +212,14 @@ export function ComponentPayload({
   template: TemplateRevision;
   label: string;
 }) {
+  const advanced = useContext(AdvancedRenderingContext);
   const digest = useQuery({
+    enabled: advanced,
     queryKey: ["templates", "component-digest", template],
     queryFn: () => fingerprint(canonicalJson(template)),
     staleTime: Infinity,
   });
+  if (!advanced) return null;
   return (
     <section className="min-w-0 space-y-4">
       <p className="eyebrow break-all">
@@ -242,51 +242,6 @@ export function inheritedStyles(graph: TemplateGraph, scope: TemplateScope) {
     scopedTemplate(graph, { level: "section", type: scope.type }).manifest,
   );
 }
-export function GraphView({ graph, original }: { graph: TemplateGraph; original?: TemplateGraph }) {
-  return (
-    <section className="min-w-0 space-y-3">
-      <h3 className="font-sans text-sm font-semibold">
-        Complete resulting graph · {graphTemplates(graph).length} components
-      </h3>
-      {scopes.map((scope) => {
-        const template = scopedTemplate(graph, scope),
-          before = original ? scopedTemplate(original, scope) : undefined;
-        return (
-          <details key={scopeKey(scope)} className="min-w-0 border-b py-2">
-            <summary className="cursor-pointer text-sm">
-              <span className="font-semibold">{scopeLabel(scope)}</span>
-              <span className="ml-3 text-muted-foreground">
-                {" · "}
-                {before
-                  ? canonicalJson(before) === canonicalJson(template)
-                    ? "Unchanged"
-                    : "Replacement"
-                  : `Manifest revision ${template.manifest.revision}`}
-              </span>
-            </summary>
-            <div className="mt-4 space-y-4">
-              {before && canonicalJson(before) !== canonicalJson(template) && (
-                <ComponentPayload template={before} label="Complete original component" />
-              )}
-              <ComponentPayload
-                template={template}
-                label={original ? "Complete selected component" : "Exact component"}
-              />
-              <CodePayload
-                label="Resolved styles"
-                value={
-                  original && before
-                    ? {
-                        before: effectiveStyles(inheritedStyles(original, scope), before.manifest),
-                        after: effectiveStyles(inheritedStyles(graph, scope), template.manifest),
-                      }
-                    : effectiveStyles(inheritedStyles(graph, scope), template.manifest)
-                }
-              />
-            </div>
-          </details>
-        );
-      })}
-    </section>
-  );
+export function GraphView({ graph }: { graph: TemplateGraph; original?: TemplateGraph }) {
+  return <CodePayload label="Template graph" value={graph} />;
 }

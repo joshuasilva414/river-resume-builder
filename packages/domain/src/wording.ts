@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { AiExecutionFields, AiModel } from "./ai";
 import {
   type Composition,
   ContentPlacement,
@@ -36,7 +37,8 @@ export const WordingEvidence = Schema.Struct({
 });
 export type WordingEvidence = typeof WordingEvidence.Type;
 export const WordingProfile = Schema.Struct({
-  model: Schema.NonEmptyString,
+  ...AiExecutionFields,
+  model: AiModel,
   contract: Schema.Literal("river-wording-v1"),
   maxInputCharacters: Schema.Literal(160000),
   maxOutputTokens: Schema.Literal(12000),

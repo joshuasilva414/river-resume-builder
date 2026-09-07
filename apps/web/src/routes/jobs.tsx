@@ -4,6 +4,7 @@ import { ArrowRight, Plus } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 import { Failure, unwrap } from "~/components/evidence/shared";
 import { JobEditor } from "~/components/jobs/job-editor";
+import { GettingStarted } from "~/components/onboarding";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "~/components/ui/empty";
@@ -36,6 +37,7 @@ function JobsPage() {
   });
   return (
     <WorkspaceShell {...session}>
+      <GettingStarted />
       <header className="space-y-4 px-5 pt-9 pb-7 md:px-10">
         <p className="eyebrow">Workspace / Job targets</p>
         <div className="flex flex-wrap items-center justify-between gap-5">

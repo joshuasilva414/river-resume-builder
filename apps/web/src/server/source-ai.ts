@@ -6,6 +6,12 @@ import {
 } from "@river/contracts";
 import { ApplicationError, canonicalJson, fingerprint } from "@river/domain";
 import { Effect, Schema } from "effect";
+import {
+  aiConfiguration,
+  aiConnectionsAvailable,
+  aiTaskConfigured,
+  loadAiCredential,
+} from "./ai-settings";
 import type { Env } from "./env";
 import { Actor, attempt, Store } from "./services";
 import { sourceAiProfile } from "./source-ai-provider";
@@ -42,11 +48,12 @@ export const startSourceAi = (env: Env, input: StartSourceAiRequest) =>
   Effect.gen(function* () {
     const actor = yield* Actor,
       store = yield* Store;
+    const configuration = yield* aiConfiguration(env, input.ai);
     const replay = yield* attempt(() =>
       store.replayCommand(actor.id, "start-source-ai", input.idempotencyKey, input),
     );
     if (replay) return replay;
-    const profile = env.SOURCE_AI_WORKFLOW ? sourceAiProfile(env) : null;
+    const profile = env.SOURCE_AI_WORKFLOW ? sourceAiProfile(configuration) : null;
     if (!profile)
       return yield* Effect.fail(
         new ApplicationError({
@@ -62,8 +69,13 @@ export const retrySourceAi = (env: Env, input: RetrySourceAiRequest) =>
   Effect.gen(function* () {
     const actor = yield* Actor,
       store = yield* Store;
+    const captured = yield* attempt(() => store.inspectSourceAi(actor.ownerId, input.id));
+    yield* attempt(() =>
+      loadAiCredential(env, store, actor.ownerId, captured.task.profile.connection),
+    );
+    const configuration = captured.task.profile;
     return yield* attempt(() =>
-      store.retrySourceAi(actor, input, env.SOURCE_AI_WORKFLOW ? sourceAiProfile(env) : null),
+      store.retrySourceAi(actor, input, env.SOURCE_AI_WORKFLOW ? configuration : null),
     );
   });
 export const reviewSourceCandidate = (input: ReviewSourceCandidateRequest) =>
@@ -77,14 +89,31 @@ export const inspectSourceAi = (env: Env, id: string) =>
     const actor = yield* Actor,
       store = yield* Store;
     const result = yield* attempt(() => store.inspectSourceAi(actor.ownerId, id));
-    return { ...result, configured: Boolean(env.SOURCE_AI_WORKFLOW && sourceAiProfile(env)) };
+    return {
+      ...result,
+      task: {
+        ...result.task,
+        input: {
+          ...result.task.input,
+          source: { ...result.task.input.source, text: "" },
+          sourceAnchors: [],
+        },
+      },
+      configured: Boolean(
+        env.SOURCE_AI_WORKFLOW && (yield* aiTaskConfigured(env, result.task.profile.connection)),
+      ),
+    };
   });
 export const listSourceAi = (env: Env, sourceId: string, offset: number) =>
   Effect.gen(function* () {
     const actor = yield* Actor,
       store = yield* Store;
+    const connected = yield* aiConnectionsAvailable(env);
     const result = yield* attempt(() => store.listSourceAi(actor.ownerId, sourceId, offset));
-    return { ...result, configured: Boolean(env.SOURCE_AI_WORKFLOW && sourceAiProfile(env)) };
+    return {
+      ...result,
+      configured: Boolean(env.SOURCE_AI_WORKFLOW && connected),
+    };
   });
 
 export const previewSourceAi = (env: Env, input: StartSourceAiRequest) =>

@@ -7,6 +7,7 @@ import {
   TemplateScope,
 } from "@river/templates";
 import { Schema } from "effect";
+import { AiSelectionFields } from "./ai";
 import { CommandKey } from "./evidence";
 
 export const TemplateDestination = Schema.Struct({
@@ -58,6 +59,7 @@ export const RetireTemplateRequest = Schema.Struct({
 });
 export type RetireTemplateRequest = typeof RetireTemplateRequest.Type;
 export const StartTemplateAiRequest = Schema.Struct({
+  ...AiSelectionFields,
   ...TemplateDestination.fields,
   reservedDesignId: RecordId,
   expectedInputDigest: Schema.NullOr(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),

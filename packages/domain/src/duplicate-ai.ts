@@ -1,8 +1,10 @@
 import { Schema } from "effect";
+import { AiExecutionFields, AiModel } from "./ai";
 import { ApplicationError, Revision } from "./core";
 import { ContextData, EvidenceMaterial, RecordId, ReviewState } from "./evidence";
 export const DuplicateAiProfile = Schema.Struct({
-  model: Schema.NonEmptyString,
+  ...AiExecutionFields,
+  model: AiModel,
   contract: Schema.Literal("river-duplicate-comparison-v1"),
   maxInputCharacters: Schema.Literal(160000),
   maxOutputTokens: Schema.Literal(8000),

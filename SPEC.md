@@ -10,6 +10,8 @@ V1 includes all three delivery phases. Phase 1 is the first usable MVP. The host
 
 Each account is the Owner of one private workspace. Accounts have no sharing or collaboration features. `ADMIN_EMAIL` identifies the service administrator and `ALLOWED_EMAILS` admits additional accounts. Administrator access grants backup and runtime maintenance capabilities, never access to another account's content. The production hostname is `river.jilva.dev`. Deployment belongs to the personal Cloudflare account; the ACM UTSA workspace is excluded.
 
+Every admitted account can submit private bug reports and feature requests in River. The account can read its own submissions and administrator responses. The service administrator can read the feedback inbox, update report status, and respond. This access covers explicitly submitted feedback and reporter identity only; it does not grant access to the reporter's workspace records. Feedback does not require GitHub access and never attaches résumé content or diagnostics automatically.
+
 The product remains user-directed:
 
 - AI recommends, extracts, ranks, and proposes changes.
@@ -18,6 +20,16 @@ The product remains user-directed:
 - ATS scores are diagnostics, not definitions of candidate quality.
 
 The main experience is a desktop-first guided workspace. Mobile initially supports review and history. Keep the core domain portable for a possible Electron app.
+
+## v1.1 experience and AI connections
+
+New accounts receive skippable, resumable setup with import/manual choices and seven empty library starters. Saving a starter creates its reusable structure atomically; it never invents facts. Nested editing uses one surface with Back navigation and preserved parent input.
+
+AI assistance requires an account-owned provider connection, including for administrators. OpenAI, Anthropic, Google Gemini, and OpenRouter use the shared AI SDK adapter. Model choices come from provider catalogs; users set a default and may override it for each new action. Tasks capture their provider/model and credential revision. Replacement/removal prevents queued calls using the old revision; already-sent calls may finish. No model or connection fallback is allowed. Historical proposals remain reviewable. ATS scoring remains a separate service-funded feature.
+
+Normal production review emphasizes PDFs, actual wording, relevant evidence excerpts, and actionable warnings. Advanced tools are optional and off by default, with a separate destination for code, raw records, and technical exports. Full source originals remain in Sources. Ranking suggestions can be used through explicit current-evidence selection without accepting a separate ranking review. Template approval follows automatic checks and one explained owner action.
+
+The underlying immutable evidence, revision, checkpoint, and acknowledgment contracts remain intact. Current implementation and production release acceptance are tracked in [v1.1](docs/implementation/v1.1.md) and its [release evidence](docs/implementation/v1.1-production.md).
 
 ## Core information model
 
@@ -205,9 +217,9 @@ Returning to structured editing creates a new branch from the structured base an
 
 ## AI access
 
-V1 uses OpenAI through the service operator's API key. Internal product concepts remain task-oriented so additional providers can be added without changing the domain model.
+Since v1.1, each account supplies its own provider connection. AI SDK handles OpenAI, Anthropic, Google Gemini and OpenRouter through task-oriented application contracts. New tasks require an available connection and model; historical tasks do not fall back to the former shared OpenAI key.
 
-The service OpenAI key is configured as a server-side deployment secret. It is not stored in application data or exposed to the browser.
+Provider keys are encrypted in account-scoped application records using a separately retained server-side secret. Plaintext keys are never returned to the browser or retained in task snapshots, receipts, audit records or logs. See [the provider decision](docs/adr/0013-use-ai-sdk-with-personal-provider-connections.md).
 
 AI may access the complete workspace for authorized evidence, job-analysis, ranking, and resume-refinement tasks. Template generation is the exception and always uses synthetic content.
 
@@ -215,11 +227,11 @@ An AI task Operation ends when generation succeeds or fails. Any resulting AI Pr
 
 Each AI Proposal pins the exact input revisions and target revision used to generate it. Acceptance rechecks those dependencies and fails if relevant evidence, content, or the target has changed. The Owner must review an updated proposal before acceptance; the application cannot silently rebase or apply a stale suggestion. Staleness is separate from the proposal's review state.
 
-Requirement extraction proposes a complete map with explicit retained, added, and removed identities. New identities are assigned when the proposal is saved. Acceptance applies the whole reviewed map atomically and requires acknowledgment of removed requirement-specific evidence associations. General selections and associations for retained identities remain. Ranking reviews a bounded set of exact evidence revisions and records gaps and explanations. Accepting a ranking records the review only; choosing evidence remains a separate explicit action after inspecting its current provenance.
+Requirement extraction proposes a complete map with explicit retained, added, and removed identities. New identities are assigned when the proposal is saved. Acceptance applies the whole reviewed map atomically and requires acknowledgment of removed requirement-specific evidence associations. General selections and associations for retained identities remain. Ranking reviews a bounded set of exact evidence revisions and records gaps and explanations. Ranking has no separate acceptance step; choosing evidence is an explicit action after inspecting its current provenance, with freshness checks against the exact revisions.
 
 The product remains usable without AI for evidence editing, manual assembly, approved template use, preview, and export.
 
-During Phase 1, pending AI Proposals are persisted on the server until the Owner accepts or rejects them, so review can resume after a reload or in a later session. Accepted proposals and their resulting domain changes remain in history. Rejection discards the proposal content. Detailed AI execution traces are ephemeral. A later phase will add structured trace retention covering the task type, referenced records, model, prompt-contract version, structured output, token usage, and timestamps.
+Pending AI Proposals are persisted on the server until the Owner accepts or rejects them, so review can resume after a reload or in a later session. Accepted proposals and their resulting domain changes remain in history. Rejection discards the proposal content. Task records retain input revisions and the prompt-contract version. Execution metadata records the provider, requested and returned model, credential revision, and token counts when supplied. Technical inspection is available through opt-in Advanced tools.
 
 ## Technical quality constraints
 

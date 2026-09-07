@@ -17,6 +17,7 @@ import { generateTemplateCandidate } from "../src/server/template-ai-provider";
 
 beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
 const profile: TemplateAiProfile = {
+  connection: { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", revision: 0, provider: "openai" },
   contract: "river-template-generation-v1",
   model: "gpt-5.4-mini-2026-03-17",
   maxInputCharacters: 160000,
@@ -555,7 +556,6 @@ it("denies external agents, rejects prohibited output, ignores cancelled callbac
       expect(body).toMatchObject({
         model: profile.model,
         store: false,
-        stream: false,
         truncation: "disabled",
         max_output_tokens: 12000,
         text: {

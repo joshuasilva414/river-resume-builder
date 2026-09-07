@@ -95,7 +95,7 @@ export class ApplicationError extends Data.TaggedError("ApplicationError")<{
   readonly observedRevision?: number;
 }> {}
 
-/** Administration grants service maintenance access; it never grants access to other workspaces. */
+/** Administration covers service maintenance and submitted feedback, never other workspaces. */
 export function requireAdministrator(actor: Principal) {
   if (actor.kind !== "owner" || !actor.isAdmin)
     throw new ApplicationError({ code: "Forbidden", message: "Administrator access is required." });

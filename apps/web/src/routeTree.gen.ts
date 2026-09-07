@@ -10,8 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdvancedRouteImport } from './routes/advanced'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as EvidenceRouteImport } from './routes/evidence'
+import { Route as FeedbackRouteImport } from './routes/feedback'
 import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as McpRouteImport } from './routes/mcp'
@@ -47,6 +49,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdvancedRoute = AdvancedRouteImport.update({
+  id: '/advanced',
+  path: '/advanced',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocsRoute = DocsRouteImport.update({
   id: '/docs',
   path: '/docs',
@@ -55,6 +62,11 @@ const DocsRoute = DocsRouteImport.update({
 const EvidenceRoute = EvidenceRouteImport.update({
   id: '/evidence',
   path: '/evidence',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedbackRoute = FeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JobsRoute = JobsRouteImport.update({
@@ -209,8 +221,10 @@ const ApiTemplateScoresRunIdFixtureIdKindRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/advanced': typeof AdvancedRoute
   '/docs': typeof DocsRouteWithChildren
   '/evidence': typeof EvidenceRoute
+  '/feedback': typeof FeedbackRoute
   '/jobs': typeof JobsRoute
   '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
@@ -243,7 +257,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/advanced': typeof AdvancedRoute
   '/evidence': typeof EvidenceRoute
+  '/feedback': typeof FeedbackRoute
   '/jobs': typeof JobsRoute
   '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
@@ -277,8 +293,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/advanced': typeof AdvancedRoute
   '/docs': typeof DocsRouteWithChildren
   '/evidence': typeof EvidenceRoute
+  '/feedback': typeof FeedbackRoute
   '/jobs': typeof JobsRoute
   '/library': typeof LibraryRoute
   '/mcp': typeof McpRoute
@@ -313,8 +331,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/advanced'
     | '/docs'
     | '/evidence'
+    | '/feedback'
     | '/jobs'
     | '/library'
     | '/mcp'
@@ -347,7 +367,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/advanced'
     | '/evidence'
+    | '/feedback'
     | '/jobs'
     | '/library'
     | '/mcp'
@@ -380,8 +402,10 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/advanced'
     | '/docs'
     | '/evidence'
+    | '/feedback'
     | '/jobs'
     | '/library'
     | '/mcp'
@@ -415,8 +439,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdvancedRoute: typeof AdvancedRoute
   DocsRoute: typeof DocsRouteWithChildren
   EvidenceRoute: typeof EvidenceRoute
+  FeedbackRoute: typeof FeedbackRoute
   JobsRoute: typeof JobsRoute
   LibraryRoute: typeof LibraryRoute
   McpRoute: typeof McpRoute
@@ -452,6 +478,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/advanced': {
+      id: '/advanced'
+      path: '/advanced'
+      fullPath: '/advanced'
+      preLoaderRoute: typeof AdvancedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs': {
       id: '/docs'
       path: '/docs'
@@ -464,6 +497,13 @@ declare module '@tanstack/react-router' {
       path: '/evidence'
       fullPath: '/evidence'
       preLoaderRoute: typeof EvidenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feedback': {
+      id: '/feedback'
+      path: '/feedback'
+      fullPath: '/feedback'
+      preLoaderRoute: typeof FeedbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/jobs': {
@@ -722,8 +762,10 @@ const ApiV1SourcesRouteWithChildren = ApiV1SourcesRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdvancedRoute: AdvancedRoute,
   DocsRoute: DocsRouteWithChildren,
   EvidenceRoute: EvidenceRoute,
+  FeedbackRoute: FeedbackRoute,
   JobsRoute: JobsRoute,
   LibraryRoute: LibraryRoute,
   McpRoute: McpRoute,

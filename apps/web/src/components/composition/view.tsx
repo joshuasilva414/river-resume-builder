@@ -18,28 +18,18 @@ export function CompositionView({
     <div className="space-y-6">
       <div>
         <h3 className="font-editorial text-2xl">{data.name}</h3>
-        <p className="eyebrow">
-          {data.template
-            ? `Custom template · ${data.template.revisionId}`
-            : `${data.theme} · Template revision ${data.templateRevision}`}
-        </p>
+        <p className="eyebrow">{data.template ? "Custom template" : `${data.theme} template`}</p>
       </div>
       {data.sections.map((section) => (
         <section key={section.id} className="space-y-4 border-t pt-4">
           <h3 className="font-editorial text-2xl">{section.heading || "Contact / header"}</h3>
-          {provenance && (
-            <p className="text-xs break-all">
-              Base Section {section.reference.revisionId}
-              {section.reason && ` · Local composition: ${section.reason}`}
-            </p>
+          {provenance && section.reason && (
+            <p className="text-xs break-all">Changed for this résumé: {section.reason}</p>
           )}
           {section.blocks.map((block) => (
             <article key={block.id} className="space-y-3 border-l-2 pl-4">
-              {provenance && (
-                <p className="text-xs break-all">
-                  Base Block {block.reference.revisionId}
-                  {block.reason && ` · Local composition: ${block.reason}`}
-                </p>
+              {provenance && block.reason && (
+                <p className="text-xs break-all">Changed for this résumé: {block.reason}</p>
               )}
               {blockDefinitions[block.type].fields.map((field) => (
                 <div key={field.key} className="space-y-3">
@@ -54,10 +44,11 @@ export function CompositionView({
                           </p>
                           {provenance && (
                             <>
-                              <p className="mt-2 text-xs break-all">
-                                Base Content {content.reference.revisionId}
-                                {content.override && ` · Local wording: ${content.override.reason}`}
-                              </p>
+                              {content.override && (
+                                <p className="mt-2 text-xs break-all">
+                                  Wording changed: {content.override.reason}
+                                </p>
+                              )}
                               <div className="mt-3">
                                 <EvidenceLinks value={value.evidence} />
                               </div>
@@ -72,7 +63,7 @@ export function CompositionView({
           ))}
         </section>
       ))}
-      {!data.sections.length && <p>No Sections yet.</p>}
+      {!data.sections.length && <p>No sections yet.</p>}
     </div>
   );
 }

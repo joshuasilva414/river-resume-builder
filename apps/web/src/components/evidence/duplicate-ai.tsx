@@ -4,9 +4,11 @@ import type {
   ReviewedComparisonOrigin,
   StartDuplicateAiRequest,
 } from "@river/contracts";
+import type { AiSelection } from "@river/domain";
 import { canonicalJson, type DuplicateAiInput, type EvidenceMaterial } from "@river/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
+import { AiSelector } from "~/components/ai-selection";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
@@ -108,22 +110,6 @@ function Citations({ material }: { material: EvidenceMaterial }) {
               ),
             ].join(" · ")}
           </p>
-          <details>
-            <summary className="cursor-pointer text-primary">Citation provenance</summary>
-            <div className="mt-3 space-y-2 break-all font-mono text-xs">
-              <p>Source {citation.sourceId}</p>
-              <p>Processing result {citation.processingId}</p>
-              <p>
-                UTF-16 offsets {citation.start}–{citation.end} (end exclusive)
-              </p>
-              <a
-                className="inline-block font-sans text-primary underline"
-                href={`/api/v1/sources/${citation.sourceId}?download`}
-              >
-                Download original
-              </a>
-            </div>
-          </details>
         </article>
       ))}
     </div>
@@ -132,9 +118,6 @@ function Citations({ material }: { material: EvidenceMaterial }) {
 function CapturedInputs({ input }: { input: DuplicateAiInput }) {
   return (
     <div className="space-y-6">
-      <p className="break-all font-mono text-xs">
-        Pair {input.pair.id} · Revision {input.pair.revision}
-      </p>
       {[input.first, input.second].map((claim, index) => (
         <section key={claim.claimId} className="space-y-3 border-t pt-4">
           <p className="eyebrow">
@@ -149,14 +132,6 @@ function CapturedInputs({ input }: { input: DuplicateAiInput }) {
               Review rationale: {claim.decision.rationale}
             </p>
           )}
-          <details className="text-xs">
-            <summary className="cursor-pointer">Claim and review identities</summary>
-            <div className="mt-3 space-y-2 break-all font-mono">
-              <p>Claim {claim.claimId}</p>
-              <p>Evidence revision {claim.evidenceRevisionId}</p>
-              <p>Decision {claim.decision?.id ?? "None"}</p>
-            </div>
-          </details>
           <Citations material={claim.material} />
           {claim.material.contexts.map((reference) => {
             const context = input.contexts.find(
@@ -166,10 +141,6 @@ function CapturedInputs({ input }: { input: DuplicateAiInput }) {
               context && (
                 <div key={context.revisionId} className="space-y-2">
                   <ContextSnapshot data={context.data} revisionId={context.revisionId} />
-                  <p className="text-xs text-muted-foreground break-all">
-                    Observed context revision {context.aggregateRevision} · Current value at
-                    generation {context.currentRevisionId}
-                  </p>
                 </div>
               )
             );
@@ -261,6 +232,7 @@ function Launch({
   onClose: () => void;
   onSaved: (id: string) => void;
 }) {
+  const [ai, setAi] = useState<AiSelection>();
   const [input] = useState({
     pairId: pair.id,
     revision: pair.revision,
@@ -283,6 +255,7 @@ function Launch({
       className="sm:max-w-[676px]"
     >
       <div className="space-y-5">
+        <AiSelector value={ai} onChange={setAi} />
         <Failure error={preview.error ?? action.error} />
         {preview.isPending && <p>Checking complete input…</p>}
         {preview.data && (
@@ -315,7 +288,7 @@ function Launch({
               !preview.data?.allowed ||
               Boolean(preview.error)
             }
-            onClick={() => action.mutate({ type: "generate", data: input })}
+            onClick={() => action.mutate({ type: "generate", data: { ...input, ai } })}
           >
             {action.isPending ? "Queuing…" : "Generate comparison"}
           </Button>
@@ -623,28 +596,13 @@ function ComparisonReview({
                 <p className="text-xs text-muted-foreground">
                   {new Date(detail.pairDecision.createdAt).toLocaleString()}
                 </p>
-                <p className="break-all font-mono text-xs">Actor {detail.pairDecision.actorId}</p>
               </section>
             )}
-            <details className="text-xs">
-              <summary className="cursor-pointer">Comparison and operation identity</summary>
-              <div className="mt-3 space-y-2 break-all font-mono">
-                <p>Task {detail.task.id}</p>
-                <p>Comparison {proposal?.id ?? "Not saved"}</p>
-                <p>SHA-256 {proposal?.digest ?? "Not saved"}</p>
-                <p>Operation {operation?.id}</p>
-                <p>
-                  {detail.task.profile.contract} · {detail.task.profile.model}
-                </p>
-                <p>Created {new Date(detail.task.createdAt).toLocaleString()}</p>
-                {proposal?.reviewedAt && (
-                  <p className="font-sans">
-                    Owner {reviewLabel(proposal.state)?.toLowerCase()} ·{" "}
-                    {new Date(proposal.reviewedAt).toLocaleString()}
-                  </p>
-                )}
-              </div>
-            </details>
+            {proposal?.reviewedAt && (
+              <p className="text-xs text-muted-foreground">
+                {reviewLabel(proposal.state)} · {new Date(proposal.reviewedAt).toLocaleString()}
+              </p>
+            )}
           </>
         )}
       </div>

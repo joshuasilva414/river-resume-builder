@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { AiExecutionFields, AiModel } from "./ai";
 import { ApplicationError, Revision } from "./core";
 import {
   CitationInput,
@@ -12,7 +13,8 @@ import {
 } from "./evidence";
 import { indexTextPassages } from "./text-passages";
 export const SourceAiProfile = Schema.Struct({
-  model: Schema.NonEmptyString,
+  ...AiExecutionFields,
+  model: AiModel,
   contract: Schema.Literals(["river-source-claims-v1", "river-source-claims-v2"]),
   maxInputCharacters: Schema.Literal(160000),
   maxOutputTokens: Schema.Literal(12000),

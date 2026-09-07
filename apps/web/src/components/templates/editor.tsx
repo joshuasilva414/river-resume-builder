@@ -44,11 +44,13 @@ type Setup = {
 };
 export function TemplateEditor({
   initialBase,
+  advanced = false,
   detail,
   onClose,
   onSaved,
 }: {
   initialBase: TemplateBase;
+  advanced?: boolean;
   detail?: TemplateDetail;
   onClose: () => void;
   onSaved: (id: string) => void;
@@ -63,11 +65,12 @@ export function TemplateEditor({
       ? { base: initialBase, scope: detail.design.scope, graph: detail.revision.graph, detail }
       : null,
   );
-  if (setup) return <TemplateForm setup={setup} onClose={onClose} onSaved={onSaved} />;
+  if (setup)
+    return <TemplateForm advanced={advanced} setup={setup} onClose={onClose} onSaved={onSaved} />;
   return (
     <EvidenceDialog
       title="Create template"
-      description="Start from an exact complete graph, then edit one component."
+      description="Choose a starting style, then adjust its appearance."
       onClose={onClose}
     >
       <div className="space-y-5">
@@ -75,8 +78,7 @@ export function TemplateEditor({
         <ScopePicker value={scope} onChange={setScope} />
         <Failure error={resolved.error} />
         <p className="text-sm text-muted-foreground">
-          Contact is a document header Block. Each saved Draft retains the complete 14-component
-          graph.
+          Choose the part of the résumé you want to style.
         </p>
         <Button
           disabled={!resolved.graph}
@@ -91,11 +93,13 @@ export function TemplateEditor({
   );
 }
 function TemplateForm({
+  advanced,
   setup,
   onClose,
   onSaved,
 }: {
   setup: Setup;
+  advanced: boolean;
   onClose: () => void;
   onSaved: (id: string) => void;
 }) {
@@ -173,7 +177,7 @@ function TemplateForm({
   return (
     <EvidenceDialog
       title={captured.detail ? "Edit template revision" : "Shape the template"}
-      description={`${scopeLabel(captured.scope)} · saving creates a new Draft of the complete graph.`}
+      description={`${scopeLabel(captured.scope)} · save a new draft version, then review the sample PDFs.`}
       onClose={onClose}
       dirty={dirty}
       pending={save.isPending}
@@ -185,11 +189,11 @@ function TemplateForm({
             <Input value={name} maxLength={160} onChange={(event) => setName(event.target.value)} />
           </FormField>
           <p className="eyebrow">{scopeLabel(captured.scope)}</p>
-          <p className="break-all text-xs text-muted-foreground">
-            Base:{" "}
+          <p className="text-xs text-muted-foreground">
+            Based on:{" "}
             {captured.base.kind === "fixed"
-              ? `${captured.base.theme} / 1`
-              : captured.base.revisionId}
+              ? `${captured.base.theme} template`
+              : "a saved template version"}
           </p>
           <TypedStyles
             graph={captured.graph}
@@ -198,30 +202,30 @@ function TemplateForm({
             onChange={setOverrides}
           />
           <p className="text-xs leading-5 text-muted-foreground">
-            Identity and slot contracts are assigned by River. Typed controls update the manifest
-            overrides. Approval applies to the complete graph after fixture validation and visual
-            review.
+            Save your changes, then test the sample PDFs before approving this template.
           </p>
         </aside>
         <div className="min-w-0 space-y-5">
-          <fieldset className="flex flex-wrap gap-2" aria-label="Template payload view">
-            {(["edit", "compare", "graph"] as const).map((value) => (
-              <Button
-                key={value}
-                size="sm"
-                variant={tab === value ? "secondary" : "outline"}
-                aria-pressed={tab === value}
-                onClick={() => setTab(value)}
-              >
-                {value === "edit"
-                  ? "Manifest and fragment"
-                  : value === "compare"
-                    ? "Before / after"
-                    : "All components"}
-              </Button>
-            ))}
-          </fieldset>
-          {tab === "edit" && (
+          {advanced && (
+            <fieldset className="flex flex-wrap gap-2" aria-label="Template payload view">
+              {(["edit", "compare", "graph"] as const).map((value) => (
+                <Button
+                  key={value}
+                  size="sm"
+                  variant={tab === value ? "secondary" : "outline"}
+                  aria-pressed={tab === value}
+                  onClick={() => setTab(value)}
+                >
+                  {value === "edit"
+                    ? "Template code"
+                    : value === "compare"
+                      ? "Before / after"
+                      : "All components"}
+                </Button>
+              ))}
+            </fieldset>
+          )}
+          {advanced && tab === "edit" && (
             <div className="grid min-w-0 gap-5 xl:grid-cols-2">
               <CodePayload
                 label="Complete manifest · identity assigned on save"
@@ -238,7 +242,7 @@ function TemplateForm({
               </FormField>
             </div>
           )}
-          {tab === "compare" && (
+          {advanced && tab === "compare" && (
             <div className="grid min-w-0 gap-5 xl:grid-cols-2">
               <ComponentPayload template={original} label="Captured original" />
               <ComponentPayload
@@ -247,7 +251,9 @@ function TemplateForm({
               />
             </div>
           )}
-          {tab === "graph" && proposed && <GraphView graph={proposed} original={captured.graph} />}
+          {advanced && tab === "graph" && proposed && (
+            <GraphView graph={proposed} original={captured.graph} />
+          )}
           <Failure error={problem} />
           <Failure error={reloadError} />
           <Failure error={save.error} />
@@ -256,10 +262,10 @@ function TemplateForm({
               <AlertDescription>
                 <div className="space-y-4">
                   <p>
-                    Your local manifest and fragment are preserved. Compare the captured base with
-                    the current saved graph before reloading.
+                    This template changed since you opened it. Your edits are preserved. Reload the
+                    latest saved version or keep your edits as a separate template.
                   </p>
-                  {current.data && (
+                  {advanced && current.data && (
                     <details>
                       <summary className="cursor-pointer font-semibold">
                         Compare current saved graph
@@ -276,7 +282,7 @@ function TemplateForm({
                     </details>
                   )}
                   <Button variant="outline" onClick={() => void loadCurrent()}>
-                    Reload explicitly
+                    Reload saved version
                   </Button>
                   <FormField label="New template name">
                     <Input
@@ -292,7 +298,7 @@ function TemplateForm({
                       save.mutate({ ...input, id: null, revision: null, name: preserveName })
                     }
                   >
-                    Preserve as new template Draft
+                    Save as separate template
                   </Button>
                 </div>
               </AlertDescription>
@@ -315,7 +321,7 @@ function TemplateForm({
               disabled={!name.trim() || !proposed || save.isPending || conflict}
               onClick={() => save.mutate(input)}
             >
-              {save.isPending ? "Saving…" : "Save new Draft revision"}
+              {save.isPending ? "Saving…" : "Save draft version"}
             </Button>
           </div>
         </div>
@@ -356,14 +362,14 @@ function TypedStyles({
   };
   return (
     <section className="space-y-4">
-      <h3 className="font-sans text-sm font-semibold">Typed style overrides</h3>
+      <h3 className="font-sans text-sm font-semibold">Appearance</h3>
       <FormField label="Font">
         <select
           className={selectClass}
           value={values.font ?? "inherit"}
           onChange={(event) => set("font", event.target.value)}
         >
-          <option value="inherit">Inherit · {inherited.font}</option>
+          <option value="inherit">Default · {inherited.font}</option>
           <option>Latin Modern Roman</option>
           <option>Latin Modern Sans</option>
         </select>
@@ -401,7 +407,7 @@ function TypedStyles({
               onChange={(event) => set(field.key, event.target.value)}
             >
               <option value="inherit">
-                Inherit · {inherited[field.key]} {field.unit}
+                Default · {inherited[field.key]} {field.unit}
               </option>
               {values[field.key] !== undefined &&
                 !field.choices.some((choice) => choice === values[field.key]) && (

@@ -41,7 +41,7 @@ export const editing = {
               If you need new content, select <strong>Create section</strong> and follow{" "}
               <GuideLink slug="library">Build reusable sections</GuideLink>.
             </li>
-            <li>Use the move controls to reorder sections and blocks.</li>
+            <li>Use the move controls to reorder sections and entries.</li>
             <li>
               Adjust each <strong>Printed section heading</strong> as needed.
             </li>
@@ -60,7 +60,7 @@ export const editing = {
           <p>To change wording for this résumé, create a local wording change.</p>
           <ol>
             <li>
-              On the content item, select <strong>Edit wording</strong>.
+              Next to the text you want to change, select <strong>Edit wording</strong>.
             </li>
             <li>
               Edit <strong>Complete local wording</strong>.
@@ -108,16 +108,23 @@ export const editing = {
       title: "Inspect the current PDF",
       body: (
         <>
-          <p>Before you rely on the preview, wait for the save and compilation to finish.</p>
+          <p>
+            Before you rely on the preview, wait for your changes to save and the PDF to update.
+          </p>
           <ol>
             <li>
-              Confirm that the editor reports <strong>All changes saved</strong>.
+              Confirm that the editor reports <strong>Saved</strong> with the current revision.
             </li>
             <li>Wait until the preview no longer reports a pending or stale state.</li>
             <li>Inspect the name, contact details, dates, line breaks, and page breaks.</li>
             <li>If the layout needs adjustment, change the available template layout controls.</li>
-            <li>Inspect the new PDF after compilation finishes.</li>
+            <li>Inspect the new PDF when it is ready.</li>
           </ol>
+          <p>
+            During an update, River keeps the last successful PDF visible. If the new PDF fails,
+            check recent text changes or choose another template. Correct the draft and wait for its
+            new preview before exporting.
+          </p>
           <p>
             To preserve the version, follow{" "}
             <GuideLink slug="history">Compare and restore versions</GuideLink>. To download the

@@ -259,17 +259,7 @@ function TemplatesPage() {
                   reviewRevision={detail.data.revision.reviewRevision}
                   eligible={["Validated", "Approved"].includes(detail.data.revision.state)}
                 />
-                <details>
-                  <summary className="cursor-pointer text-sm font-semibold">
-                    Captured component origins
-                  </summary>
-                  <div className="mt-4">
-                    <CodePayload
-                      label="Exact base and donor identities"
-                      value={detail.data.revision.origins}
-                    />
-                  </div>
-                </details>
+
                 <details>
                   <summary className="cursor-pointer text-sm font-semibold">Review history</summary>
                   <div className="mt-4 space-y-4">
@@ -322,7 +312,7 @@ function TemplatesPage() {
           <div className="space-y-6 px-5 py-7 md:px-8">
             <Failure error={list.error} />
             {list.isPending && <p role="status">Loading templates…</p>}
-            <div className="grid min-w-0 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="grid min-w-0 gap-6 md:grid-cols-2">
               {(state === null || state === "Approved") &&
                 themes.map((theme) => (
                   <article key={theme} className="min-w-0 rounded-sm border">
@@ -354,9 +344,8 @@ function TemplatesPage() {
                     <Badge variant="outline">{item.state}</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Complete saved graph · revision {item.version}
+                    Saved template · revision {item.version}
                   </p>
-                  <p className="break-all font-mono text-xs text-muted-foreground">{item.digest}</p>
                   <Button variant="outline" onClick={() => select(item.revisionId)}>
                     Inspect revision
                   </Button>

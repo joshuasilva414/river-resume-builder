@@ -6,6 +6,7 @@ import {
   FileText,
   Layers,
   LogOut,
+  MessageSquare,
   PanelsTopLeft,
   Settings,
 } from "lucide-react";
@@ -45,11 +46,22 @@ export function WorkspaceShell({
   const [failure, setFailure] = useState<string | null>(null);
   return (
     <div className={cn("flex min-h-dvh flex-col", contained && "xl:h-dvh xl:overflow-hidden")}>
-      <header className="flex h-16 shrink-0 items-center gap-6 border-b px-5 md:px-6">
+      <header className="flex h-16 shrink-0 items-center gap-3 border-b px-5 sm:gap-6 md:px-6">
         <Link to="/" className="md:w-60">
           <Brand />
         </Link>
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-1 sm:gap-3">
+          <Link
+            to="/feedback"
+            aria-current={pathname === "/feedback" ? "page" : undefined}
+            className={cn(
+              "inline-flex min-h-9 min-w-9 items-center justify-center gap-2 text-sm hover:text-primary",
+              pathname === "/feedback" ? "text-primary" : "text-muted-foreground",
+            )}
+          >
+            <MessageSquare className="size-4 sm:hidden" aria-hidden="true" />
+            <span className="sr-only sm:not-sr-only">Feedback</span>
+          </Link>
           <Link to="/docs" className="text-sm text-muted-foreground hover:text-primary">
             User guide
           </Link>
@@ -67,7 +79,7 @@ export function WorkspaceShell({
             <LogOut />
           </Button>
           <span
-            className="flex size-8 items-center justify-center rounded-full border font-medium"
+            className="hidden size-8 items-center justify-center rounded-full border font-medium sm:flex"
             title={user.email}
           >
             {user.name.slice(0, 1)}

@@ -1,4 +1,5 @@
 import type {
+  CreateLibraryStarterRequest,
   InspectLibraryRequest,
   LibrarySearch,
   SaveLibraryRequest,
@@ -6,6 +7,8 @@ import type {
 } from "@river/contracts";
 import {
   ApplicationError,
+  type BlockFieldKey,
+  blockDefinitions,
   canonicalJson,
   type LibraryData,
   type LibraryReference,
@@ -296,6 +299,107 @@ export function createLibraryRepository(db: Database) {
                 },
               },
             ],
+          };
+        },
+      );
+    },
+    /** Save a complete starter as one atomic, replayable library change. */
+    async createLibraryStarter(actor: Principal, input: CreateLibraryStarterRequest) {
+      if (actor.kind !== "owner")
+        throw new ApplicationError({
+          code: "Forbidden",
+          message: "Only the account owner can add reusable content.",
+        });
+      return commands.commit(
+        actor,
+        "create-library-starter",
+        input.idempotencyKey,
+        input,
+        async () => {
+          const definition = blockDefinitions[input.type];
+          if (
+            !input.label.trim() ||
+            new Set(input.fields.map((field) => field.key)).size !== input.fields.length ||
+            input.fields.some((field) => !definition.fields.some((slot) => slot.key === field.key))
+          )
+            throw new ApplicationError({
+              code: "InvalidInput",
+              message: "Check the starter name and fields.",
+            });
+          const writes: Write[] = [],
+            history: { entityId: string; after: unknown }[] = [];
+          const now = Date.now();
+          const add = (label: string, data: LibraryData) => {
+            validateLibraryData(data);
+            const id = newId(),
+              revisionId = newId();
+            writes.push(
+              db.insert(s.libraryItems).values({
+                id,
+                ownerId: actor.ownerId,
+                kind: data.kind,
+                type: data.type,
+                label,
+                currentRevisionId: revisionId,
+                revision: 0,
+                createdAt: now,
+                updatedAt: now,
+              }),
+              db.insert(s.libraryRevisions).values({
+                id: revisionId,
+                itemId: id,
+                data,
+                label,
+                rationale: "Created from a starter",
+                actorId: actor.id,
+                createdAt: now,
+              }),
+            );
+            for (const child of libraryChildren(data))
+              writes.push(
+                db
+                  .insert(s.libraryChildReferences)
+                  .values({ revisionId, childRevisionId: child.revisionId }),
+              );
+            history.push({ entityId: id, after: { revisionId, starter: input.type, label } });
+            return { id: newId(), itemId: id, revisionId };
+          };
+          const fields = definition.fields.map(
+            (slot): { key: BlockFieldKey; contents: ReturnType<typeof add>[] } => {
+              const values = input.fields.find((field) => field.key === slot.key)?.values ?? [];
+              if (
+                values.length < slot.min ||
+                values.length > slot.max ||
+                values.some((value) => !value.trim())
+              )
+                throw new ApplicationError({
+                  code: "InvalidInput",
+                  message: `Check ${slot.label.toLowerCase()}.`,
+                });
+              return {
+                key: slot.key,
+                contents: values.map((wording, index) =>
+                  add(`${input.label.slice(0, 110)} · ${slot.label} ${index + 1}`, {
+                    kind: "content",
+                    type: input.type,
+                    wording,
+                    evidence: [],
+                  }),
+                ),
+              };
+            },
+          );
+          const block = add(input.label, { kind: "block", type: input.type, fields });
+          const section = add(input.label, {
+            kind: "section",
+            type: input.type,
+            heading: definition.heading,
+            blocks: [block],
+          });
+          return {
+            result: { id: section.itemId, revisionId: section.revisionId, revision: 0 },
+            writes,
+            history,
           };
         },
       );

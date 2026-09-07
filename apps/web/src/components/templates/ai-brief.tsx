@@ -1,8 +1,10 @@
 import type { StartTemplateAiRequest } from "@river/contracts";
+import type { AiSelection } from "@river/domain";
 import { canonicalJson, newId } from "@river/domain";
 import type { TemplateBase, TemplateBrief, TemplateScope } from "@river/templates";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { AiSelector } from "~/components/ai-selection";
 import {
   EvidenceDialog,
   Failure,
@@ -18,13 +20,7 @@ import {
   type getTemplatePromotion,
   previewTemplateAiInput,
 } from "~/server/template-ai-functions";
-import {
-  BasePicker,
-  CodePayload,
-  ScopePicker,
-  type TemplateDetail,
-  useTemplateCommand,
-} from "./shared";
+import { BasePicker, ScopePicker, type TemplateDetail, useTemplateCommand } from "./shared";
 
 export function TemplateAiBrief({
   initialBase,
@@ -39,6 +35,7 @@ export function TemplateAiBrief({
   onClose: () => void;
   onStarted: (id: string) => void;
 }) {
+  const [ai, setAi] = useState<AiSelection>();
   const [base, setBase] = useState(initialBase),
     [scope, setScope] = useState<TemplateScope>(
       detail?.design.scope ?? { level: "document", type: null },
@@ -58,6 +55,7 @@ export function TemplateAiBrief({
       : null
     : detail?.design;
   const input: StartTemplateAiRequest = {
+    ai,
     id: target?.id ?? null,
     revision: target?.revision ?? null,
     reservedDesignId: target?.id ?? reservedDesignId,
@@ -103,7 +101,7 @@ export function TemplateAiBrief({
       description={
         promotion
           ? "Turn a reusable layout idea into a new template Draft. Approved revisions are preserved."
-          : "Design one component using a complete base graph and synthetic content."
+          : "Describe the layout you want. River previews it with sample content."
       }
       onClose={onClose}
       dirty={Boolean(brief.character || brief.constraints)}
@@ -111,6 +109,7 @@ export function TemplateAiBrief({
       wide
     >
       <fieldset className="min-w-0 space-y-6" disabled={generate.isPending}>
+        <AiSelector value={ai} onChange={setAi} />
         {promotion && (
           <>
             <p className="font-mono text-xs tracking-wide text-muted-foreground">
@@ -147,7 +146,7 @@ export function TemplateAiBrief({
               </div>
               <p className="text-sm text-muted-foreground">
                 This describes the latest accepted source adjustment. Template generation receives
-                the generic brief, allowed values, base template and synthetic fixtures.
+                your design brief, base template, and fictional sample content.
               </p>
             </section>
             <FormField label="Promotion destination">
@@ -187,7 +186,7 @@ export function TemplateAiBrief({
           </FormField>
         </div>
         <p className="text-base md:text-sm text-muted-foreground">
-          Single column · All seven content types · Synthetic fixtures only
+          Single column · Supports all résumé sections · Uses fictional sample content
         </p>
         <FormField label={promotion ? "Design brief" : "Visual character"}>
           <Textarea
@@ -214,26 +213,16 @@ export function TemplateAiBrief({
           }
           onClick={() => preview.mutate(input)}
         >
-          Review complete synthetic input
+          Continue
         </Button>
         {current && (
           <section className="space-y-4 rounded-sm border p-5">
-            <h3 className="font-editorial text-2xl">What the model receives</h3>
+            <h3 className="font-editorial text-2xl">Ready to generate</h3>
             <p className="text-base md:text-sm">
-              This exact brief, complete base graph, component scope, and four canonical synthetic
-              fixtures. {current.characters.toLocaleString()} of {current.limit.toLocaleString()}{" "}
-              UTF-16 units.{" "}
-              {current.allowed
-                ? "Input fits without truncation."
-                : "Input exceeds the limit; generation is blocked."}
+              River uses your design brief, base template, and fictional sample content.
+              {current.allowed ? "Your request is ready." : "Shorten your brief before continuing."}
             </p>
-            <details>
-              <summary className="cursor-pointer text-sm font-semibold">
-                Inspect complete input and identity
-              </summary>
-              <CodePayload label="Exact generation input" value={current.input} />
-              <CodePayload label="Input digest" value={current.digest} />
-            </details>
+
             <Button
               disabled={!current.allowed || generate.isPending}
               onClick={() => generate.mutate({ ...input, expectedInputDigest: current.digest })}
@@ -243,8 +232,7 @@ export function TemplateAiBrief({
           </section>
         )}
         <p className="text-base md:text-sm text-muted-foreground">
-          Generation and preview have separate three-attempt budgets. Review the resulting graph and
-          its synthetic PDF before accepting a new Draft.
+          Review the sample PDF and any layout warnings before saving your new template.
         </p>
       </fieldset>
     </EvidenceDialog>

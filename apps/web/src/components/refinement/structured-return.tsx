@@ -133,8 +133,8 @@ function ReturnForm({
   return (
     <div className="space-y-5">
       <p>
-        Create a new branch from the original structured checkpoint. River regenerates LaTeX from
-        its Content, Block, Section and template bindings.
+        Create an editable copy from the original checkpoint. River rebuilds the document from its
+        Content, Block, Section and template bindings.
       </p>
       <div className="space-y-2 border-l-2 border-highlight bg-highlight/10 p-4">
         <p className="font-semibold">Source-only edits will not carry into the new branch.</p>
@@ -270,8 +270,7 @@ function ReturnForm({
               onCheckedChange={(value) => setConfirmed(value === true)}
             />
             <span>
-              I understand that the new branch regenerates LaTeX and excludes these source-only
-              edits.
+              I understand that this editable copy excludes the document-only changes listed above.
             </span>
           </label>
           <Failure error={create.error} />

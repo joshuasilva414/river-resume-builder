@@ -1,0 +1,15 @@
+# Use AI SDK with personal provider connections
+
+Status: released in v1.1, verified on staging with OpenAI across all seven task families, and accepted in production through connection setup and fictional source/claim/PDF export. Other providers retain synthetic coverage only because no live keys are available. This supersedes shared OpenAI execution configuration for new tasks.
+
+Use Vercel AI SDK 7 (`ai` 7.0.93) with exactly pinned OpenAI 4.0.60, Anthropic 4.0.49, Google 4.0.64, and OpenRouter 3.0.0 adapters. The shared executor uses one bounded structured-output request. It configures no tools, SDK retries, agent loop, or connection fallback. OpenRouter routing disables provider fallback. Anthropic requests native structured output explicitly. Unsupported models fail with an actionable message.
+
+AI SDK supplies transport normalization and provider implementations. Effect remains River's application and runtime-contract system. JSON Schema is passed only at the provider boundary; River's existing Effect decoders and semantic checks control publication. Zod is pinned only to satisfy the SDK's peer dependency, with no new application schemas. The direct OpenAI SDK dependency is removed.
+
+Each account, including the administrator, manages one active connection per provider. A connection stores AES-256-GCM ciphertext, its revision, and a four-character suffix. Encryption authenticates account ID, connection ID, provider, and revision. The independent 32-byte encryption key belongs in a Worker secret. Provider keys never enter task snapshots, command receipts, audit entries, logs, or Workflow payloads/results. A SHA-256 fingerprint permits idempotent connection commands without retaining plaintext in receipts.
+
+Provider catalogs populate searchable model choices; they are not static model allowlists. River filters known incompatible catalog entries, but catalog presence cannot guarantee a particular model's structured-output capabilities. A saved default applies to new tasks. Each action may override it. Admission captures the selected provider/model, connection revision, contract version, and existing limits. Execution resolves that exact credential immediately before the request. Replacement/removal invalidates queued old-revision calls; a request already sent may finish. Retried tasks keep their captured execution identity. Changing provider/model requires a new task.
+
+The execution record stores requested and returned model IDs and token counts when supplied. Historical proposals remain readable and reviewable. Legacy tasks without a personal connection cannot make new AI calls after cutover. ATS scoring retains its separate service-funded contract. Existing River admission limits and bounded user retries remain in force.
+
+All four transports pass synthetic structured-output and safe-error tests. The release has live OpenAI acceptance; the other three providers remain live-unverified until keys are available. Catalog availability alone does not establish tested model compatibility. See [implementation](../implementation/v1.1.md) and [cutover](../implementation/v1.1-cutover.md).

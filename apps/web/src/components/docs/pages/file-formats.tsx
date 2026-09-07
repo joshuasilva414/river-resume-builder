@@ -53,7 +53,8 @@ export const fileFormats = {
             <dd>The formatted résumé.</dd>
             <dt>LaTeX source</dt>
             <dd>
-              The generated document source in a <code>.tex</code> file.
+              The generated document source in a <code>.tex</code> file, available in Advanced
+              tools.
             </dd>
             <dt>Extracted text</dt>
             <dd>
@@ -61,7 +62,8 @@ export const fileFormats = {
             </dd>
             <dt>Validation report</dt>
             <dd>
-              The recorded document checks in a <code>.json</code> file.
+              The recorded document checks in a <code>.json</code> file, available in Advanced
+              tools.
             </dd>
           </dl>
           <p>DOCX export is not available. DOCX import is supported.</p>
