@@ -42,9 +42,9 @@ The deploy command validates the generated account, Worker name, database, bucke
 4. Deploys the already-built web bundle.
 5. Checks sign-in availability and anonymous denial at the identity API.
 
-Only the private document deploy removes the web Worker's Cloudflare CI name/tag overrides. The web deploy retains Cloudflare's target check. Staging and production generated output shares a local directory, so local builds and deployments must be sequential.
+The private document and telemetry deploys remove the web Worker's Cloudflare CI name/tag overrides. The web deploy retains Cloudflare's target check. Staging and production generated output shares a local directory, so local builds and deployments must be sequential.
 
-The private telemetry deploy also removes the web-only name/tag overrides. Web logs do not persist raw events: `redact_query_string: true`, `logs.persist: false`, and `invocation_logs: false` are enforced by bundle validation. Each environment sends tail events to its matching `river-telemetry-*` Worker, which persists only a fixed request event, UUID trace identifier, and HTTP status. Unexpected invocation failures use a fixed category. The sanitizer never copies URLs, headers, bodies, exception text or arbitrary console fields. Both telemetry Workers have no public endpoint, data bindings or secrets. Do not restore raw persistence when diagnosing a failure; use response `X-Request-Id` to search sanitized telemetry.
+Web logs do not persist raw events: `redact_query_string: true`, `logs.persist: false`, and `invocation_logs: false` are enforced by bundle validation. Each environment sends tail events to its matching `river-telemetry-*` Worker, which persists only a fixed request event, UUID trace identifier, and HTTP status. Unexpected invocation failures use a fixed category. The sanitizer never copies URLs, headers, bodies, exception text or arbitrary console fields. Both telemetry Workers have no public endpoint, data bindings or secrets. Do not restore raw persistence when diagnosing a failure; use response `X-Request-Id` to search sanitized telemetry.
 
 ## Credentials and activation
 
