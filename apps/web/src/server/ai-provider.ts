@@ -37,7 +37,9 @@ export async function generateAiProposal(
       message: "Connect an AI provider in Settings and start a new task.",
     });
   try {
-    const options = { apiKey, fetch: transport };
+    const noRedirect: typeof fetch = (input, init) =>
+      transport(input, { ...init, redirect: "error" });
+    const options = { apiKey, fetch: noRedirect };
     const model = (() => {
       switch (profile.connection.provider) {
         case "openai":
