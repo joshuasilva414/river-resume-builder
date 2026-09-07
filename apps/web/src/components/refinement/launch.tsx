@@ -1,7 +1,9 @@
 import type { SourceRefinementList, StartSourceRefinementRequest } from "@river/contracts";
+import type { AiSelection } from "@river/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
+import { AiSelector } from "~/components/ai-selection";
 import { EvidenceDialog, Failure, FormField, unwrap } from "~/components/evidence/shared";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -17,6 +19,7 @@ export function SourceRefinements({
   detail: Checkpoint;
   onClose: () => void;
 }) {
+  const [ai, setAi] = useState<AiSelection>();
   const navigate = useNavigate(),
     client = useQueryClient(),
     [goal, setGoal] = useState("");
@@ -35,6 +38,7 @@ export function SourceRefinements({
     mutationFn: async () => {
       if (!detail.operation) throw new Error("The checkpoint has no successful document output.");
       request.current ??= {
+        ai,
         idempotencyKey: crypto.randomUUID(),
         checkpointId: detail.checkpoint.id,
         operationId: detail.operation.id,
@@ -70,15 +74,7 @@ export function SourceRefinements({
             Checkpoint {detail.checkpoint.id.slice(-8)} · Draft revision{" "}
             {detail.checkpoint.draftRevision}
           </p>
-          <details className="text-sm">
-            <summary className="cursor-pointer text-primary">Exact captured identities</summary>
-            <div className="mt-3 space-y-2 break-all font-mono text-xs">
-              <p>Checkpoint {detail.checkpoint.id}</p>
-              <p>Document operation {detail.operation?.id ?? "Unavailable"}</p>
-              <p>Structured base {detail.source?.structuredBaseId ?? detail.checkpoint.id}</p>
-              <p>Template {detail.checkpoint.templateIdentity}</p>
-            </div>
-          </details>
+
           {!ready && (
             <p className="border-l-2 border-highlight bg-highlight/10 p-4">
               Wait for this checkpoint’s PDF to finish preparing, or retry if preparation failed.
@@ -92,6 +88,13 @@ export function SourceRefinements({
                 start.mutate();
               }}
             >
+              <AiSelector
+                value={ai}
+                onChange={(selection) => {
+                  setAi(selection);
+                  request.current = null;
+                }}
+              />
               <FormField label="Refinement goal">
                 <Textarea
                   required
@@ -104,7 +107,7 @@ export function SourceRefinements({
               </FormField>
               <p className="text-xs text-muted-foreground">{goal.length} / 4,000 characters</p>
               <p className="text-sm text-muted-foreground">
-                Review the proposed wording, LaTeX changes, and PDF before accepting.
+                Review the proposed wording, supporting evidence, and PDF before accepting.
               </p>
               <Failure error={start.error} />
               <Button type="submit" disabled={!ready || !goal.trim() || start.isPending}>

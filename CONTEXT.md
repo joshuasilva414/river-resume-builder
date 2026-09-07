@@ -139,3 +139,9 @@ _Avoid_: AI edit, automatic change
 **Operation**:
 The application-owned record of a multi-step background task, including its status, current stage, attempts, result, and failure information. It ends as Succeeded, Failed, or Cancelled without waiting for review of any resulting AI Proposal.
 _Avoid_: Workflow, job
+
+## v1.1 presentation and AI execution
+
+Production labels use “wording,” “entry,” and “section” for Content Item, Block, and Section. Ready-to-fill starters hide the required graph construction while preserving that domain model. Advanced tools is an opt-in presentation area, not a separate authority or owner role.
+
+An AI Connection is one account-owned provider credential, stored encrypted and revisioned. AI Selection chooses a connection and model for a new task. An execution binding captures the connection ID, provider and key revision; it never contains the key. Workspace preferences store the default selection, onboarding dismissal, and advanced-tools setting. Model availability is provider-supplied and does not imply every model supports River's structured contract.

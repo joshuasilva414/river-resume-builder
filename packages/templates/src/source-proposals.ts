@@ -1,4 +1,6 @@
 import {
+  AiExecutionFields,
+  AiModel,
   ApplicationError,
   blockDefinitions,
   type Composition,
@@ -21,7 +23,8 @@ const fail = (message: string): never => {
   throw new ApplicationError({ code: "InvalidInput", message });
 };
 export const SourceRefinementProfile = Schema.Struct({
-  model: Schema.NonEmptyString,
+  ...AiExecutionFields,
+  model: AiModel,
   contract: Schema.Literal("river-source-refinement-v1"),
   maxInputCharacters: Schema.Literal(160000),
   maxOutputTokens: Schema.Literal(24000),

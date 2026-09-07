@@ -1,8 +1,10 @@
 import type { StartTemplateAiRequest } from "@river/contracts";
+import type { AiSelection } from "@river/domain";
 import { canonicalJson, newId } from "@river/domain";
 import type { TemplateBase, TemplateScope } from "@river/templates";
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { AiSelector } from "~/components/ai-selection";
 import { Failure, FormField, unwrap } from "~/components/evidence/shared";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -73,6 +75,7 @@ function ConversationBody({
   initialBase?: TemplateBase;
   onDraft: (id: string) => void;
 }) {
+  const [ai, setAi] = useState<AiSelection>();
   const [base, setBase] = useState<TemplateBase>(
     () =>
       initialBase ??
@@ -113,6 +116,7 @@ function ConversationBody({
   const destination =
     saved.data && scopeKey(saved.data.design.scope) === scopeKey(scope) ? saved.data.design : null;
   const input: StartTemplateAiRequest = {
+    ai,
     id: destination?.id ?? null,
     revision: destination?.revision ?? null,
     reservedDesignId: destination?.id ?? reserved,
@@ -281,7 +285,7 @@ function ConversationBody({
                   setCompareNewer(true);
                 }}
               >
-                Compare with newest graph
+                Compare with latest template
               </Button>
               <Button
                 variant="outline"
@@ -389,6 +393,7 @@ function ConversationBody({
             review.
           </p>
           <Failure error={graph.error} />
+          <AiSelector value={ai} onChange={setAi} />
           <Failure error={preview.error} />
           <Failure error={generate.error} />
           {current?.configured ? (
@@ -436,7 +441,7 @@ function ConversationBody({
         ) : (
           <>
             <h2 className="font-editorial text-[28px]">
-              {compareNewer ? "Selected and newest graphs" : "Selected base"}
+              {compareNewer ? "Selected and latest templates" : "Selected base"}
             </h2>
             <CodePayload
               label="Immutable graph identity"

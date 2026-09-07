@@ -1,5 +1,6 @@
 import { account } from "./pages/account";
 import { ai } from "./pages/ai";
+import { aiConnections } from "./pages/ai-connections";
 import { contentTypes } from "./pages/content-types";
 import { editing } from "./pages/editing";
 import { evidence } from "./pages/evidence";
@@ -28,6 +29,7 @@ export const guides = [
   jobs,
   library,
   editing,
+  aiConnections,
   ai,
   templates,
   exportGuide,

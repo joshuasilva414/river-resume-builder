@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { AiExecutionFields, AiModel } from "./ai";
 import { ApplicationError, newId, Revision } from "./core";
 import { ContextData, EvidenceMaterial, RecordId, ReviewState } from "./evidence";
 import {
@@ -13,7 +14,8 @@ import { indexTextPassages } from "./text-passages";
 export const JobAiTask = Schema.Literals(["extract-requirements", "rank-evidence"]);
 export type JobAiTask = typeof JobAiTask.Type;
 export const AiProfile = Schema.Struct({
-  model: Schema.NonEmptyString.check(Schema.isMaxLength(100)),
+  ...AiExecutionFields,
+  model: AiModel,
   contract: Schema.Literals([
     "river-job-analysis-v1",
     "river-job-analysis-v2",

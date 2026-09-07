@@ -76,7 +76,7 @@ export function JobResumes({ detail, readOnly }: { detail: JobDetail; readOnly: 
       ))}
       {result.data && !result.data.items.length && (
         <p className="text-sm text-muted-foreground">
-          Start from reusable Sections. Selected evidence stays available to consult.
+          Start with saved content from your library. Your selected evidence stays available.
         </p>
       )}
       {result.data && (offset > 0 || result.data.hasMore) && (
@@ -183,9 +183,8 @@ function NewDraft({ detail, onClose }: { detail: JobDetail; onClose: () => void 
             <p className="text-sm">
               {observed.snapshot.details.role} · {observed.snapshot.details.company}
             </p>
-            <p className="eyebrow break-all">Posting snapshot {observed.snapshot.id}</p>
             <BasePicker
-              label="Template graph"
+              label="Template"
               value={base}
               onChange={setBase}
               approvedOnly
@@ -197,8 +196,8 @@ function NewDraft({ detail, onClose }: { detail: JobDetail; onClose: () => void 
             </p>
             {!eligible && selected.data && (
               <p role="status" className="text-sm text-destructive">
-                The selected graph is no longer Approved. Choose an eligible revision before
-                creating this draft.
+                This template is no longer approved. Choose an approved template before creating
+                this draft.
               </p>
             )}
             <Failure error={mutation.error} />

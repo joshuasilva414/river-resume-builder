@@ -1,9 +1,9 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { createRepository } from "@river/db";
-import { canonicalJson } from "@river/domain";
-import { Effect } from "effect";
+import { ApplicationError } from "@river/domain";
+import { loadAiCredential } from "./ai-settings";
 import type { Env } from "./env";
-import { generateSourceCandidates, sourceAiProfile } from "./source-ai-provider";
+import { generateSourceCandidates } from "./source-ai-provider";
 
 export class SourceAiWorkflow extends WorkflowEntrypoint<Env, { operationId: string }> {
   async run(event: WorkflowEvent<{ operationId: string }>, step: WorkflowStep) {
@@ -28,27 +28,23 @@ export class SourceAiWorkflow extends WorkflowEntrypoint<Env, { operationId: str
             operation.input.taskId,
           );
           if (detail.task.latestOperationId !== id || detail.task.completedAt !== null) return;
-          const profile = sourceAiProfile(this.env);
-          if (
-            !profile ||
-            !this.env.OPENAI_API_KEY ||
-            canonicalJson(profile) !== canonicalJson(detail.task.profile)
-          )
-            throw new Error("Profile unavailable");
+          const profile = detail.task.profile;
+          const apiKey = await loadAiCredential(
+            this.env,
+            repository,
+            operation.ownerId,
+            profile.connection,
+          );
           await repository.updateOperation(id, {
             state: "Running",
             stage: "Generating reviewed proposal",
           });
-          const result = await Effect.runPromise(
-            Effect.tryPromise({
-              try: () =>
-                generateSourceCandidates(this.env.OPENAI_API_KEY ?? "", detail.task.input, profile),
-              catch: () => new Error("AI provider unavailable"),
-            }).pipe(
-              Effect.withSpan("river.source-claims", {
-                attributes: { operationId: id, sourceId: detail.task.sourceId },
-              }),
-            ),
+          const result = await generateSourceCandidates(
+            apiKey,
+            detail.task.input,
+            profile,
+            fetch,
+            (metadata) => repository.recordAiExecution(operation.ownerId, id, metadata),
           );
           await repository.updateOperation(id, {
             state: "Running",
@@ -57,13 +53,15 @@ export class SourceAiWorkflow extends WorkflowEntrypoint<Env, { operationId: str
           await repository.publishSourceAi(operation.ownerId, detail.task.id, id, result);
         },
       );
-    } catch {
+    } catch (error) {
       await step.do("record-safe-failure", () =>
         repository.updateOperation(id, {
           state: "Failed",
           stage: "Source analysis failed",
           failure:
-            "The configured provider, output validation, or proposal save failed. No proposal was applied. Continue manually or retry within this task's three-attempt limit.",
+            error instanceof ApplicationError && error.code === "Unavailable"
+              ? error.message
+              : "River could not validate the proposed claims against the source passages. Your original document is safe. Retry the analysis or create a claim from a cited passage.",
         }),
       );
       throw new Error(`AI operation ${id} failed`);

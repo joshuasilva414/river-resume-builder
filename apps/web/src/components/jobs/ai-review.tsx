@@ -8,7 +8,6 @@ import type { JobDetail } from "./shared";
 
 export function RequirementCard({
   requirement,
-  posting,
   label,
 }: {
   requirement: JobRequirement;
@@ -32,27 +31,12 @@ export function RequirementCard({
           ? "Unspecified"
           : `${Math.round(requirement.confidence * 100)}%`}
       </p>
-      <p className="font-mono text-[11px] break-all">Requirement {requirement.id}</p>
+
       {requirement.passages.map((passage) => (
         <div key={`${passage.start}:${passage.end}`} className="space-y-2">
           <blockquote className="border-l-2 border-primary bg-muted p-3 text-base leading-[23px] whitespace-pre-wrap break-words">
             {passage.quote}
           </blockquote>
-          <p className="font-mono text-[11px] text-muted-foreground">
-            Offsets {passage.start}–{passage.end} · lines{" "}
-            {posting.slice(0, passage.start).split("\n").length}–
-            {posting.slice(0, passage.end).split("\n").length}
-          </p>
-          <details>
-            <summary className="min-h-11 cursor-pointer py-3 text-sm text-primary">
-              Locate in complete posting
-            </summary>
-            <p className="max-h-72 overflow-y-auto text-sm whitespace-pre-wrap break-words">
-              {posting.slice(0, passage.start)}
-              <mark>{posting.slice(passage.start, passage.end)}</mark>
-              {posting.slice(passage.end)}
-            </p>
-          </details>
         </div>
       ))}
       {!requirement.passages.length && (
@@ -75,38 +59,30 @@ export function RequirementComparison({
     <div className="grid items-start gap-5 md:grid-cols-2">
       <section className="min-w-0 space-y-3">
         <h3 className="font-editorial text-2xl">
-          Original map · {input.workspace.requirements.length}
+          Current requirements · {input.workspace.requirements.length}
         </h3>
         {input.workspace.requirements.map((requirement) => (
           <RequirementCard
             key={requirement.id}
             requirement={requirement}
             posting={input.posting}
-            label={
-              proposed.has(requirement.id)
-                ? "Retained identity · original fields"
-                : "Removed requirement"
-            }
+            label={proposed.has(requirement.id) ? "Current requirement" : "Removed requirement"}
           />
         ))}
         {!original.size && (
-          <p className="text-sm text-muted-foreground">No requirements in the captured map.</p>
+          <p className="text-sm text-muted-foreground">No saved requirements yet.</p>
         )}
       </section>
       <section className="min-w-0 space-y-3">
         <h3 className="font-editorial text-2xl">
-          Proposed complete map · {proposal.requirements.length}
+          Proposed requirements · {proposal.requirements.length}
         </h3>
         {proposal.requirements.map((requirement) => (
           <RequirementCard
             key={requirement.id}
             requirement={requirement}
             posting={input.posting}
-            label={
-              original.has(requirement.id)
-                ? "Retained identity · proposed fields"
-                : "Added requirement"
-            }
+            label={original.has(requirement.id) ? "Updated requirement" : "Added requirement"}
           />
         ))}
         {!proposed.size && (
@@ -122,7 +98,6 @@ function RankingResult({
   result,
   input,
   detail,
-  accepted,
   readOnly,
   busy,
   onChoose,
@@ -131,7 +106,6 @@ function RankingResult({
   result: Extract<JobAiProposal, { type: "ranking" }>["results"][number];
   input: JobAiInput;
   detail: JobDetail;
-  accepted: boolean;
   readOnly: boolean;
   busy: boolean;
   onChoose: (choice: Choice) => void;
@@ -159,12 +133,10 @@ function RankingResult({
       <p className="text-sm text-muted-foreground">
         Ranked for: {originalRequirement?.text ?? "General relevance to this job"}
       </p>
-      <p className="font-mono text-[11px] break-all">
-        Evidence {candidate.claimId} · revision {candidate.evidenceRevisionId}
-      </p>
+
       <details>
         <summary className="min-h-11 cursor-pointer py-3 text-sm text-primary">
-          Evidence and review context supplied to AI
+          Supporting evidence
         </summary>
         <MaterialSummary
           material={candidate.material}
@@ -176,11 +148,10 @@ function RankingResult({
         <p className="mt-3 text-sm">
           Review: {candidate.reviewState} · {candidate.rationale || "No decision rationale"}
         </p>
-        <p className="font-mono text-[11px] break-all">Decision {candidate.decisionId ?? "None"}</p>
       </details>
-      {accepted && (
+      {
         <>
-          <FormField label="Choose an association after inspecting current evidence">
+          <FormField label="Use for requirement">
             <select
               className={selectClass}
               value={association}
@@ -215,13 +186,13 @@ function RankingResult({
             </p>
           )}
         </>
-      )}
+      }
       <Button
         variant="outline"
         className="min-h-11 whitespace-normal"
         onClick={() => setInspect(true)}
       >
-        {accepted ? "Inspect current evidence and choose" : "Inspect citation and verification"}
+        Inspect current evidence and choose
       </Button>
       {inspect && (
         <JobEvidenceInspector
@@ -230,9 +201,9 @@ function RankingResult({
             evidenceRevisionId: candidate.evidenceRevisionId,
             requirementId: association || null,
           }}
-          readOnly={readOnly || !accepted || !validTarget}
+          readOnly={readOnly || !validTarget}
           busy={busy}
-          allowSelection={accepted && validTarget}
+          allowSelection={validTarget}
           onClose={() => setInspect(false)}
           onChoose={onChoose}
         />
@@ -245,7 +216,6 @@ export function RankingReview({
   input,
   proposal,
   detail,
-  accepted,
   readOnly,
   busy,
   onChoose,
@@ -253,7 +223,6 @@ export function RankingReview({
   input: JobAiInput;
   proposal: Extract<JobAiProposal, { type: "ranking" }>;
   detail: JobDetail;
-  accepted: boolean;
   readOnly: boolean;
   busy: boolean;
   onChoose: (choice: Choice) => void;
@@ -261,16 +230,14 @@ export function RankingReview({
   return (
     <section className="space-y-4">
       <p className="text-sm">
-        AI reviewed {input.candidates.length} active search matches, capped at 30. Search:{" "}
-        {input.candidateQuery || "No matching search terms"}. This is a bounded review, not
-        whole-bank coverage.
+        Suggestions cover {input.candidates.length} matching claims. Search the evidence bank for
+        experience that may be missing.
       </p>
-      {accepted && (
+      {
         <p className="rounded-sm border bg-accent p-4 text-sm">
-          Ranking review accepted. Inspect the current evidence and select each association
-          explicitly. Review acceptance does not select evidence or verify claims.
+          Inspect the current evidence and choose what to use. Suggestions do not verify claims.
         </p>
-      )}
+      }
       {proposal.results.map((result) => {
         const candidate = input.candidates.find(
           (item) =>
@@ -280,7 +247,7 @@ export function RankingReview({
         return candidate ? (
           <RankingResult
             key={`${result.claimId}:${result.requirementId}`}
-            {...{ candidate, result, input, detail, accepted, readOnly, busy, onChoose }}
+            {...{ candidate, result, input, detail, readOnly, busy, onChoose }}
           />
         ) : null;
       })}

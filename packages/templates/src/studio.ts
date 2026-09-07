@@ -1,4 +1,12 @@
-import { ContentType, canonicalJson, RecordId, Revision, Theme } from "@river/domain";
+import {
+  AiExecutionFields,
+  AiModel,
+  ContentType,
+  canonicalJson,
+  RecordId,
+  Revision,
+  Theme,
+} from "@river/domain";
 import { Schema } from "effect";
 import { TEMPLATE_FIXTURE_VERSION, templateFixtures } from "./fixtures";
 import { graphTemplates, type TemplateGraph, validateGraph } from "./graph";
@@ -40,7 +48,8 @@ export interface TemplateOrigin {
   readonly componentIdentity: string;
 }
 export const TemplateAiProfile = Schema.Struct({
-  model: Schema.NonEmptyString,
+  ...AiExecutionFields,
+  model: AiModel,
   contract: Schema.Literals([
     "river-template-generation-v1",
     "river-template-generation-v2",

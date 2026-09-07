@@ -1,8 +1,10 @@
 # Production release
 
+Current release: v1.1, published September 6, 2026, as `85da80c2-566f-44da-bd84-0533fb29ac3d`, through migration 0032. OpenAI connection, fictional source/claim/PDF export, data preservation and final backup/restore pass. See [v1.1 production evidence](v1.1-production.md). The records below describe earlier releases.
+
 Updated 2026-09-05 (America/Chicago). V1 is released at https://river.jilva.dev. The Owner approved publication, the personal GitHub OAuth app, all five production secrets and the fictional production acceptance test. Owner sign-in, recovery email receipt, document/export and backup/restore acceptance pass. Staging records were not copied. ACM UTSA is excluded.
 
-The 2026-09-06 private-account extension is now deployed as web version `9d3ce1ab-ab71-47cb-93ad-3f7afa3d2aca`, with 31 migrations and 73 base tables. The existing administrator account is preserved and `jilvadev@gmail.com` and `karisamscott@gmail.com` are admitted. See [multi-user operation](multi-user.md) for current deployment and preservation evidence. The detailed V1 release record below remains historical.
+The 2026-09-06 private-account extension was deployed as web version `9d3ce1ab-ab71-47cb-93ad-3f7afa3d2aca`, with 31 migrations and 73 base tables. The existing administrator account is preserved and `jilvadev@gmail.com` and `karisamscott@gmail.com` are admitted. See [multi-user operation](multi-user.md) for current deployment and preservation evidence. The detailed V1 release record below remains historical.
 
 ## Deployed resources
 

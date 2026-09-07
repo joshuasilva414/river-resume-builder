@@ -208,7 +208,7 @@ export function LibraryEditor({
                   </p>
                 )}
                 <BindingList
-                  label="Blocks in reading order"
+                  label="Entries in reading order"
                   refs={data.blocks}
                   graph={graph}
                   limit={data.type === "contact" ? 1 : 30}
@@ -221,8 +221,8 @@ export function LibraryEditor({
             {data.kind === "block" && (
               <>
                 <p className="text-sm text-muted-foreground">
-                  Fields bind exact Content Revisions. Layout comes from the résumé’s selected
-                  template pack.
+                  Choose or write the details for each field. Your résumé template handles the
+                  layout.
                 </p>
                 {blockDefinitions[data.type].fields.map((field) => (
                   <BindingList
@@ -374,7 +374,7 @@ function BindingList({
         </div>
       ))}
       {!refs.length && (
-        <p className="text-sm text-muted-foreground">No content bound to this field.</p>
+        <p className="text-sm text-muted-foreground">Nothing added to this field yet.</p>
       )}
       <div className="flex flex-wrap gap-3">
         <Button
@@ -386,7 +386,7 @@ function BindingList({
           {limit === 1 && refs.length ? "Choose replacement" : "Choose from library"}
         </Button>
         <Button type="button" variant="ghost" disabled={refs.length >= limit} onClick={onCreate}>
-          Create reusable {label.startsWith("Blocks") ? "block" : "content"}
+          {label.startsWith("Entries") ? "Create entry" : "Write new wording"}
         </Button>
       </div>
     </section>

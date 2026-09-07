@@ -62,15 +62,14 @@ export function TemplateScoring({
     <section className="space-y-[18px] rounded-md border bg-card p-6">
       <h3 className="font-editorial text-xl font-semibold">Template scoring</h3>
       <p className="text-sm leading-5 text-muted-foreground">
-        Every canonical synthetic fixture must pass all six simulations. Results apply to this exact
-        template and fixture set.
+        Each sample résumé must pass all six scoring checks. Results apply to this template version.
       </p>
       <Failure error={query.error ?? start.error} />
       {query.isPending && <p role="status">Loading qualification history…</p>}
       {settings && (
         <>
           <p className="break-all font-mono text-[11px] text-muted-foreground">
-            {settings.fixtureSet.version} · {settings.fixtureSet.fixtures.length} required fixtures
+            {settings.fixtureSet.fixtures.length} sample résumés
           </p>
           {!settings.configured && (
             <p role="status" className="text-sm">
@@ -78,20 +77,18 @@ export function TemplateScoring({
             </p>
           )}
           {!eligible && (
-            <p className="text-sm">
-              An exact Validated or Approved revision is required to start scoring.
-            </p>
+            <p className="text-sm">Pass the sample PDF checks before starting a score review.</p>
           )}
           {settings.configured && eligible && (
             <Button disabled={start.isPending || active} onClick={() => start.mutate()}>
-              {start.isPending || active ? "Scoring in progress" : "Score fixtures"}
+              {start.isPending || active ? "Scoring in progress" : "Run scoring checks"}
             </Button>
           )}
         </>
       )}
       {settings && !history.length && (
         <p className="text-sm text-muted-foreground">
-          No qualification report. Designation withheld.
+          Complete a score review to check whether this template qualifies.
         </p>
       )}
       {history.map((run) => {
@@ -124,7 +121,7 @@ export function TemplateScoring({
             <span className="block text-xs text-muted-foreground">
               {new Date(run.createdAt).toLocaleString()} · {run.state} · attempt {run.attempts}/3
             </span>
-            <span className="block text-sm font-semibold">Open fixture results</span>
+            <span className="block text-sm font-semibold">Open sample results</span>
           </button>
         );
       })}
@@ -196,14 +193,14 @@ function TemplateScoringReview({
   );
   return (
     <EvidenceDialog
-      title="Canonical fixture results"
-      description="Complete synthetic inputs, six independent simulations, and the retained report for this exact graph."
+      title="Sample scoring results"
+      description="Review the sample résumés, their scoring checks, and the saved results."
       onClose={onClose}
       wide
     >
       <div className="min-w-0 space-y-6">
         <Failure error={query.error ?? retry.error ?? cancel.error} />
-        {query.isPending && <p role="status">Loading retained fixture results…</p>}
+        {query.isPending && <p role="status">Loading sample results…</p>}
         {detail && (
           <>
             <p role="status" className="text-sm">
@@ -227,7 +224,7 @@ function TemplateScoringReview({
                     disabled={retry.isPending || Date.now() < retryAt}
                     onClick={() => retry.mutate({ id, revision: detail.run.revision })}
                   >
-                    Retry unfinished fixtures
+                    Retry unfinished samples
                   </Button>
                 )}
             </div>
@@ -268,9 +265,7 @@ function TemplateScoringReview({
               >
                 {report?.qualified ? "ATS Screener tested" : "Designation withheld"}
               </Badge>
-              <p className="break-all font-mono text-xs text-muted-foreground">
-                {detail.run.fixtureSet.version} · graph {detail.run.graphDigest}
-              </p>
+              <p className="break-all font-mono text-xs text-muted-foreground">Saved scoring run</p>
               {selected?.attempt.completedAt && (
                 <p className="text-sm">
                   Report retained {new Date(selected.attempt.completedAt).toLocaleString()}
@@ -343,7 +338,7 @@ function TemplateScoringReview({
                         </details>
                       ))}
                     </div>
-                    <SavedText title="Complete canonical job" text={fixture.jobDescription} />
+                    <SavedText title="Sample job posting" text={fixture.jobDescription} />
                     <CodePayload label="Complete canonical document" value={fixture.document} />
                     {stored?.document && (
                       <>
@@ -356,20 +351,16 @@ function TemplateScoringReview({
                             variant="outline"
                             onClick={() => setPdf(pdf === fixture.id ? null : fixture.id)}
                           >
-                            {pdf === fixture.id ? "Hide" : "View"} fixture PDF
+                            {pdf === fixture.id ? "Hide" : "View"} sample PDF
                           </Button>
-                          {(["pdf", "tex", "text", "report"] as const).map((kind) => (
+                          {(["pdf", "text"] as const).map((kind) => (
                             <a
                               key={kind}
                               className="text-sm underline underline-offset-4"
                               href={`/api/template-scores/${id}/${fixture.id}/${kind}?download`}
                               download
                             >
-                              {kind === "text"
-                                ? "Extracted text"
-                                : kind === "report"
-                                  ? "Validation report"
-                                  : kind.toUpperCase()}
+                              {kind === "text" ? "Extracted text" : kind.toUpperCase()}
                             </a>
                           ))}
                         </div>
@@ -410,8 +401,8 @@ function TemplateScoringReview({
               }}
             />
             <p className="text-sm text-muted-foreground">
-              This designation applies to the captured graph, fixture set, and scoring identity on
-              the reported date. New revisions require new results. Export remains available when
+              This designation applies to the tested template version and sample résumés on the
+              reported date. New revisions require new results. Export remains available when
               scoring fails.
             </p>
           </>

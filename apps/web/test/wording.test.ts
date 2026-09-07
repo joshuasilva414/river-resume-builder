@@ -19,8 +19,47 @@ import {
 } from "../src/server/wording-provider";
 import { compositionFixture } from "./fixtures/composition";
 
+it("constrains generated posting passages to exact captured quotes and offsets", async () => {
+  const { generate } = await fixture();
+  const { detail } = await generate();
+  const input = {
+    ...detail.task.input,
+    snapshot: { ...detail.task.input.snapshot, text: "Repeated café.\nRepeated café." },
+  };
+  expect(wordingOutputSchema(input)).toMatchObject({
+    properties: {
+      passages: {
+        items: {
+          anyOf: [
+            {
+              properties: {
+                start: { enum: [0] },
+                end: { enum: [14] },
+                quote: { enum: ["Repeated café."] },
+              },
+            },
+            {
+              properties: {
+                start: { enum: [15] },
+                end: { enum: [29] },
+                quote: { enum: ["Repeated café."] },
+              },
+            },
+          ],
+        },
+      },
+    },
+  });
+  expect(
+    wordingOutputSchema({ ...input, snapshot: { ...input.snapshot, text: "" } }),
+  ).toMatchObject({
+    properties: { passages: { maxItems: 0 } },
+  });
+});
+
 beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
 const profile: WordingProfile = {
+  connection: { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", revision: 0, provider: "openai" },
   model: "gpt-5.4-mini-2026-03-17",
   contract: "river-wording-v1",
   maxInputCharacters: 160000,
@@ -350,7 +389,6 @@ it("sends only captured input through a strict bounded provider request and requ
       expect(request).toMatchObject({
         model: profile.model,
         store: false,
-        stream: false,
         truncation: "disabled",
         max_output_tokens: 12000,
         text: {
@@ -361,7 +399,7 @@ it("sends only captured input through a strict bounded provider request and requ
           },
         },
       });
-      expect(request.input[0].content).toBe(canonicalJson(detail.task.input));
+      expect(request.input[0].content[0].text).toBe(canonicalJson(detail.task.input));
       expect(request.tools).toBeUndefined();
       return Response.json({
         id: "resp_fixture",
@@ -383,7 +421,7 @@ it("sends only captured input through a strict bounded provider request and requ
   );
   expect(generated).toEqual(output);
   expect(calls).toBe(1);
-  expect(wordingProfile({ OPENAI_WORDING_MODEL: profile.model })).toBeNull();
+  expect(wordingProfile(null)).toBeNull();
   expect(JSON.stringify(wordingOutputSchema())).not.toMatch(/"(?:allOf|not|if|then|else)":/);
   await expect(
     generateWording("synthetic-test-key", detail.task.input, profile, async () =>

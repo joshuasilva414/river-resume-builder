@@ -47,9 +47,7 @@ function Pane({ snapshot, label }: { snapshot: HistorySnapshot; label: string })
             {(
               [
                 ["pdf", "Open PDF"],
-                ["tex", "LaTeX"],
                 ["text", "Extracted text"],
-                ["report", "Validation report"],
               ] as const
             ).map(([kind, title]) => (
               <a

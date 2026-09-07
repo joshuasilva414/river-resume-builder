@@ -26,6 +26,7 @@ import { createSource } from "../src/server/sources";
 
 beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
 const profile: SourceAiProfile = {
+  connection: { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", revision: 0, provider: "openai" },
   contract: "river-source-claims-v1",
   model: "gpt-5.4-mini-2026-03-17",
   maxInputCharacters: 160000,
@@ -467,8 +468,8 @@ it("uses the anchored source schema and complete captured input in one bounded p
   const { repository, actor, request, extraction } = await fixture();
   const input = await repository.captureSourceAiInput(actor, request, extraction);
   const current = sourceAiProfile({
-    OPENAI_API_KEY: "synthetic-test-key",
-    OPENAI_SOURCE_CLAIMS_MODEL: profile.model,
+    connection: { id: newId(), revision: 0, provider: "openai" },
+    model: profile.model,
   });
   if (!current) throw Error("Missing profile");
   expect(current.contract).toBe("river-source-claims-v2");
@@ -481,7 +482,7 @@ it("uses the anchored source schema and complete captured input in one bounded p
     async (_url, init) => {
       calls++;
       const body = JSON.parse(String(init?.body));
-      expect(body.input[0].content).toBe(canonicalJson(input));
+      expect(body.input[0].content[0].text).toBe(canonicalJson(input));
       expect(body.instructions).toContain("Do not calculate offsets");
       expect(body.store).toBe(false);
       expect(body.truncation).toBe("disabled");
@@ -491,11 +492,14 @@ it("uses the anchored source schema and complete captured input in one bounded p
       return Response.json({
         id: "resp_fixture",
         object: "response",
+        created_at: 1,
         model: current.model,
         status: "completed",
         output: [
           {
             type: "message",
+            id: "msg_fixture",
+            status: "completed",
             role: "assistant",
             content: [{ type: "output_text", text: JSON.stringify(output), annotations: [] }],
           },
@@ -509,6 +513,37 @@ it("uses the anchored source schema and complete captured input in one bounded p
     expect(JSON.stringify(sourceAiOutputSchema(contract))).not.toMatch(
       /"(?:allOf|not|if|then|else)":/,
     );
+});
+
+it("restricts generated context references to the exact selection, including no selection", async () => {
+  const { repository, actor, request, extraction } = await fixture();
+  const input = await repository.captureSourceAiInput(actor, request, extraction);
+  const first = input.contexts[0];
+  if (!first) throw Error("Missing selected context");
+  const contexts = [first, { ...first, id: newId(), revisionId: newId() }];
+  const expected = (references: unknown) => ({
+    properties: {
+      candidates: {
+        items: { properties: { material: { properties: { contexts: references } } } },
+      },
+    },
+  });
+  for (const contract of ["river-source-claims-v1", "river-source-claims-v2"] as const) {
+    expect(sourceAiOutputSchema(contract, { ...input, contexts: [] })).toMatchObject(
+      expected({ type: "array", maxItems: 0 }),
+    );
+    expect(sourceAiOutputSchema(contract, { ...input, contexts })).toMatchObject(
+      expected({
+        type: "array",
+        maxItems: 2,
+        items: {
+          anyOf: contexts.map(({ id, revisionId }) => ({
+            properties: { id: { enum: [id] }, revisionId: { enum: [revisionId] } },
+          })),
+        },
+      }),
+    );
+  }
 });
 
 it("commits one competing decision, prevents cross-owner review, and rolls back dependent claim writes", async () => {

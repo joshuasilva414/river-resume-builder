@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Check, KeyRound, Monitor, ShieldCheck } from "lucide-react";
 import { useRef, useState } from "react";
+import { AiSettings } from "~/components/ai-settings";
 import { Appearance } from "~/components/appearance";
 import { BackupSettings } from "~/components/backup-settings";
 import { Alert, AlertDescription } from "~/components/ui/alert";
@@ -69,7 +70,7 @@ const date = (value: string) => new Date(value).toLocaleString();
 function Settings() {
   const { user, environment } = Route.useRouteContext();
   const client = useQueryClient();
-  const [tab, setTab] = useState("agents");
+  const [tab, setTab] = useState("ai");
   const [secret, setSecret] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const pending = useRef<{
@@ -151,6 +152,7 @@ function Settings() {
             variant="line"
             className="max-w-full justify-start overflow-x-auto overflow-y-hidden pb-2 group-data-[orientation=horizontal]/tabs:h-11"
           >
+            <TabsTrigger value="ai">AI connections</TabsTrigger>
             <TabsTrigger value="agents">Agent access</TabsTrigger>
             <TabsTrigger value="account">Account & sessions</TabsTrigger>
             <TabsTrigger value="appearance">Appearance</TabsTrigger>
@@ -163,6 +165,9 @@ function Settings() {
             <AlertDescription>{settings.error.message}</AlertDescription>
           </Alert>
         )}
+        <TabsContent value="ai">
+          <AiSettings />
+        </TabsContent>
         <TabsContent value="agents" className="m-0 grid flex-1 lg:grid-cols-[minmax(0,1fr)_404px]">
           <section className="flex flex-col gap-6 px-6 py-7 md:px-8">
             <div className="flex flex-col gap-2">

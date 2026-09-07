@@ -10,12 +10,14 @@ import {
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { createAccessRepository } from "./access";
+import { createAiSettingsRepository } from "./ai-settings";
 import { createBackupRepository } from "./backups";
 import { createCheckpointRepository } from "./checkpoints";
 import { createClarificationRepository } from "./clarifications";
 import { createCompositionRepository } from "./composition";
 import { createDuplicateAiRepository } from "./duplicate-ai";
 import { createEvidenceRepository } from "./evidence";
+import { createFeedbackRepository } from "./feedback";
 import { createHistoryRepository } from "./history";
 import { createJobAiRepository } from "./job-ai";
 import { createJobRepository } from "./jobs";
@@ -61,6 +63,7 @@ export function createRepository(binding: D1Database) {
 
   return {
     ...createAccessRepository(db),
+    ...createAiSettingsRepository(db),
     ...createUsageRepository(db),
     ...createBackupRepository(db),
     ...createCheckpointRepository(db),
@@ -71,6 +74,7 @@ export function createRepository(binding: D1Database) {
     ...createCompositionRepository(db),
     ...createClarificationRepository(db),
     ...createEvidenceRepository(db),
+    ...createFeedbackRepository(db),
     ...createDuplicateAiRepository(db),
     ...createJobRepository(db),
     ...createJobAiRepository(db),

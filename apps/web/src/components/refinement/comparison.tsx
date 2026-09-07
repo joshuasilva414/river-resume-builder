@@ -160,7 +160,7 @@ export function FieldComparison({ fields }: { fields: SourceComparison["fields"]
     ),
     rows = changedOnly ? changed : fields;
   return (
-    <section className="space-y-5" aria-label="Expected fields and support">
+    <section className="space-y-5" aria-label="Résumé fields and support">
       <div className="flex flex-wrap gap-2">
         <Button
           variant={changedOnly ? "outline" : "default"}
@@ -206,12 +206,6 @@ export function FieldComparison({ fields }: { fields: SourceComparison["fields"]
                 <Badge variant="outline">{field.classification}</Badge>
               )}
             </div>
-            <details>
-              <summary className="cursor-pointer font-mono text-xs text-muted-foreground">
-                Stable field locator
-              </summary>
-              <p className="mt-2 break-all font-mono text-xs">{field.locator}</p>
-            </details>
             <div className="grid gap-5 md:grid-cols-2">
               <FieldValue field={field.before} position={field.beforeIndex} label="Before" />
               <FieldValue field={field.after} position={field.afterIndex} label="After" />
@@ -276,18 +270,21 @@ function Report({ operationId }: { operationId: string }) {
           <Badge variant="outline">
             {query.data.passed ? "Text integrity passed" : "Text integrity failed"}
           </Badge>
-          <p className="text-sm">Normalization: {query.data.normalization}</p>
+          {query.data.errors.map((error) => (
+            <p key={error} className="text-sm text-destructive">
+              {error}
+            </p>
+          ))}
+          {query.data.firstDifference && (
+            <p className="text-sm whitespace-pre-wrap">
+              Check this expected wording: {query.data.firstDifference.expectedText}
+            </p>
+          )}
           {query.data.warnings.map((warning) => (
             <p key={warning} className="border-l-2 border-highlight bg-highlight/10 p-4">
               Layout advisory: {warning}
             </p>
           ))}
-          <details>
-            <summary className="cursor-pointer text-primary">Complete validation report</summary>
-            <pre className="mt-4 max-h-[60vh] overflow-auto whitespace-pre-wrap break-all rounded-sm border p-4 font-mono text-xs">
-              {JSON.stringify(query.data, null, 2)}
-            </pre>
-          </details>
         </>
       )}
     </section>
@@ -345,9 +342,7 @@ export function DocumentComparison({
 }
 
 export function SourceComparisonViews({
-  source,
   fields,
-  extracted,
   baseOperationId,
   candidateOperationId,
 }: {
@@ -358,42 +353,23 @@ export function SourceComparisonViews({
   candidateOperationId: string | null;
 }) {
   return (
-    <Tabs defaultValue="source" className="min-w-0 gap-5">
-      <TabsList className="grid w-full shrink-0 grid-cols-2 gap-2 p-0 group-data-[orientation=horizontal]/tabs:h-auto lg:grid-cols-4">
-        <TabsTrigger className="h-11 min-w-0 whitespace-normal" value="source">
-          Source diff
+    <Tabs defaultValue="pdf" className="min-w-0 gap-5">
+      <TabsList className="grid w-full grid-cols-2 gap-2 p-0 group-data-[orientation=horizontal]/tabs:h-auto">
+        <TabsTrigger className="h-11" value="pdf">
+          Preview & checks
         </TabsTrigger>
-        <TabsTrigger className="h-11 min-w-0 whitespace-normal" value="fields">
-          Expected fields
-        </TabsTrigger>
-        <TabsTrigger className="h-11 min-w-0 whitespace-normal" value="text">
-          Extracted text
-        </TabsTrigger>
-        <TabsTrigger className="h-11 min-w-0 whitespace-normal" value="pdf">
-          PDF / report
+        <TabsTrigger className="h-11" value="wording">
+          Wording & evidence
         </TabsTrigger>
       </TabsList>
-      <TabsContent value="source">
-        <CompleteDiff diff={source} label="Complete source comparison" />
-      </TabsContent>
-      <TabsContent value="fields">
-        <FieldComparison fields={fields} />
-      </TabsContent>
-      <TabsContent value="text">
-        {extracted ? (
-          <CompleteDiff diff={extracted} label="Complete extracted-text comparison" />
-        ) : (
-          <p>
-            A rendered comparison is unavailable until a candidate preview completes. Source and
-            intended fields remain inspectable.
-          </p>
-        )}
-      </TabsContent>
       <TabsContent value="pdf">
         <DocumentComparison
           baseOperationId={baseOperationId}
           candidateOperationId={candidateOperationId}
         />
+      </TabsContent>
+      <TabsContent value="wording">
+        <FieldComparison fields={fields} />
       </TabsContent>
     </Tabs>
   );

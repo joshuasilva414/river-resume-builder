@@ -20,6 +20,7 @@ import { createSource } from "../src/server/sources";
 
 beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
 const profile: DuplicateAiProfile = {
+  connection: { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", revision: 0, provider: "openai" },
   contract: "river-duplicate-comparison-v1",
   model: "gpt-5.4-mini-2026-03-17",
   maxInputCharacters: 160000,
@@ -390,7 +391,6 @@ it("sends a bounded strict provider request, validates all finding groups, and c
       expect(body).toMatchObject({
         model: profile.model,
         store: false,
-        stream: false,
         truncation: "disabled",
         max_output_tokens: 8000,
         text: {
@@ -401,7 +401,7 @@ it("sends a bounded strict provider request, validates all finding groups, and c
           },
         },
       });
-      expect(body.input[0].content).toBe(canonicalJson(detail.task.input));
+      expect(body.input[0].content[0].text).toBe(canonicalJson(detail.task.input));
       return Response.json({
         id: "resp_fixture",
         object: "response",

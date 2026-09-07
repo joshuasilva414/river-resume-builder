@@ -1,7 +1,9 @@
 import { RecordId, Revision } from "@river/domain";
 import { Schema } from "effect";
+import { AiSelectionFields } from "./ai";
 import { CommandKey, SourceCandidateOrigin } from "./evidence";
 export const StartDuplicateAiRequest = Schema.Struct({
+  ...AiSelectionFields,
   idempotencyKey: CommandKey,
   pairId: RecordId,
   revision: Revision,

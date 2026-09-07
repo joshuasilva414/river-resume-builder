@@ -14,6 +14,7 @@ export function PdfPreview({ url }: { url: string }) {
   const [zoom, setZoom] = useState("fit");
   const [width, setWidth] = useState(600);
   const [attempt, setAttempt] = useState(0);
+  const [hasPreview, setHasPreview] = useState(false);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   useEffect(() => {
     const element = container.current;
@@ -69,6 +70,7 @@ export function PdfPreview({ url }: { url: string }) {
       target.style.width = `${viewport.width / density}px`;
       target.style.height = `${viewport.height / density}px`;
       target.getContext("2d")?.drawImage(buffer, 0, 0);
+      setHasPreview(true);
       setState("ready");
     })().catch(() => {
       if (!disposed) setState("error");
@@ -119,16 +121,21 @@ export function PdfPreview({ url }: { url: string }) {
         {state === "loading" && (
           <p
             role="status"
-            className="flex items-center justify-center gap-2 p-8 text-muted-foreground"
+            className={`flex items-center justify-center gap-2 text-muted-foreground ${hasPreview ? "absolute inset-x-0 top-0 z-10 bg-background/95 p-3 shadow-sm" : "p-8"}`}
           >
             <LoaderCircle className="size-4 animate-spin" />
-            Loading PDF…
+            {hasPreview ? "Updating PDF preview…" : "Loading PDF…"}
           </p>
         )}
         {state === "error" && (
-          <Alert variant="destructive">
+          <Alert
+            variant="destructive"
+            className={hasPreview ? "absolute inset-x-0 top-0 z-10 bg-background" : undefined}
+          >
             <AlertDescription>
-              Unable to display this PDF.{" "}
+              {hasPreview
+                ? "Could not update the PDF. Showing the last successful preview."
+                : "Unable to display this PDF."}{" "}
               <Button variant="outline" size="sm" onClick={() => setAttempt((value) => value + 1)}>
                 Retry PDF
               </Button>
@@ -139,7 +146,7 @@ export function PdfPreview({ url }: { url: string }) {
           ref={canvas}
           aria-label={`Resume PDF, page ${pageNumber}`}
           className="mx-auto bg-white shadow-sm"
-          hidden={state !== "ready"}
+          hidden={!hasPreview}
         />
       </div>
     </div>

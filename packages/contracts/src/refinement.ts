@@ -1,9 +1,11 @@
 import { RecordId, Revision } from "@river/domain";
 import { Schema } from "effect";
+import { AiSelectionFields } from "./ai";
 import { CheckpointTemplateReplacement } from "./checkpoints";
 import { CommandKey } from "./evidence";
 
 export const StartSourceRefinementRequest = Schema.Struct({
+  ...AiSelectionFields,
   idempotencyKey: CommandKey,
   checkpointId: RecordId,
   operationId: RecordId,
@@ -31,6 +33,7 @@ export const ReviewSourceRefinementRequest = Schema.Struct({
   reviewDigest: Schema.NullOr(Schema.NonEmptyString),
   decision: Schema.Literals(["Accepted", "Rejected"]),
   coverageConfirmed: Schema.Boolean,
+  reviewPolicy: Schema.optionalKey(Schema.Literal("river-document-review-v2")),
 });
 export type ReviewSourceRefinementRequest = typeof ReviewSourceRefinementRequest.Type;
 

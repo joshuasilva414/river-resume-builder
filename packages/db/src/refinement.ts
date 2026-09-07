@@ -572,7 +572,7 @@ export function createSourceRefinementRepository(db: Database) {
           )
             fail(
               "InvalidInput",
-              "Review the complete current source, intended text, extracted text, PDF and passing report, then confirm coverage for this candidate.",
+              "Review the current PDF, wording changes, supporting evidence, and warnings, then confirm this version.",
             );
           if (proposal.acceptanceAttempts >= 3)
             fail(
@@ -620,6 +620,7 @@ export function createSourceRefinementRepository(db: Database) {
                 entityId: proposal.id,
                 after: {
                   coverageConfirmed: true,
+                  reviewPolicy: request.reviewPolicy ?? "river-source-review-v1",
                   reviewDigest: request.reviewDigest,
                   operationId: id,
                   reservedCheckpointId: checkpointId,

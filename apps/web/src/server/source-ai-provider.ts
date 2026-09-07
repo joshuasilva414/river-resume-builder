@@ -1,18 +1,19 @@
+import type { AiModelConfiguration } from "@river/domain";
 import {
   AnchoredSourceAiOutput,
+  ContextReference,
   type SourceAiInput,
   SourceAiOutput,
   type SourceAiProfile,
 } from "@river/domain";
 import { Schema } from "effect";
-import { generateAiProposal } from "./ai-provider";
-import type { Env } from "./env";
+import { type AiExecutionObserver, generateAiProposal } from "./ai-provider";
 export function sourceAiProfile(
-  env: Pick<Env, "OPENAI_API_KEY" | "OPENAI_SOURCE_CLAIMS_MODEL">,
+  configuration: AiModelConfiguration | null,
 ): SourceAiProfile | null {
-  if (!env.OPENAI_API_KEY || !env.OPENAI_SOURCE_CLAIMS_MODEL) return null;
+  if (!configuration) return null;
   return {
-    model: env.OPENAI_SOURCE_CLAIMS_MODEL,
+    ...configuration,
     contract: "river-source-claims-v2",
     maxInputCharacters: 160000,
     maxOutputTokens: 12000,
@@ -21,14 +22,34 @@ export function sourceAiProfile(
 }
 export function sourceAiOutputSchema(
   contract: SourceAiProfile["contract"] = "river-source-claims-v2",
+  input?: SourceAiInput,
 ) {
-  const document = Schema.toJsonSchemaDocument(
-    contract === "river-source-claims-v2" ? AnchoredSourceAiOutput : SourceAiOutput,
-    {
-      referencePolicy: () => undefined,
-      additionalProperties: false,
-    },
-  );
+  const output = contract === "river-source-claims-v2" ? AnchoredSourceAiOutput : SourceAiOutput;
+  const candidate = output.fields.candidates.value;
+  // Restrict references before generation; domain validation still checks the returned claims.
+  const contexts = input
+    ? Schema.Array(
+        input.contexts.length
+          ? Schema.Union(
+              input.contexts.map(({ id, revisionId }) =>
+                Schema.Struct({ id: Schema.Literal(id), revisionId: Schema.Literal(revisionId) }),
+              ),
+            )
+          : ContextReference,
+      ).check(Schema.isMaxLength(input.contexts.length))
+    : candidate.fields.material.fields.contexts;
+  const requestOutput = Schema.Struct({
+    candidates: Schema.Array(
+      Schema.Struct({
+        ...candidate.fields,
+        material: Schema.Struct({ ...candidate.fields.material.fields, contexts }),
+      }),
+    ).check(Schema.isMaxLength(20)),
+  });
+  const document = Schema.toJsonSchemaDocument(requestOutput, {
+    referencePolicy: () => undefined,
+    additionalProperties: false,
+  });
   return { ...document.schema, $defs: document.definitions };
 }
 const instructions = (
@@ -41,6 +62,7 @@ export const generateSourceCandidates = (
   input: SourceAiInput,
   profile: SourceAiProfile,
   transport: typeof fetch = fetch,
+  onExecution?: AiExecutionObserver,
 ) =>
   generateAiProposal(
     apiKey,
@@ -48,6 +70,7 @@ export const generateSourceCandidates = (
     profile,
     instructions(profile.contract),
     "source_claims",
-    sourceAiOutputSchema(profile.contract),
+    sourceAiOutputSchema(profile.contract, input),
     transport,
+    onExecution,
   );

@@ -149,14 +149,6 @@ export function DraftPreview({
             >
               Extracted text
             </a>
-            <a
-              className="text-primary underline"
-              target="_blank"
-              rel="noreferrer"
-              href={`/api/artifacts/${detail.preview.id}/report`}
-            >
-              Validation report
-            </a>
           </div>
         )}
       </div>

@@ -15,7 +15,7 @@ export const exportGuide = {
           <ol>
             <li>Open the résumé draft.</li>
             <li>
-              Wait for <strong>All changes saved</strong>.
+              Wait for <strong>Saved</strong>, then select <strong>Review draft</strong>.
             </li>
             <li>
               Select <strong>Capture &amp; review export</strong>.
@@ -42,7 +42,10 @@ export const exportGuide = {
             </li>
             <li>Read the extracted text.</li>
             <li>Confirm that the text is complete and in the intended reading order.</li>
-            <li>Inspect the validation report.</li>
+            <li>
+              Open <strong>Text checks</strong> to confirm that all wording, repeated text, and
+              reading order were preserved.
+            </li>
             <li>If a document check fails, correct the draft or template before trying again.</li>
           </ol>
           <p>
@@ -94,11 +97,12 @@ export const exportGuide = {
             <li>
               Select <strong>Download PDF</strong>.
             </li>
-            <li>
-              If you need supporting files, download the LaTeX source, extracted text, or validation
-              report.
-            </li>
+            <li>For a plain-text copy, open More formats and download the extracted text.</li>
           </ol>
+          <p>
+            Template code and JSON reports are optional downloads in Advanced tools. Enable that
+            area in Settings, then inspect the checkpoint by its ID.
+          </p>
           <p>
             For available formats, see{" "}
             <GuideLink slug="file-formats">File formats and limits</GuideLink>.

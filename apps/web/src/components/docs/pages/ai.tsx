@@ -12,12 +12,16 @@ export const ai = {
       body: (
         <>
           <p>
-            AI tasks can send selected inputs to an external service. Inspect the task's input and
-            provider information before starting.
+            AI tasks can send selected inputs to an external service. Check the selected material
+            and provider/model before starting.
           </p>
           <ol>
             <li>Open the source, job target, wording item, or template you want help with.</li>
-            <li>Open its AI assistance controls.</li>
+            <li>
+              Connect your own provider in Settings if you have not already. See{" "}
+              <GuideLink slug="ai-connections">Connect your AI provider</GuideLink>.
+            </li>
+            <li>Open its AI assistance controls and check AI for this action.</li>
             <li>Select the inputs required by the task.</li>
             <li>Enter your request, if the task includes an instruction field.</li>
             <li>Start the task.</li>
@@ -52,8 +56,8 @@ export const ai = {
             <GuideLink slug="evidence">Create and review claims</GuideLink>.
           </p>
           <p>
-            After accepting a ranking, choose evidence through{" "}
-            <GuideLink slug="jobs">Tailor to a job posting</GuideLink>.
+            Ranking suggestions need no separate acceptance. Inspect current evidence and choose
+            what to use through <GuideLink slug="jobs">Tailor to a job posting</GuideLink>.
           </p>
         </>
       ),
@@ -85,7 +89,7 @@ export const ai = {
       body: (
         <>
           <p>
-            To change the generated LaTeX source, follow{" "}
+            To refine a finished document, follow{" "}
             <GuideLink slug="source-refinement">Refine document source</GuideLink>.
           </p>
           <p>

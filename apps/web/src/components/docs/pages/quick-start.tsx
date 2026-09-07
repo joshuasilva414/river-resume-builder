@@ -19,6 +19,10 @@ export const quickStart = {
             Use a desktop browser and an account that can sign in to River. For account setup,
             follow <GuideLink slug="account">Access your workspace</GuideLink>.
           </p>
+          <p>
+            The Getting started checklist on Job targets tracks your saved work. You can skip it and
+            reopen it in Settings. AI is optional for this tutorial.
+          </p>
           <Note>
             This example is fictional. Keep the practice claim in Draft. Do not verify the claim or
             submit the practice PDF for a job application.
@@ -156,46 +160,26 @@ export const quickStart = {
       title: "Add the practice name",
       body: (
         <>
-          <p>Create a contact section with one name.</p>
+          <p>Use a starter to add the name without building each reusable field separately.</p>
           <ol>
             <li>
-              Select <strong>Create section</strong>.
+              Open <strong>Content library</strong> and select the <strong>Contact / header</strong>{" "}
+              starter.
             </li>
             <li>
-              Enter "Practice: contact section" in <strong>Library label</strong>.
+              Enter "Practice: contact" in <strong>Save as</strong> and "Alex Example" in{" "}
+              <strong>Name</strong>.
             </li>
             <li>
-              Set <strong>Section type</strong> to <strong>Contact / header</strong>.
+              Select <strong>Save to library</strong>.
             </li>
             <li>
-              Under <strong>Blocks in reading order</strong>, select{" "}
-              <strong>Create reusable block</strong>.
-            </li>
-            <li>
-              Enter "Practice: contact block" in <strong>Library label</strong>.
-            </li>
-            <li>
-              Under <strong>Name</strong>, select <strong>Create reusable content</strong>.
-            </li>
-            <li>
-              Enter "Practice: name" in <strong>Library label</strong>.
-            </li>
-            <li>
-              Enter "Alex Example" in <strong>Wording</strong>.
-            </li>
-            <li>
-              Select <strong>Create content item</strong>.
-            </li>
-            <li>
-              In the block form, select <strong>Create block</strong>.
-            </li>
-            <li>
-              In the section form, select <strong>Create section</strong>.
+              Return to the draft through Job targets, select{" "}
+              <strong>Choose library section</strong>, and choose your saved contact section.
             </li>
           </ol>
           <p>
-            The draft now contains a contact section with Alex Example as its name. The PDF preview
-            can render this draft.
+            The draft now contains Alex Example as its name. The PDF preview can render this draft.
           </p>
         </>
       ),
@@ -205,7 +189,7 @@ export const quickStart = {
       title: "Add the project",
       body: (
         <>
-          <p>Use the same nested forms to add a project entry.</p>
+          <p>Use the editor’s Back navigation to add the project and its supporting evidence.</p>
           <ol>
             <li>
               Select <strong>Create section</strong>.
@@ -220,14 +204,13 @@ export const quickStart = {
               Keep <strong>Projects</strong> as the <strong>Section heading</strong>.
             </li>
             <li>
-              Under <strong>Blocks in reading order</strong>, select{" "}
-              <strong>Create reusable block</strong>.
+              Under <strong>Entries in reading order</strong>, select <strong>Create entry</strong>.
             </li>
             <li>
               Enter "Practice: booking form block" in <strong>Library label</strong>.
             </li>
             <li>
-              Under <strong>Project title</strong>, select <strong>Create reusable content</strong>.
+              Under <strong>Project title</strong>, select <strong>Write new wording</strong>.
             </li>
             <li>
               Enter "Practice: project title" in <strong>Library label</strong>.
@@ -236,11 +219,10 @@ export const quickStart = {
               Enter "Booking form" in <strong>Wording</strong>.
             </li>
             <li>
-              Select <strong>Create content item</strong>.
+              Select <strong>Create wording</strong>.
             </li>
             <li>
-              Under <strong>Accomplishments</strong>, select{" "}
-              <strong>Create reusable content</strong>.
+              Under <strong>Accomplishments</strong>, select <strong>Write new wording</strong>.
             </li>
             <li>
               Enter "Practice: React accomplishment" in <strong>Library label</strong>.
@@ -256,10 +238,10 @@ export const quickStart = {
               Select <strong>Link this revision</strong>.
             </li>
             <li>
-              Select <strong>Create content item</strong>.
+              Select <strong>Create wording</strong>.
             </li>
             <li>
-              In the block form, select <strong>Create block</strong>.
+              In the block form, select <strong>Create entry</strong>.
             </li>
             <li>
               In the section form, select <strong>Create section</strong>.

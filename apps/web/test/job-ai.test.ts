@@ -17,7 +17,22 @@ import {
 } from "../src/server/job-ai-provider";
 
 beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
+
+it("constrains scoped rankings to the requested requirement", async () => {
+  const { store, actor, request } = await fixture();
+  const task = await store.startJobAi(actor, request, profile);
+  const detail = await store.inspectJobAi(actor.id, task.id);
+  const requirementId = newId();
+  const input = { ...detail.task.input, task: "rank-evidence" as const, requirementId };
+  expect(jobAiOutputSchema("rank-evidence", "river-job-analysis-v3", input)).toMatchObject({
+    properties: {
+      results: { items: { properties: { requirementId: { enum: [requirementId] } } }, maxItems: 0 },
+      gaps: { items: { properties: { requirementId: { enum: [requirementId] } } } },
+    },
+  });
+});
 const profile: AiProfile = {
+  connection: { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", revision: 0, provider: "openai" },
   model: "gpt-5.4-mini-2026-03-17",
   contract: "river-job-analysis-v1",
   maxInputCharacters: 160000,
@@ -102,7 +117,7 @@ it("captures exact posting anchors and resolves a selected repeated occurrence w
     anchoredProfile,
     async (_request, init) => {
       const body = JSON.parse(String(init?.body));
-      expect(JSON.parse(body.input[0].content).postingAnchors).toEqual(
+      expect(JSON.parse(body.input[0].content[0].text).postingAnchors).toEqual(
         detail.task.input.postingAnchors,
       );
       expect(body.text.format.schema.properties.requirements.items.properties).toHaveProperty(
@@ -468,13 +483,12 @@ it("uses strict schema output, no provider storage/tools/retries, and rejects in
     expect(body).toMatchObject({
       model: profile.model,
       store: false,
-      stream: false,
       truncation: "disabled",
       max_output_tokens: 12000,
       text: { format: { strict: true, schema: { type: "object", additionalProperties: false } } },
     });
     expect(body.tools).toBeUndefined();
-    expect(body.input[0].content).toBe(canonicalJson(detail.task.input));
+    expect(body.input[0].content[0].text).toBe(canonicalJson(detail.task.input));
     return Response.json({
       id: "resp_fixture",
       object: "response",
@@ -500,9 +514,7 @@ it("uses strict schema output, no provider storage/tools/retries, and rejects in
     const schema = jobAiOutputSchema(task);
     expect(JSON.stringify(schema)).not.toMatch(/"(?:allOf|not|if|then|else)":/);
   }
-  expect(
-    jobAiProfile({ OPENAI_REQUIREMENTS_MODEL: profile.model }, "extract-requirements"),
-  ).toBeNull();
+  expect(jobAiProfile(null, "extract-requirements")).toBeNull();
   let failures = 0;
   await expect(
     generateJobProposal("synthetic-test-key", detail.task.input, profile, async () => {
@@ -519,6 +531,7 @@ it("uses strict schema output, no provider storage/tools/retries, and rejects in
       Response.json({
         id: "resp_fixture",
         object: "response",
+        created_at: 1,
         model: "different-model",
         status: "completed",
         output: [],

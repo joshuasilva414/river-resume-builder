@@ -11,7 +11,7 @@
     "build": "turbo run build",
     "check": "turbo run check",
     "lint": "turbo run lint",
-    "test": "turbo run test && node --test scripts/lib/recovery.test.mjs",
+    "test": "turbo run test && node --test scripts/lib/recovery.test.mjs scripts/lib/ai-cutover.test.mjs",
     "setup:local": "node scripts/configure-local.mjs",
     "db:migrate:local": "pnpm --filter @river/web exec wrangler d1 migrations apply river-local --local",
     "test:documents": "node apps/documents/scripts/verify-container.mjs",

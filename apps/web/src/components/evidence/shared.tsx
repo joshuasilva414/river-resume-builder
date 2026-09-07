@@ -8,13 +8,19 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   cloneElement,
+  createContext,
   type ReactElement,
   type ReactNode,
   type RefObject,
+  useCallback,
+  useContext,
+  useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import {
@@ -108,6 +114,12 @@ export function FormField({
 }
 export const selectClass =
   "h-11 w-full min-w-0 rounded-sm border bg-background px-3 text-base font-normal md:h-10 md:text-sm";
+const DialogSurfaceContext = createContext<{
+  host: HTMLDivElement | null;
+  register: (id: string, close: () => void, title: string) => () => void;
+} | null>(null);
+
+/** Nested steps replace the visible surface while their parent form stays mounted. */
 export function EvidenceDialog({
   title,
   description,
@@ -129,53 +141,74 @@ export function EvidenceDialog({
   className?: string;
   returnFocusRef?: RefObject<HTMLElement | null>;
 }) {
-  const [discard, setDiscard] = useState(false);
+  const parent = useContext(DialogSurfaceContext),
+    id = useId();
+  const [discard, setDiscard] = useState(false),
+    [host, setHost] = useState<HTMLDivElement | null>(null);
+  const [child, setChild] = useState<{ id: string; close: () => void; title: string } | null>(null);
+  const register = useCallback((childId: string, close: () => void, title: string) => {
+    setChild({ id: childId, close, title });
+    return () => setChild((current) => (current?.id === childId ? null : current));
+  }, []);
+  const context = useMemo(() => ({ host, register }), [host, register]);
+  const close = () => {
+    if (child) child.close();
+    else if (!pending) dirty ? setDiscard(true) : onClose();
+  };
+  const closeRef = useRef(close);
+  closeRef.current = close;
+  const activeTitle = child?.title ?? (discard ? "Discard unsaved changes?" : title);
+  useEffect(
+    () => parent?.register(id, () => closeRef.current(), activeTitle),
+    [parent?.register, id, activeTitle],
+  );
+  const heading = useRef<HTMLHeadingElement>(null);
   const [returnFocus] = useState(() =>
     typeof document === "undefined" ? null : document.activeElement,
   );
-  return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open && !pending) dirty ? setDiscard(true) : onClose();
-      }}
-    >
-      <DialogContent
-        className={cn(
-          `evidence-dialog flex max-h-[90dvh] flex-col gap-5 overflow-y-auto max-sm:inset-0 max-sm:h-dvh max-sm:max-h-dvh max-sm:max-w-full max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:p-5 ${wide ? "sm:max-w-[900px]" : "sm:max-w-[616px]"}`,
-          className,
+  useEffect(() => {
+    if (!parent?.host) return;
+    heading.current?.focus();
+    return () => {
+      requestAnimationFrame(() => {
+        if (returnFocus instanceof HTMLElement && returnFocus.isConnected) returnFocus.focus();
+      });
+    };
+  }, [parent?.host, returnFocus]);
+  const headingText = discard ? "Discard unsaved changes?" : title;
+  const body = (
+    <DialogSurfaceContext.Provider value={context}>
+      <div hidden={Boolean(child)} className="space-y-5">
+        {parent ? (
+          <header className="space-y-3">
+            <Button
+              type="button"
+              variant="link"
+              className="px-0"
+              disabled={pending}
+              onClick={close}
+            >
+              ← Back
+            </Button>
+            <h2 ref={heading} tabIndex={-1} className="text-[28px] leading-[34px]">
+              {headingText}
+            </h2>
+            <p className="text-sm text-muted-foreground">{description}</p>
+          </header>
+        ) : (
+          <DialogHeader className="shrink-0 text-left pr-8">
+            <DialogTitle className="text-[28px] leading-[34px]">{headingText}</DialogTitle>
+            <DialogDescription>
+              {discard ? "Your saved work will remain. Discard this unsaved form?" : description}
+            </DialogDescription>
+          </DialogHeader>
         )}
-        onCloseAutoFocus={(event) => {
-          // Multi-step review can replace the clicked control; retain its persistent opener.
-          const target = returnFocusRef?.current ?? returnFocus;
-          if (target instanceof HTMLElement && target.isConnected) {
-            event.preventDefault();
-            target.focus();
-          }
-        }}
-      >
-        <DialogHeader className="shrink-0 text-left pr-8">
-          <DialogTitle className="text-[28px] leading-[34px]">
-            {discard ? "Discard unsaved changes?" : title}
-          </DialogTitle>
-          <DialogDescription>
-            {discard
-              ? "Your saved records remain available. This closes the unsaved form."
-              : description}
-          </DialogDescription>
-        </DialogHeader>
         {discard && (
           <div className="flex flex-wrap justify-end gap-3">
-            <Button variant="outline" onClick={() => setDiscard(false)}>
+            <Button type="button" variant="outline" onClick={() => setDiscard(false)}>
               Keep editing
             </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                setDiscard(false);
-                onClose();
-              }}
-            >
+            <Button type="button" variant="destructive" onClick={onClose}>
               Discard changes
             </Button>
           </div>
@@ -183,6 +216,40 @@ export function EvidenceDialog({
         <div className="shrink-0" hidden={discard}>
           {children}
         </div>
+      </div>
+      <div ref={setHost} />
+    </DialogSurfaceContext.Provider>
+  );
+  if (parent) return parent.host ? createPortal(body, parent.host) : null;
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) close();
+      }}
+    >
+      <DialogContent
+        aria-label={activeTitle}
+        aria-labelledby={undefined}
+        className={cn(
+          `evidence-dialog flex max-h-[90dvh] flex-col gap-5 overflow-y-auto max-sm:inset-0 max-sm:h-dvh max-sm:max-h-dvh max-sm:max-w-full max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:p-5 ${wide ? "sm:max-w-[900px]" : "sm:max-w-[616px]"}`,
+          className,
+        )}
+        onEscapeKeyDown={(event) => {
+          if (child || dirty || pending) {
+            event.preventDefault();
+            close();
+          }
+        }}
+        onCloseAutoFocus={(event) => {
+          const target = returnFocusRef?.current ?? returnFocus;
+          if (target instanceof HTMLElement && target.isConnected) {
+            event.preventDefault();
+            target.focus();
+          }
+        }}
+      >
+        {body}
       </DialogContent>
     </Dialog>
   );
