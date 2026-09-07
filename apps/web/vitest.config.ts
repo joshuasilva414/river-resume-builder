@@ -10,7 +10,11 @@ export default defineConfig(async () => ({
         compatibilityFlags: ["nodejs_compat"],
         d1Databases: ["DB"],
         r2Buckets: ["ARTIFACTS"],
-        workflows: { DOCUMENT_WORKFLOW: { name: "test-documents", className: "DocumentWorkflow" } },
+        workflows: {
+          DOCUMENT_WORKFLOW: { name: "test-documents", className: "DocumentWorkflow" },
+          SOURCE_AI_WORKFLOW: { name: "test-source-ai", className: "SourceAiWorkflow" },
+          AI_FAILURE_WORKFLOW: { name: "test-ai-failure", className: "AiFailureWorkflow" },
+        },
         serviceBindings: { DOCUMENTS: { name: "test-document-adapter", entrypoint: "Documents" } },
         workers: [
           {
