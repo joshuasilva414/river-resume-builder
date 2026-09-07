@@ -8,10 +8,47 @@ import { authenticate, authenticatePrincipal, createAuth } from "../src/server/a
 import { readBackupStatus, retryBackup } from "../src/server/backups";
 import { runEvidenceCommand, searchEvidence } from "../src/server/evidence";
 import { handleMcp } from "../src/server/mcp";
+import { secureRequest } from "../src/server/request-security";
 import { execute, listOperations, startProof } from "../src/server/services";
 import { createSource, inspectSource, sourceDownload } from "../src/server/sources";
 
 beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
+
+it("keeps two authenticated sessions uncached and rechecks authentication after logout", async () => {
+  const { a, b, settings, auth, alice, bob } = await accounts();
+  const sessionResponse = (headers: Headers) =>
+    secureRequest(
+      new Request(`${settings.APP_URL}/_serverFn/session`, { headers }),
+      settings,
+      async (request) =>
+        Response.json({
+          user: (await authenticate(settings, request.headers))?.user.email ?? null,
+        }),
+    );
+  for (const [account, email] of [
+    [a, alice],
+    [b, bob],
+  ] as const) {
+    const response = await sessionResponse(account.headers);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(await response.json()).toEqual({ user: email });
+    const page = await secureRequest(
+      new Request(`${settings.APP_URL}/jobs`, { headers: account.headers }),
+      settings,
+      async (request) =>
+        new Response((await authenticate(settings, request.headers))?.user.email, {
+          headers: { "Content-Type": "text/html" },
+        }),
+    );
+    expect(page.headers.get("cache-control")).toBe("private, no-store");
+    expect(await page.text()).toBe(email);
+  }
+  await auth.api.signOut({ headers: a.headers });
+  const loggedOut = await sessionResponse(a.headers);
+  expect(await loggedOut.json()).toEqual({ user: null });
+  expect(loggedOut.headers.get("cache-control")).toBe("private, no-store");
+  expect(await (await sessionResponse(b.headers)).json()).toEqual({ user: bob });
+});
 
 async function accounts() {
   const suffix = newId();

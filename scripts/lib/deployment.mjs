@@ -27,6 +27,11 @@ export function validateBundle(bundle, source, target) {
   const expected = source.env[target.environment];
   assert.equal(bundle.account_id, source.account_id);
   assert.equal(bundle.name, target.worker);
+  assert.equal(bundle.observability?.redact_query_string, true);
+  assert.equal(bundle.observability?.logs?.invocation_logs, false);
+  assert.equal(bundle.observability?.logs?.persist, false);
+  assert.equal(bundle.observability?.traces?.enabled, false);
+  assert.deepEqual(bundle.tail_consumers, [{ service: `river-telemetry-${target.environment}` }]);
   for (const key of ["vars", "d1_databases", "r2_buckets", "services", "workflows", "routes"]) {
     // Vite resolves migration paths relative to the generated configuration.
     if (key === "d1_databases") {

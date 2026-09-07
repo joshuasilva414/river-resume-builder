@@ -6,7 +6,10 @@
   "compatibility_date": "2026-08-22",
   "compatibility_flags": ["nodejs_compat"],
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "redact_query_string": true,
+    "logs": { "enabled": true, "invocation_logs": false, "persist": false },
+    "traces": { "enabled": false }
   },
   "vars": {
     "ENVIRONMENT": "development",
@@ -99,6 +102,7 @@
   "env": {
     "staging": {
       "name": "river-staging",
+      "tail_consumers": [{ "service": "river-telemetry-staging" }],
       "vars": {
         "ENVIRONMENT": "staging",
         "BACKUP_ACCOUNT_ID": "a91c30d69981b341efe3b656a263f6da",
@@ -200,6 +204,7 @@
     },
     "production": {
       "name": "river-production",
+      "tail_consumers": [{ "service": "river-telemetry-production" }],
       "vars": {
         "ENVIRONMENT": "production",
         "BACKUP_ACCOUNT_ID": "a91c30d69981b341efe3b656a263f6da",
