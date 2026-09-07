@@ -4,7 +4,8 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { AiExecutionMetadata } from "@river/domain";
 import { type AiConnectionBinding, ApplicationError, canonicalJson } from "@river/domain";
-import { APICallError, generateText, jsonSchema, Output } from "ai";
+import { generateText, jsonSchema, Output } from "ai";
+import { AiProviderFailure, classifyAiFailure } from "./ai-failure";
 
 export type AiExecutionObserver = (metadata: AiExecutionMetadata) => Promise<void>;
 
@@ -37,8 +38,15 @@ export async function generateAiProposal(
       message: "Connect an AI provider in Settings and start a new task.",
     });
   try {
-    const noRedirect: typeof fetch = (input, init) =>
-      transport(input, { ...init, redirect: "error" });
+    // Workers supports manual redirects; reject them without forwarding credentials.
+    const noRedirect: typeof fetch = async (input, init) => {
+      const response = await transport(input, { ...init, redirect: "manual" });
+      if (response.status >= 300 && response.status < 400) {
+        await response.body?.cancel();
+        throw new AiProviderFailure({ category: "request_rejected", httpStatus: response.status });
+      }
+      return response;
+    };
     const options = { apiKey, fetch: noRedirect };
     const model = (() => {
       switch (profile.connection.provider) {
@@ -67,7 +75,7 @@ export async function generateAiProposal(
       },
     });
     if (result.finishReason !== "stop" || result.text.length > 200000)
-      throw new Error("Incomplete output");
+      throw new AiProviderFailure({ category: "invalid_output", httpStatus: null });
     await onExecution?.({
       connection: profile.connection,
       requestedModel: profile.model,
@@ -77,13 +85,6 @@ export async function generateAiProposal(
     });
     return result.output;
   } catch (error) {
-    // Provider errors can contain prompts, key-bearing headers and raw output. Expose only fixed text.
-    const message =
-      APICallError.isInstance(error) && [401, 403].includes(error.statusCode ?? 0)
-        ? "Your provider could not authorize this model. Check the connection in Settings or choose another model for a new task."
-        : APICallError.isInstance(error) && error.statusCode === 429
-          ? "Your AI provider reached its usage limit. Check your provider balance or wait before retrying."
-          : "The selected model did not return a complete valid response. No changes were applied. Retry this task or choose another model for a new task.";
-    throw new ApplicationError({ code: "Unavailable", message });
+    throw classifyAiFailure(error);
   }
 }
