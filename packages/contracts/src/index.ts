@@ -179,6 +179,7 @@ export interface ProblemDetails {
   readonly observedRevision?: number;
 }
 
+export * from "./ai";
 export * from "./backups";
 export * from "./checkpoints";
 export * from "./composition";

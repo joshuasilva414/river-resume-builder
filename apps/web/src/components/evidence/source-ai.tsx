@@ -3,14 +3,16 @@ import type {
   ReviewSourceCandidateRequest,
   StartSourceAiRequest,
 } from "@river/contracts";
+import type { AiSelection } from "@river/domain";
 import { canonicalJson, type EvidenceMaterialInput } from "@river/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { AiSelector } from "~/components/ai-selection";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
-import { cancelDocumentOperation, getSource } from "~/server/functions";
+import { cancelDocumentOperation } from "~/server/functions";
 import {
   decideSourceCandidate,
   generateSourceAiTask,
@@ -220,6 +222,7 @@ function Launch({
   onClose: () => void;
   onSaved: (id: string) => void;
 }) {
+  const [ai, setAi] = useState<AiSelection>();
   const [captured] = useState(source),
     [focus, setFocus] = useState(""),
     [debouncedFocus, setDebouncedFocus] = useState(""),
@@ -235,6 +238,7 @@ function Launch({
     source.state !== "Ready" ||
     source.currentProcessingId !== captured.currentProcessingId;
   const input = {
+    ai,
     sourceId: captured.id,
     revision: captured.revision,
     processingId: captured.currentProcessingId ?? "",
@@ -248,15 +252,6 @@ function Launch({
       unwrap(await previewSourceAiInput({ data: { ...input, idempotencyKey: "preflight" } })),
     retry: false,
   });
-  const text = useQuery({
-    queryKey: ["source", captured.id, captured.currentProcessingId],
-    queryFn: async () =>
-      unwrap(
-        await getSource({
-          data: { id: captured.id, processingId: captured.currentProcessingId ?? undefined },
-        }),
-      ),
-  });
   return (
     <EvidenceDialog
       title="Generate claim proposals"
@@ -268,19 +263,11 @@ function Launch({
     >
       <div className="space-y-5">
         <p className="font-semibold">{captured.title}</p>
-        <p className="break-all font-mono text-xs">
-          Processing result {captured.currentProcessingId}
-        </p>
+
         <Button asChild variant="outline">
           <a href={`/api/v1/sources/${captured.id}?download`}>Download original</a>
         </Button>
-        <details className="rounded-sm border p-4">
-          <summary className="cursor-pointer text-sm">Complete extracted text</summary>
-          <Failure error={text.error} />
-          <p className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap break-words text-sm">
-            {text.data?.extraction?.text ?? "Loading extraction…"}
-          </p>
-        </details>
+
         <fieldset className="space-y-3">
           <legend className="mb-3 text-sm font-semibold">
             Optional context · {selected.length}/10
@@ -334,13 +321,14 @@ function Launch({
         </FormField>
         <div className="rounded-sm border p-4 text-sm" role="status">
           {preview.isFetching || focus !== debouncedFocus
-            ? "Checking complete input…"
+            ? "Checking source…"
             : preview.data
-              ? `${preview.data.characters.toLocaleString()} / ${preview.data.limit.toLocaleString()} UTF-16 units`
-              : "Input size unavailable."}
+              ? preview.data.allowed
+                ? "Ready to analyze"
+                : "This source is too large to analyze."
+              : "Source check unavailable."}
           <p className="mt-2 text-muted-foreground">
-            Includes complete extracted text, selected context, and focus. Nothing is truncated or
-            split.
+            Uses the full source text and any context or focus you add.
           </p>
           {preview.data && !preview.data.allowed && (
             <p className="mt-2 text-destructive">
@@ -354,6 +342,7 @@ function Launch({
             The source changed. Close and reopen generation from the current ready extraction.
           </p>
         )}
+        <AiSelector value={ai} onChange={setAi} />
         <Failure error={preview.error ?? action.error} />
         <div className="flex flex-wrap justify-end gap-3">
           <Button variant="outline" disabled={action.isPending} onClick={onClose}>
@@ -402,19 +391,12 @@ function Review({
   const action = useAction(),
     detail = query.data,
     selected = detail?.candidates.find((item) => item.id === selectedId);
-  const currentContexts = useContexts();
   const reviewRoot = useRef<HTMLDivElement>(null);
   const chooseCandidate = (candidateId: string | null) => {
     setSelected(candidateId);
     action.reset();
     reviewRoot.current?.closest('[role="dialog"]')?.scrollTo({ top: 0 });
   };
-  const currentSource = useQuery({
-    queryKey: ["source", detail?.task.input.source.id, "current"],
-    enabled: Boolean(detail?.task.input.source.id),
-    queryFn: async () =>
-      unwrap(await getSource({ data: { id: detail?.task.input.source.id ?? "" } })),
-  });
   if (!detail)
     return (
       <>
@@ -442,20 +424,6 @@ function Review({
           {operation.failure}
         </p>
       )}
-      <details className="text-xs">
-        <summary className="cursor-pointer">Generation inputs and identity</summary>
-        <div className="mt-3 space-y-2 break-all font-mono">
-          <p>
-            {input.source.processingId} · {input.source.parser} {input.source.parserVersion}
-          </p>
-          <p>Input SHA-256 {input.source.processingDigest}</p>
-          <p>
-            {detail.task.profile.contract} · {detail.task.profile.model}
-          </p>
-          <p>Attempt {detail.task.attempts} / 3</p>
-          <p className="whitespace-pre-wrap font-sans">Focus: {input.focus || "None"}</p>
-        </div>
-      </details>
       {active(operation?.state) && operation && (
         <Button
           variant="outline"
@@ -490,50 +458,7 @@ function Review({
             Pending candidates require a new generation run before acceptance. Manual edits create
             an independent Draft.
           </p>
-          <details>
-            <summary className="cursor-pointer text-primary">Compare changed inputs</summary>
-            <Failure error={currentSource.error ?? currentContexts.error} />
-            <div className="mt-3 grid gap-4 sm:grid-cols-2">
-              <div className="space-y-3">
-                <p className="font-semibold">Reviewed inputs</p>
-                <p className="break-all font-mono text-xs">
-                  Source revision {input.source.revision} · {input.source.processingId}
-                </p>
-                <p className="max-h-64 overflow-auto whitespace-pre-wrap break-words">
-                  {input.source.text}
-                </p>
-                {input.contexts.map((context) => (
-                  <ContextSnapshot
-                    key={context.id}
-                    data={context.data}
-                    revisionId={context.revisionId}
-                  />
-                ))}
-              </div>
-              <div className="space-y-3">
-                <p className="font-semibold">Current inputs</p>
-                <p className="break-all font-mono text-xs">
-                  Source revision {currentSource.data?.source.revision} ·{" "}
-                  {currentSource.data?.source.currentProcessingId ?? "Unavailable"}
-                </p>
-                <p className="max-h-64 overflow-auto whitespace-pre-wrap break-words">
-                  {currentSource.data?.extraction?.text}
-                </p>
-                {input.contexts.map((context) => {
-                  const current = currentContexts.data?.find((item) => item.id === context.id);
-                  return current ? (
-                    <ContextSnapshot
-                      key={context.id}
-                      data={current.data}
-                      revisionId={current.revisionId}
-                    />
-                  ) : (
-                    <p key={context.id}>Context unavailable: {context.data.label}</p>
-                  );
-                })}
-              </div>
-            </div>
-          </details>
+
           {detail.configured && (
             <Button variant="outline" onClick={onRefresh}>
               Refresh generation inputs
@@ -614,14 +539,11 @@ function Review({
             <Badge variant="outline">{selected.state}</Badge>
             <p className="eyebrow">Candidate {selected.ordinal + 1}</p>
           </div>
-          <details className="text-xs">
-            <summary className="cursor-pointer">Candidate identity</summary>
-            <p className="mt-2 break-all font-mono">{selected.id}</p>
-            <p className="mt-2 break-all font-mono">SHA-256 {selected.digest}</p>
-            {selected.reviewedAt && (
-              <p className="mt-2">Reviewed {new Date(selected.reviewedAt).toLocaleString()}</p>
-            )}
-          </details>
+          {selected.reviewedAt && (
+            <p className="text-sm text-muted-foreground">
+              Reviewed {new Date(selected.reviewedAt).toLocaleString()}
+            </p>
+          )}
           {selected.payload ? (
             <>
               <p className="font-sans text-xl font-semibold leading-[29px] whitespace-pre-wrap break-words">
@@ -644,18 +566,7 @@ function Review({
                           .join(" · "),
                       )
                       .join(", ")}{" "}
-                    · UTF-16 {citation.start}–{citation.end}
                   </p>
-                  <details>
-                    <summary className="cursor-pointer text-sm text-primary">
-                      Locate exact quote in full extraction
-                    </summary>
-                    <p className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap break-words text-sm">
-                      <span>{input.source.text.slice(0, citation.start)}</span>
-                      <mark>{input.source.text.slice(citation.start, citation.end)}</mark>
-                      <span>{input.source.text.slice(citation.end)}</span>
-                    </p>
-                  </details>
                 </article>
               ))}
               <Button asChild variant="outline">

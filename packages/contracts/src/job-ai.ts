@@ -1,8 +1,10 @@
 import { JobAiTask, RecordId, Revision } from "@river/domain";
 import { Schema } from "effect";
+import { AiSelectionFields } from "./ai";
 import { CommandKey } from "./evidence";
 
 export const StartJobAiRequest = Schema.Struct({
+  ...AiSelectionFields,
   idempotencyKey: CommandKey,
   jobId: RecordId,
   revision: Revision,

@@ -1,0 +1,147 @@
+{
+  "date": "2026-09-06T19:29:45.142Z",
+  "fictional": true,
+  "claimCount": 151,
+  "eligibleCount": 148,
+  "candidateCap": 30,
+  "model": "@cf/baai/bge-m3",
+  "embeddingElapsedMs": 1462,
+  "embeddingInputCharacters": 22678,
+  "results": [
+    {
+      "id": "web",
+      "lexicalMs": 0.12816700000000125,
+      "newest": {
+        "recallAt30": 0,
+        "reciprocalRank": 0,
+        "topFive": [
+          "incidental-132",
+          "incidental-128",
+          "incidental-124",
+          "incidental-120",
+          "incidental-116"
+        ]
+      },
+      "lexical": {
+        "recallAt30": 0.3333333333333333,
+        "reciprocalRank": 1,
+        "topFive": ["web-1", "incidental-0", "incidental-100", "incidental-104", "incidental-108"]
+      },
+      "hybrid": {
+        "recallAt30": 0.6666666666666666,
+        "reciprocalRank": 1,
+        "topFive": ["web-1", "incidental-12", "incidental-108", "incidental-104", "incidental-28"]
+      }
+    },
+    {
+      "id": "security",
+      "lexicalMs": 0.08099999999999952,
+      "newest": {
+        "recallAt30": 0,
+        "reciprocalRank": 0,
+        "topFive": [
+          "incidental-133",
+          "incidental-129",
+          "incidental-125",
+          "incidental-121",
+          "incidental-117"
+        ]
+      },
+      "lexical": {
+        "recallAt30": 0.3333333333333333,
+        "reciprocalRank": 1,
+        "topFive": [
+          "security-1",
+          "incidental-1",
+          "incidental-101",
+          "incidental-105",
+          "incidental-109"
+        ]
+      },
+      "hybrid": {
+        "recallAt30": 1,
+        "reciprocalRank": 1,
+        "topFive": [
+          "security-1",
+          "incidental-1",
+          "incidental-129",
+          "incidental-13",
+          "incidental-109"
+        ]
+      }
+    },
+    {
+      "id": "storage",
+      "lexicalMs": 0.18287500000000279,
+      "newest": {
+        "recallAt30": 0,
+        "reciprocalRank": 0,
+        "topFive": [
+          "incidental-134",
+          "incidental-130",
+          "incidental-126",
+          "incidental-122",
+          "incidental-118"
+        ]
+      },
+      "lexical": {
+        "recallAt30": 0.3333333333333333,
+        "reciprocalRank": 1,
+        "topFive": [
+          "storage-1",
+          "incidental-10",
+          "incidental-102",
+          "incidental-106",
+          "incidental-110"
+        ]
+      },
+      "hybrid": {
+        "recallAt30": 1,
+        "reciprocalRank": 1,
+        "topFive": [
+          "storage-1",
+          "incidental-106",
+          "incidental-110",
+          "incidental-10",
+          "incidental-118"
+        ]
+      }
+    },
+    {
+      "id": "delivery",
+      "lexicalMs": 0.10845899999999986,
+      "newest": {
+        "recallAt30": 0,
+        "reciprocalRank": 0,
+        "topFive": [
+          "incidental-135",
+          "incidental-131",
+          "incidental-127",
+          "incidental-123",
+          "incidental-119"
+        ]
+      },
+      "lexical": {
+        "recallAt30": 0.6666666666666666,
+        "reciprocalRank": 1,
+        "topFive": ["delivery-2", "delivery-1", "incidental-103", "incidental-107", "incidental-11"]
+      },
+      "hybrid": {
+        "recallAt30": 1,
+        "reciprocalRank": 1,
+        "topFive": [
+          "delivery-1",
+          "delivery-2",
+          "incidental-123",
+          "incidental-127",
+          "incidental-107"
+        ]
+      }
+    }
+  ],
+  "limits": [
+    "Local SQLite FTS5 and exact cosine, not a hosted D1/Vectorize latency measurement.",
+    "Synthetic graded relevance; no real candidate or ranking-model evaluation.",
+    "Owner, archival and revision filters exercised locally; hosted isolation and indexing remain untested."
+  ]
+}

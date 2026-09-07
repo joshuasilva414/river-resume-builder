@@ -86,10 +86,13 @@ export function TemplateValidation({ detail }: { detail: TemplateDetail }) {
           className="block w-full space-y-2 border-b py-3 text-left hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring"
           onClick={() => setSelected(item.validation.id)}
         >
-          <span className="block text-sm font-medium">{item.operation.stage}</span>
-          <span className="font-mono text-xs text-muted-foreground">
-            {item.operation.state} · {new Date(item.validation.createdAt).toLocaleString()} ·{" "}
-            {item.validation.id.slice(-8)}
+          <span className="block text-sm font-medium">
+            {item.operation.state === "Succeeded"
+              ? "Sample checks passed; review the PDFs"
+              : item.operation.stage}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {item.operation.state} · {new Date(item.validation.createdAt).toLocaleString()}
           </span>
         </button>
       ))}
@@ -110,8 +113,7 @@ function ValidationReview({ id, onClose }: { id: string; onClose: () => void }) 
         : false,
   });
   const detail = query.data,
-    [fixtureId, setFixtureId] = useState<string | null>(null),
-    [visual, setVisual] = useState(false);
+    [fixtureId, setFixtureId] = useState<string | null>(null);
   const approve = useTemplateCommand(
     async (input: Omit<ApproveTemplateRequest, "idempotencyKey">, key) =>
       unwrap(await approveTemplateRevision({ data: { ...input, idempotencyKey: key } })),
@@ -142,7 +144,7 @@ function ValidationReview({ id, onClose }: { id: string; onClose: () => void }) 
   return (
     <EvidenceDialog
       title="Review sample PDFs"
-      description="Review this template revision, every required sample PDF, extracted text, and test results before approving."
+      description="Inspect each sample PDF and any layout warnings before approving this template version."
       onClose={onClose}
       pending={approve.isPending || cancel.isPending}
       className="sm:max-w-[min(1280px,calc(100vw-3rem))]"
@@ -154,7 +156,9 @@ function ValidationReview({ id, onClose }: { id: string; onClose: () => void }) 
         <div className="space-y-5">
           <div className="flex flex-wrap justify-between gap-3">
             <p role="status" className="text-sm">
-              {detail.operation?.stage}
+              {detail.operation?.state === "Succeeded"
+                ? "Sample checks passed; review the PDFs"
+                : detail.operation?.stage}
             </p>
             {active && (
               <Button variant="outline" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
@@ -185,7 +189,7 @@ function ValidationReview({ id, onClose }: { id: string; onClose: () => void }) 
                 {path && fixture.result.artifacts ? (
                   <PdfPreview url={`${path}/pdf`} />
                 ) : (
-                  <p className="text-sm">This fixture has no rendered PDF.</p>
+                  <p className="text-sm">This sample has no PDF yet.</p>
                 )}
               </div>
               <div className="min-w-0 space-y-4">
@@ -195,17 +199,9 @@ function ValidationReview({ id, onClose }: { id: string; onClose: () => void }) 
                 )}
                 {path && fixture.result.artifacts && (
                   <div className="flex flex-wrap gap-2">
-                    {(["pdf", "tex", "text", "report"] as const).map((kind) => (
+                    {(["pdf", "text"] as const).map((kind) => (
                       <Button key={kind} asChild size="sm" variant="outline">
-                        <a href={`${path}/${kind}?download`}>
-                          {kind === "tex"
-                            ? "LaTeX"
-                            : kind === "text"
-                              ? "Text"
-                              : kind === "report"
-                                ? "Report"
-                                : "PDF"}
-                        </a>
+                        <a href={`${path}/${kind}?download`}>{kind === "text" ? "Text" : "PDF"}</a>
                       </Button>
                     ))}
                   </div>
@@ -231,39 +227,15 @@ function ValidationReview({ id, onClose }: { id: string; onClose: () => void }) 
               </div>
             </div>
           )}
-          <details>
-            <summary className="cursor-pointer text-sm font-semibold">
-              Complete validation identity
-            </summary>
-            <div className="mt-4">
-              <CodePayload
-                label="Exact report and graph"
-                value={{
-                  graphDigest: detail.validation.graphDigest,
-                  fixtureSetDigest: detail.validation.fixtureSetDigest,
-                  renderer: detail.validation.renderer,
-                  validator: detail.validation.validator,
-                  reportDigest: detail.validation.reportDigest,
-                  validationId: id,
-                  revisionId: detail.template.revision.id,
-                }}
-              />
-            </div>
-          </details>
+
           {eligible && (
             <div className="space-y-4 border-t pt-5">
-              <label className="flex items-start gap-3 text-sm leading-6">
-                <input
-                  type="checkbox"
-                  className="mt-1 size-4 shrink-0 accent-primary"
-                  checked={visual}
-                  onChange={(event) => setVisual(event.target.checked)}
-                />
-                I reviewed every required sample PDF and its layout warnings for this template
-                revision and validation report.
-              </label>
+              <p className="text-sm">
+                Approve when the sample PDFs look right and you have reviewed any layout warnings.
+                Automated checks have passed.
+              </p>
               <Button
-                disabled={!visual || approve.isPending}
+                disabled={approve.isPending}
                 onClick={() => {
                   if (detail.validation.reportDigest)
                     approve.mutate({

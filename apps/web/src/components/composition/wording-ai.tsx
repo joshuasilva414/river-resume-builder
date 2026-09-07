@@ -3,6 +3,7 @@ import type {
   ReviewWordingRequest,
   StartWordingRequest,
 } from "@river/contracts";
+import type { AiSelection } from "@river/domain";
 import {
   canonicalJson,
   captureWordingTarget,
@@ -12,6 +13,7 @@ import {
 } from "@river/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, type RefObject, useEffect, useId, useRef, useState } from "react";
+import { AiSelector } from "~/components/ai-selection";
 import {
   EvidenceDialog,
   Failure,
@@ -288,6 +290,7 @@ function Launch({
   onClose: () => void;
   onSaved: (id: string) => void;
 }) {
+  const [ai, setAi] = useState<AiSelection>();
   const [goal, setGoal] = useState(
       "Use the posting’s terminology where the selected evidence supports it.",
     ),
@@ -307,10 +310,11 @@ function Launch({
           event.preventDefault();
           action.mutate({
             type: "generate",
-            data: { draftId: detail.draft.id, revision: detail.draft.revision, path, goal },
+            data: { ai, draftId: detail.draft.id, revision: detail.draft.revision, path, goal },
           });
         }}
       >
+        <AiSelector value={ai} onChange={setAi} />
         <FormField label="Wording goal">
           <Textarea
             value={goal}
@@ -332,15 +336,7 @@ function Launch({
           the Requirement Map are excluded.
         </p>
         <EvidenceLinks value={target.content.evidence} />
-        <details>
-          <summary className="min-h-11 cursor-pointer py-3 text-sm text-primary">
-            Exact posting supplied to AI
-          </summary>
-          <p className="font-mono text-[11px] break-all">Snapshot {detail.snapshot.id}</p>
-          <p className="mt-3 max-h-64 overflow-y-auto whitespace-pre-wrap break-words text-sm">
-            {detail.snapshot.text}
-          </p>
-        </details>
+
         <p className="text-sm">
           Generation does not change this draft. Review the full wording, meaning, and support
           before accepting a local override.
@@ -638,21 +634,10 @@ function Review({
                     <blockquote className="border-l-2 border-primary bg-muted p-4 whitespace-pre-wrap break-words">
                       {passage.quote}
                     </blockquote>
-                    <p className="font-mono text-[11px]">
-                      Posting offsets {passage.start}–{passage.end} · lines{" "}
-                      {input.snapshot.text.slice(0, passage.start).split("\n").length}–
-                      {input.snapshot.text.slice(0, passage.end).split("\n").length}
+                    <p className="text-xs text-muted-foreground">
+                      Posting lines {input.snapshot.text.slice(0, passage.start).split("\n").length}
+                      –{input.snapshot.text.slice(0, passage.end).split("\n").length}
                     </p>
-                    <details>
-                      <summary className="min-h-11 cursor-pointer py-3 text-sm text-primary">
-                        Locate in complete posting
-                      </summary>
-                      <p className="max-h-64 overflow-y-auto whitespace-pre-wrap break-words text-sm">
-                        {input.snapshot.text.slice(0, passage.start)}
-                        <mark>{passage.quote}</mark>
-                        {input.snapshot.text.slice(passage.end)}
-                      </p>
-                    </details>
                   </article>
                 ))}
               </>
@@ -670,27 +655,6 @@ function Review({
                 original values.
               </p>
             )}
-            <details>
-              <summary className="min-h-11 cursor-pointer py-3 text-sm text-primary">
-                Exact input and execution identity
-              </summary>
-              <div className="space-y-3 text-sm">
-                <p className="font-mono text-[11px] break-all">
-                  Task {detail.task.id} · {detail.task.profile.model} ·{" "}
-                  {detail.task.profile.contract}
-                </p>
-                <p className="font-mono text-[11px] break-all">
-                  Snapshot {input.snapshot.id} · target {input.targetDigest} · proposal{" "}
-                  {proposal?.digest ?? "Not generated"}
-                </p>
-                <p className="max-h-64 overflow-y-auto whitespace-pre-wrap break-words">
-                  {input.snapshot.text}
-                </p>
-                <pre className="max-h-80 overflow-auto rounded-sm bg-muted p-4 text-xs whitespace-pre-wrap break-all">
-                  {JSON.stringify(input, null, 2)}
-                </pre>
-              </div>
-            </details>
             {busy && (
               <p role="status" className="text-sm">
                 Finish saving or recovering this tab's draft before applying wording.

@@ -1,4 +1,5 @@
 import type {
+  CreateLibraryStarterRequest,
   InspectLibraryRequest,
   LibrarySearch,
   SaveLibraryRequest,
@@ -37,4 +38,11 @@ export const setLibraryArchived = (input: SetLibraryArchivedRequest) =>
     const actor = yield* Actor;
     const store = yield* Store;
     return yield* attempt(() => store.setLibraryArchived(actor, input));
+  });
+
+export const createLibraryStarter = (input: CreateLibraryStarterRequest) =>
+  Effect.gen(function* () {
+    const actor = yield* Actor,
+      store = yield* Store;
+    return yield* attempt(() => store.createLibraryStarter(actor, input));
   });

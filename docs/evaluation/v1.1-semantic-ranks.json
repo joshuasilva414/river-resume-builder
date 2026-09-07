@@ -1,0 +1,989 @@
+{
+  "success": true,
+  "model": "@cf/baai/bge-m3",
+  "elapsedMs": 1462,
+  "batchElapsedMs": [780, 450, 232],
+  "inputCharacters": 22678,
+  "queries": [
+    {
+      "id": "web",
+      "ranking": [
+        {
+          "id": "web-1",
+          "score": 0.8767774999411868
+        },
+        {
+          "id": "foreign",
+          "score": 0.8767696869399451
+        },
+        {
+          "id": "web-2",
+          "score": 0.7245969527672532
+        },
+        {
+          "id": "incidental-4",
+          "score": 0.6174503325121862
+        },
+        {
+          "id": "incidental-28",
+          "score": 0.613159642577723
+        },
+        {
+          "id": "incidental-8",
+          "score": 0.6127025489682791
+        },
+        {
+          "id": "incidental-12",
+          "score": 0.6110804402779072
+        },
+        {
+          "id": "incidental-40",
+          "score": 0.6105560703908859
+        },
+        {
+          "id": "incidental-68",
+          "score": 0.6102449634965149
+        },
+        {
+          "id": "incidental-88",
+          "score": 0.6092225535473956
+        },
+        {
+          "id": "incidental-108",
+          "score": 0.608947229855934
+        },
+        {
+          "id": "incidental-20",
+          "score": 0.6065143531989472
+        },
+        {
+          "id": "incidental-44",
+          "score": 0.6062562865130935
+        },
+        {
+          "id": "incidental-48",
+          "score": 0.6059966385064608
+        },
+        {
+          "id": "incidental-104",
+          "score": 0.6059741424393479
+        },
+        {
+          "id": "incidental-116",
+          "score": 0.605338006962052
+        },
+        {
+          "id": "incidental-124",
+          "score": 0.6052598821864312
+        },
+        {
+          "id": "incidental-76",
+          "score": 0.6046403951760811
+        },
+        {
+          "id": "incidental-24",
+          "score": 0.60449788585664
+        },
+        {
+          "id": "incidental-16",
+          "score": 0.6044365964857533
+        },
+        {
+          "id": "incidental-96",
+          "score": 0.603038421445047
+        },
+        {
+          "id": "incidental-120",
+          "score": 0.6024194769035709
+        },
+        {
+          "id": "incidental-128",
+          "score": 0.601490761267477
+        },
+        {
+          "id": "incidental-36",
+          "score": 0.6011772942307546
+        },
+        {
+          "id": "incidental-52",
+          "score": 0.5980930551097252
+        },
+        {
+          "id": "incidental-80",
+          "score": 0.5979088181676057
+        },
+        {
+          "id": "incidental-132",
+          "score": 0.5978631921251615
+        },
+        {
+          "id": "incidental-92",
+          "score": 0.5976082353131024
+        },
+        {
+          "id": "incidental-56",
+          "score": 0.5973462317797308
+        },
+        {
+          "id": "incidental-0",
+          "score": 0.5965011589978617
+        },
+        {
+          "id": "incidental-60",
+          "score": 0.5964297743824877
+        },
+        {
+          "id": "incidental-84",
+          "score": 0.5962181453016816
+        },
+        {
+          "id": "incidental-100",
+          "score": 0.5950250760246317
+        },
+        {
+          "id": "incidental-112",
+          "score": 0.5945457982367783
+        },
+        {
+          "id": "incidental-72",
+          "score": 0.5938374742890918
+        },
+        {
+          "id": "incidental-32",
+          "score": 0.5931344067698892
+        },
+        {
+          "id": "incidental-64",
+          "score": 0.588713473894501
+        },
+        {
+          "id": "web-3",
+          "score": 0.5114413636370349
+        },
+        {
+          "id": "storage-2",
+          "score": 0.4902959070428281
+        },
+        {
+          "id": "storage-3",
+          "score": 0.4850254903669226
+        },
+        {
+          "id": "delivery-3",
+          "score": 0.4430956878261994
+        },
+        {
+          "id": "security-1",
+          "score": 0.4421451796751265
+        },
+        {
+          "id": "archived",
+          "score": 0.4420581036165791
+        },
+        {
+          "id": "storage-1",
+          "score": 0.43803721282101193
+        },
+        {
+          "id": "stale",
+          "score": 0.4378798093558031
+        },
+        {
+          "id": "security-2",
+          "score": 0.4364212822188664
+        },
+        {
+          "id": "delivery-1",
+          "score": 0.4336219732955324
+        },
+        {
+          "id": "delivery-2",
+          "score": 0.4276880689860489
+        },
+        {
+          "id": "incidental-13",
+          "score": 0.42677547806080507
+        },
+        {
+          "id": "incidental-1",
+          "score": 0.4258912340474534
+        },
+        {
+          "id": "incidental-2",
+          "score": 0.4249450883471982
+        },
+        {
+          "id": "incidental-38",
+          "score": 0.42487283325993386
+        },
+        {
+          "id": "incidental-37",
+          "score": 0.42307461019830145
+        },
+        {
+          "id": "incidental-17",
+          "score": 0.4219714115785188
+        },
+        {
+          "id": "incidental-41",
+          "score": 0.4211937428396138
+        },
+        {
+          "id": "incidental-29",
+          "score": 0.4204463497985501
+        },
+        {
+          "id": "incidental-93",
+          "score": 0.420411501809576
+        },
+        {
+          "id": "incidental-101",
+          "score": 0.42039651457179666
+        },
+        {
+          "id": "incidental-105",
+          "score": 0.41977897334525566
+        },
+        {
+          "id": "incidental-9",
+          "score": 0.41796542659421215
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "ranking": [
+        {
+          "id": "security-1",
+          "score": 0.7721101776294708
+        },
+        {
+          "id": "archived",
+          "score": 0.7720716932756556
+        },
+        {
+          "id": "security-2",
+          "score": 0.6489935278178778
+        },
+        {
+          "id": "security-3",
+          "score": 0.6456302260692907
+        },
+        {
+          "id": "incidental-1",
+          "score": 0.5465724733902223
+        },
+        {
+          "id": "delivery-2",
+          "score": 0.5405404246534143
+        },
+        {
+          "id": "foreign",
+          "score": 0.5355584380800316
+        },
+        {
+          "id": "web-1",
+          "score": 0.5353496666592908
+        },
+        {
+          "id": "web-3",
+          "score": 0.5333639589724433
+        },
+        {
+          "id": "incidental-9",
+          "score": 0.5296045878054172
+        },
+        {
+          "id": "incidental-129",
+          "score": 0.5289128354118474
+        },
+        {
+          "id": "incidental-5",
+          "score": 0.5280926717911906
+        },
+        {
+          "id": "incidental-97",
+          "score": 0.5262690002329813
+        },
+        {
+          "id": "incidental-49",
+          "score": 0.5253289888228001
+        },
+        {
+          "id": "incidental-13",
+          "score": 0.524880843194814
+        },
+        {
+          "id": "incidental-69",
+          "score": 0.5245214162592771
+        },
+        {
+          "id": "incidental-29",
+          "score": 0.5242567951646396
+        },
+        {
+          "id": "incidental-89",
+          "score": 0.5241496334176381
+        },
+        {
+          "id": "incidental-85",
+          "score": 0.523428668909205
+        },
+        {
+          "id": "incidental-25",
+          "score": 0.5231554909551458
+        },
+        {
+          "id": "incidental-17",
+          "score": 0.5219738359541846
+        },
+        {
+          "id": "incidental-93",
+          "score": 0.5213044009406603
+        },
+        {
+          "id": "incidental-133",
+          "score": 0.5206405438177483
+        },
+        {
+          "id": "storage-2",
+          "score": 0.5197432313777924
+        },
+        {
+          "id": "incidental-81",
+          "score": 0.5191017189418511
+        },
+        {
+          "id": "incidental-61",
+          "score": 0.5188016734718927
+        },
+        {
+          "id": "incidental-109",
+          "score": 0.5187106348011847
+        },
+        {
+          "id": "incidental-41",
+          "score": 0.5185311273724899
+        },
+        {
+          "id": "incidental-73",
+          "score": 0.5183749804122845
+        },
+        {
+          "id": "incidental-57",
+          "score": 0.517329894260777
+        },
+        {
+          "id": "storage-3",
+          "score": 0.5167819033912799
+        },
+        {
+          "id": "incidental-101",
+          "score": 0.5166241795552875
+        },
+        {
+          "id": "incidental-33",
+          "score": 0.5164697630176948
+        },
+        {
+          "id": "incidental-37",
+          "score": 0.5162602426220736
+        },
+        {
+          "id": "incidental-77",
+          "score": 0.5154051261763883
+        },
+        {
+          "id": "incidental-53",
+          "score": 0.5152723281427274
+        },
+        {
+          "id": "incidental-45",
+          "score": 0.5147330547871092
+        },
+        {
+          "id": "incidental-65",
+          "score": 0.5140483883746682
+        },
+        {
+          "id": "incidental-125",
+          "score": 0.5127885760944267
+        },
+        {
+          "id": "incidental-113",
+          "score": 0.5120583886732918
+        },
+        {
+          "id": "incidental-121",
+          "score": 0.5118005150775319
+        },
+        {
+          "id": "incidental-105",
+          "score": 0.511702665428862
+        },
+        {
+          "id": "incidental-117",
+          "score": 0.506106609161968
+        },
+        {
+          "id": "delivery-3",
+          "score": 0.505522548457929
+        },
+        {
+          "id": "incidental-21",
+          "score": 0.5052802126578023
+        },
+        {
+          "id": "web-2",
+          "score": 0.4967455091996753
+        },
+        {
+          "id": "stale",
+          "score": 0.49573771223380786
+        },
+        {
+          "id": "storage-1",
+          "score": 0.49569432252303763
+        },
+        {
+          "id": "delivery-1",
+          "score": 0.48814443389883505
+        },
+        {
+          "id": "incidental-2",
+          "score": 0.43978287022936086
+        },
+        {
+          "id": "incidental-86",
+          "score": 0.4381734885539575
+        },
+        {
+          "id": "incidental-134",
+          "score": 0.43601527107968174
+        },
+        {
+          "id": "incidental-130",
+          "score": 0.43560707591918185
+        },
+        {
+          "id": "incidental-26",
+          "score": 0.4345019620598682
+        },
+        {
+          "id": "incidental-38",
+          "score": 0.43411994387817276
+        },
+        {
+          "id": "incidental-126",
+          "score": 0.43350941875679794
+        },
+        {
+          "id": "incidental-98",
+          "score": 0.432610934420141
+        },
+        {
+          "id": "incidental-6",
+          "score": 0.43161481331389456
+        },
+        {
+          "id": "incidental-54",
+          "score": 0.4310658229719843
+        },
+        {
+          "id": "incidental-94",
+          "score": 0.4310251733297641
+        }
+      ]
+    },
+    {
+      "id": "storage",
+      "ranking": [
+        {
+          "id": "stale",
+          "score": 0.8137829785660674
+        },
+        {
+          "id": "storage-1",
+          "score": 0.8137450313927289
+        },
+        {
+          "id": "storage-3",
+          "score": 0.7220609219375199
+        },
+        {
+          "id": "storage-2",
+          "score": 0.7108832605232013
+        },
+        {
+          "id": "incidental-2",
+          "score": 0.5380916445808415
+        },
+        {
+          "id": "incidental-6",
+          "score": 0.5301001249573511
+        },
+        {
+          "id": "incidental-106",
+          "score": 0.5296979146533297
+        },
+        {
+          "id": "incidental-110",
+          "score": 0.5284832368775622
+        },
+        {
+          "id": "incidental-126",
+          "score": 0.5273115511056469
+        },
+        {
+          "id": "security-1",
+          "score": 0.5269243291758011
+        },
+        {
+          "id": "archived",
+          "score": 0.5268303067624328
+        },
+        {
+          "id": "incidental-118",
+          "score": 0.5263428231098013
+        },
+        {
+          "id": "incidental-38",
+          "score": 0.5254116047882508
+        },
+        {
+          "id": "incidental-34",
+          "score": 0.5253368946445184
+        },
+        {
+          "id": "incidental-134",
+          "score": 0.5250914390882466
+        },
+        {
+          "id": "incidental-94",
+          "score": 0.5247114662216985
+        },
+        {
+          "id": "incidental-10",
+          "score": 0.5242699508318733
+        },
+        {
+          "id": "incidental-14",
+          "score": 0.5242061258042303
+        },
+        {
+          "id": "incidental-102",
+          "score": 0.5240320618972959
+        },
+        {
+          "id": "incidental-122",
+          "score": 0.5239828175748983
+        },
+        {
+          "id": "incidental-74",
+          "score": 0.5236458552131017
+        },
+        {
+          "id": "incidental-98",
+          "score": 0.5235485228035875
+        },
+        {
+          "id": "incidental-66",
+          "score": 0.5235388146483708
+        },
+        {
+          "id": "incidental-26",
+          "score": 0.5232066491680224
+        },
+        {
+          "id": "incidental-46",
+          "score": 0.5229587722285296
+        },
+        {
+          "id": "incidental-86",
+          "score": 0.5227486638556698
+        },
+        {
+          "id": "incidental-130",
+          "score": 0.5226814986936623
+        },
+        {
+          "id": "incidental-58",
+          "score": 0.5225777141599849
+        },
+        {
+          "id": "incidental-42",
+          "score": 0.5222944030351306
+        },
+        {
+          "id": "incidental-114",
+          "score": 0.5213323976062708
+        },
+        {
+          "id": "incidental-30",
+          "score": 0.5212441162110394
+        },
+        {
+          "id": "incidental-54",
+          "score": 0.520438330587811
+        },
+        {
+          "id": "incidental-50",
+          "score": 0.5202757057652089
+        },
+        {
+          "id": "incidental-22",
+          "score": 0.5199284525763868
+        },
+        {
+          "id": "incidental-82",
+          "score": 0.5195303426293423
+        },
+        {
+          "id": "incidental-70",
+          "score": 0.5186796104769781
+        },
+        {
+          "id": "incidental-78",
+          "score": 0.5183122003208126
+        },
+        {
+          "id": "incidental-90",
+          "score": 0.51790456125103
+        },
+        {
+          "id": "incidental-62",
+          "score": 0.5168844718830086
+        },
+        {
+          "id": "incidental-18",
+          "score": 0.5100263051587016
+        },
+        {
+          "id": "security-3",
+          "score": 0.5068332746603185
+        },
+        {
+          "id": "delivery-2",
+          "score": 0.4916547877771706
+        },
+        {
+          "id": "delivery-3",
+          "score": 0.4797700115017589
+        },
+        {
+          "id": "foreign",
+          "score": 0.46937648587177
+        },
+        {
+          "id": "web-1",
+          "score": 0.4692728620480441
+        },
+        {
+          "id": "delivery-1",
+          "score": 0.46332183484833844
+        },
+        {
+          "id": "web-2",
+          "score": 0.4525692543895122
+        },
+        {
+          "id": "web-3",
+          "score": 0.44289486520395627
+        },
+        {
+          "id": "security-2",
+          "score": 0.4422611483029015
+        },
+        {
+          "id": "incidental-124",
+          "score": 0.39239092085564
+        },
+        {
+          "id": "incidental-4",
+          "score": 0.3898001144375024
+        },
+        {
+          "id": "incidental-120",
+          "score": 0.38949225529007275
+        },
+        {
+          "id": "incidental-100",
+          "score": 0.38944644218237356
+        },
+        {
+          "id": "incidental-0",
+          "score": 0.3891885684656604
+        },
+        {
+          "id": "incidental-112",
+          "score": 0.38880192835313127
+        },
+        {
+          "id": "incidental-12",
+          "score": 0.387817188638769
+        },
+        {
+          "id": "incidental-16",
+          "score": 0.3877111433792445
+        },
+        {
+          "id": "incidental-36",
+          "score": 0.3875317244902405
+        },
+        {
+          "id": "incidental-60",
+          "score": 0.38742155498299113
+        },
+        {
+          "id": "incidental-32",
+          "score": 0.3871589438560323
+        }
+      ]
+    },
+    {
+      "id": "delivery",
+      "ranking": [
+        {
+          "id": "delivery-1",
+          "score": 0.7561433129379062
+        },
+        {
+          "id": "delivery-2",
+          "score": 0.6939201852779461
+        },
+        {
+          "id": "delivery-3",
+          "score": 0.5418827147163702
+        },
+        {
+          "id": "security-1",
+          "score": 0.5367407070229828
+        },
+        {
+          "id": "archived",
+          "score": 0.53652626319207
+        },
+        {
+          "id": "stale",
+          "score": 0.506662173564302
+        },
+        {
+          "id": "storage-1",
+          "score": 0.5066278451400446
+        },
+        {
+          "id": "storage-3",
+          "score": 0.48449468993663486
+        },
+        {
+          "id": "storage-2",
+          "score": 0.4819811790486809
+        },
+        {
+          "id": "incidental-3",
+          "score": 0.4774426877697195
+        },
+        {
+          "id": "incidental-127",
+          "score": 0.46769316524698873
+        },
+        {
+          "id": "incidental-123",
+          "score": 0.46726007058542646
+        },
+        {
+          "id": "incidental-87",
+          "score": 0.4654646203424087
+        },
+        {
+          "id": "incidental-15",
+          "score": 0.46539210959866023
+        },
+        {
+          "id": "incidental-43",
+          "score": 0.4647016008821561
+        },
+        {
+          "id": "foreign",
+          "score": 0.4632697438944897
+        },
+        {
+          "id": "web-1",
+          "score": 0.4631734225627297
+        },
+        {
+          "id": "incidental-63",
+          "score": 0.46282188271456803
+        },
+        {
+          "id": "incidental-83",
+          "score": 0.46268760979263573
+        },
+        {
+          "id": "incidental-95",
+          "score": 0.46191976507501376
+        },
+        {
+          "id": "incidental-27",
+          "score": 0.46185635867649727
+        },
+        {
+          "id": "incidental-23",
+          "score": 0.4616663039058315
+        },
+        {
+          "id": "incidental-47",
+          "score": 0.4615188196947374
+        },
+        {
+          "id": "incidental-107",
+          "score": 0.4614072024081893
+        },
+        {
+          "id": "incidental-67",
+          "score": 0.4613089841390192
+        },
+        {
+          "id": "incidental-103",
+          "score": 0.4607592074932789
+        },
+        {
+          "id": "incidental-135",
+          "score": 0.4585747270004787
+        },
+        {
+          "id": "incidental-31",
+          "score": 0.45806333162107943
+        },
+        {
+          "id": "incidental-75",
+          "score": 0.4573304771920958
+        },
+        {
+          "id": "incidental-59",
+          "score": 0.4573215086979459
+        },
+        {
+          "id": "incidental-39",
+          "score": 0.45714807160873516
+        },
+        {
+          "id": "incidental-55",
+          "score": 0.45631140257673963
+        },
+        {
+          "id": "incidental-7",
+          "score": 0.45615892932384616
+        },
+        {
+          "id": "incidental-51",
+          "score": 0.45601887678945424
+        },
+        {
+          "id": "incidental-91",
+          "score": 0.4551023400308052
+        },
+        {
+          "id": "incidental-35",
+          "score": 0.4543870217186876
+        },
+        {
+          "id": "incidental-131",
+          "score": 0.4542231934485769
+        },
+        {
+          "id": "incidental-115",
+          "score": 0.453405074383853
+        },
+        {
+          "id": "incidental-99",
+          "score": 0.45332600624504926
+        },
+        {
+          "id": "incidental-11",
+          "score": 0.4530524713945435
+        },
+        {
+          "id": "incidental-79",
+          "score": 0.4492584061553599
+        },
+        {
+          "id": "incidental-19",
+          "score": 0.4479824205954331
+        },
+        {
+          "id": "incidental-111",
+          "score": 0.447938710582805
+        },
+        {
+          "id": "incidental-119",
+          "score": 0.4455884367209853
+        },
+        {
+          "id": "web-3",
+          "score": 0.4444086717809672
+        },
+        {
+          "id": "incidental-71",
+          "score": 0.44318497487306524
+        },
+        {
+          "id": "web-2",
+          "score": 0.4321775330314661
+        },
+        {
+          "id": "security-3",
+          "score": 0.4316051446342259
+        },
+        {
+          "id": "security-2",
+          "score": 0.40389629774113617
+        },
+        {
+          "id": "incidental-2",
+          "score": 0.37270887956090676
+        },
+        {
+          "id": "incidental-37",
+          "score": 0.369037665338789
+        },
+        {
+          "id": "incidental-50",
+          "score": 0.3672663417202565
+        },
+        {
+          "id": "incidental-1",
+          "score": 0.36678099789763463
+        },
+        {
+          "id": "incidental-130",
+          "score": 0.3660126308720949
+        },
+        {
+          "id": "incidental-57",
+          "score": 0.36486997646762576
+        },
+        {
+          "id": "incidental-102",
+          "score": 0.36267413650203845
+        },
+        {
+          "id": "incidental-86",
+          "score": 0.36246133079663145
+        },
+        {
+          "id": "incidental-106",
+          "score": 0.36191215242401875
+        },
+        {
+          "id": "incidental-30",
+          "score": 0.36153330196826683
+        },
+        {
+          "id": "incidental-93",
+          "score": 0.3614916403763595
+        }
+      ]
+    }
+  ]
+}

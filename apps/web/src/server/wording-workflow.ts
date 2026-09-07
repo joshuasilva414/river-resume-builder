@@ -1,9 +1,9 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { createRepository } from "@river/db";
-import { canonicalJson } from "@river/domain";
-import { Effect } from "effect";
+import { ApplicationError } from "@river/domain";
+import { loadAiCredential } from "./ai-settings";
 import type { Env } from "./env";
-import { generateWording, wordingProfile } from "./wording-provider";
+import { generateWording } from "./wording-provider";
 
 export class WordingWorkflow extends WorkflowEntrypoint<Env, { operationId: string }> {
   async run(event: WorkflowEvent<{ operationId: string }>, step: WorkflowStep) {
@@ -25,26 +25,23 @@ export class WordingWorkflow extends WorkflowEntrypoint<Env, { operationId: stri
             return;
           const detail = await repository.inspectWording(operation.ownerId, operation.input.taskId);
           if (detail.task.latestOperationId !== id || detail.proposal) return;
-          const profile = wordingProfile(this.env);
-          if (
-            !profile ||
-            !this.env.OPENAI_API_KEY ||
-            canonicalJson(profile) !== canonicalJson(detail.task.profile)
-          )
-            throw new Error("Profile unavailable");
+          const profile = detail.task.profile;
+          const apiKey = await loadAiCredential(
+            this.env,
+            repository,
+            operation.ownerId,
+            profile.connection,
+          );
           await repository.updateOperation(id, {
             state: "Running",
             stage: "Generating reviewed proposal",
           });
-          const result = await Effect.runPromise(
-            Effect.tryPromise({
-              try: () => generateWording(this.env.OPENAI_API_KEY ?? "", detail.task.input, profile),
-              catch: () => new Error("AI provider unavailable"),
-            }).pipe(
-              Effect.withSpan("river.wording", {
-                attributes: { operationId: id, draftId: detail.task.draftId },
-              }),
-            ),
+          const result = await generateWording(
+            apiKey,
+            detail.task.input,
+            profile,
+            fetch,
+            (metadata) => repository.recordAiExecution(operation.ownerId, id, metadata),
           );
           await repository.updateOperation(id, {
             state: "Running",
@@ -53,13 +50,15 @@ export class WordingWorkflow extends WorkflowEntrypoint<Env, { operationId: stri
           await repository.publishWording(operation.ownerId, detail.task.id, id, result);
         },
       );
-    } catch {
+    } catch (error) {
       await step.do("record-safe-failure", () =>
         repository.updateOperation(id, {
           state: "Failed",
           stage: "Wording assistance failed",
           failure:
-            "The configured provider, output validation, or proposal save failed. No proposal was applied. Continue manually or retry within this task's three-attempt limit.",
+            error instanceof ApplicationError && error.code === "Unavailable"
+              ? error.message
+              : "The configured provider, output validation, or proposal save failed. No proposal was applied. Continue manually or retry within this task's three-attempt limit.",
         }),
       );
       throw new Error(`AI operation ${id} failed`);

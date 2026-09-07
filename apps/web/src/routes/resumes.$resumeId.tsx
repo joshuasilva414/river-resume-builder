@@ -359,8 +359,8 @@ function Editor({ detail }: { detail: ResumeDetail }) {
               <div className="space-y-3 py-8">
                 <h2 className="font-editorial text-2xl">Add your first section.</h2>
                 <p className="text-sm text-muted-foreground">
-                  Choose a reusable Section or create one with compatible Blocks. Start with a
-                  contact/header Section for the PDF.
+                  Choose a saved section or create one. Start with your contact details so the PDF
+                  can include your name.
                 </p>
               </div>
             )}
@@ -429,8 +429,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                   </Button>
                 </div>
                 <p className="eyebrow">
-                  {section.reason ? "Local composition" : "Pinned library Section"} ·{" "}
-                  {section.reference.revisionId.slice(-8)}
+                  {section.reason ? "Changed for this résumé" : "Saved from your library"}
                 </p>
                 {section.type !== "contact" && (
                   <FormField label="Printed section heading">
@@ -456,7 +455,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                       <Button
                         size="icon"
                         variant="ghost"
-                        aria-label={`Move block ${blockIndex + 1} up`}
+                        aria-label={`Move entry ${blockIndex + 1} up`}
                         disabled={blockIndex === 0}
                         onClick={() =>
                           changeSection({
@@ -471,7 +470,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                       <Button
                         size="icon"
                         variant="ghost"
-                        aria-label={`Move block ${blockIndex + 1} down`}
+                        aria-label={`Move entry ${blockIndex + 1} down`}
                         disabled={blockIndex === section.blocks.length - 1}
                         onClick={() =>
                           changeSection({
@@ -493,7 +492,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                           })
                         }
                       >
-                        Remove block
+                        Remove entry
                       </Button>
                       <Button
                         variant="outline"
@@ -502,7 +501,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                           setReuse({ sectionId: section.id, blockId: block.id, contentId: null })
                         }
                       >
-                        Inspect block reuse
+                        Inspect entry reuse
                       </Button>
                       <Button
                         variant="outline"
@@ -511,7 +510,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                           setCopy({ sectionId: section.id, blockId: block.id, contentId: null })
                         }
                       >
-                        Copy block
+                        Copy entry
                       </Button>
                     </div>
                     {block.reason && (
@@ -537,9 +536,8 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                                   {value.wording}
                                 </p>
                                 <p className="eyebrow">
-                                  {content.override ? "Local wording" : "Pinned Content"} ·{" "}
-                                  {content.reference.revisionId.slice(-8)} · {value.evidence.length}{" "}
-                                  evidence links
+                                  {content.override ? "Wording changed here" : "Saved wording"} ·{" "}
+                                  {value.evidence.length} evidence links
                                 </p>
                                 <div className="flex flex-wrap gap-2">
                                   <Button
@@ -685,7 +683,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                             >
                               {field.max === 1 && contents.length
                                 ? "Replace from library"
-                                : "Add content"}
+                                : "Add wording"}
                             </Button>
                           )}
                         </section>
@@ -701,7 +699,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                         setPicker({ kind: "block", type: section.type, sectionId: section.id })
                       }
                     >
-                      Add block
+                      Add entry
                     </Button>
                     <Button
                       variant="outline"
@@ -709,7 +707,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                         setCreating({ kind: "block", type: section.type, sectionId: section.id })
                       }
                     >
-                      Create reusable block
+                      Create reusable entry
                     </Button>
                   </div>
                 )}

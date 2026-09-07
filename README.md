@@ -4,7 +4,7 @@ Private workspaces for turning job postings and experience into tailored résum�
 
 **Implementation status:** V1 and the private-account extension are deployed to staging and production. See the [implementation status](docs/implementation/status.md) and [multi-user operation](docs/implementation/multi-user.md) for verification and account admission.
 
-See [CI and automatic deployments](docs/implementation/ci-cd.md) for the dev → staging → main branch flow, Cloudflare build settings, and release safeguards.
+See [Contributing to River](contributions.md) for the Git workflow, local checks, and release process. [CI and automatic deployments](docs/implementation/ci-cd.md) covers Cloudflare settings and release safeguards.
 
 ## Run locally
 
@@ -32,7 +32,7 @@ Create an account using `ADMIN_EMAIL` or an address in the comma-separated `ALLO
 - `pnpm test:documents`: build a Linux/amd64 image, run offline PDF/DOCX fixtures with a 512 MiB memory limit and one CPU, then remove the temporary test Container. Results are under `apps/documents/test-results/`.
 - `pnpm --filter @river/web build`: build the application for Workers.
 
-GitHub Actions runs these checks. The workflow has been added but has not run on GitHub yet.
+GitHub Actions runs verification on pull requests and pushes to `dev`, `staging`, and `main`. Cloudflare independently checks and deploys pushes to `staging` and `main`; see [the contribution guide](contributions.md#cloudflare-deployments) for deployment triggers and exclusions.
 
 ## Workspace boundaries
 

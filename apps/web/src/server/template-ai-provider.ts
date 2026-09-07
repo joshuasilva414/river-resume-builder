@@ -1,14 +1,14 @@
+import type { AiModelConfiguration } from "@river/domain";
 import { type TemplateAiInput, TemplateAiOutput, type TemplateAiProfile } from "@river/templates";
 import { Schema } from "effect";
-import { generateAiProposal } from "./ai-provider";
-import type { Env } from "./env";
+import { type AiExecutionObserver, generateAiProposal } from "./ai-provider";
 
 export function templateAiProfile(
-  env: Pick<Env, "OPENAI_API_KEY" | "OPENAI_TEMPLATE_MODEL">,
+  configuration: AiModelConfiguration | null,
 ): TemplateAiProfile | null {
-  return env.OPENAI_API_KEY && env.OPENAI_TEMPLATE_MODEL
+  return configuration
     ? {
-        model: env.OPENAI_TEMPLATE_MODEL,
+        ...configuration,
         contract: "river-template-generation-v3",
         maxInputCharacters: 160000,
         maxOutputTokens: 12000,
@@ -31,6 +31,7 @@ export const generateTemplateCandidate = (
   input: TemplateAiInput,
   profile: TemplateAiProfile,
   transport: typeof fetch = fetch,
+  onExecution?: AiExecutionObserver,
 ) =>
   generateAiProposal(
     apiKey,
@@ -42,4 +43,5 @@ export const generateTemplateCandidate = (
     "template_component",
     templateAiOutputSchema(),
     transport,
+    onExecution,
   );

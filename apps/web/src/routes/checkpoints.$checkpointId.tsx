@@ -197,20 +197,20 @@ function Review({ detail }: { detail: Detail }) {
             Check the document before exporting.
           </h2>
           <p className="text-sm text-muted-foreground">
-            The PDF, text and report below belong to this checkpoint. Newer draft edits do not
-            change these files.
+            The PDF and text below belong to this checkpoint. Newer draft edits do not change these
+            files.
           </p>
           <div className="divide-y">
             <Check
-              label="Document compiles"
+              label="PDF prepared"
               status={operation?.artifacts ? "Passed" : active ? "Pending" : "Blocked"}
             />
             <Check
-              label="Prohibited constructs"
+              label="Template checks"
               status={matchingRuntime ? "Passed" : active ? "Pending" : "Not validated"}
             />
             <Check
-              label="Text integrity"
+              label="Wording preserved"
               status={validation ? (validation.passed ? "Passed" : "Blocked") : "Pending"}
             />
             <Check
@@ -349,13 +349,7 @@ function Review({ detail }: { detail: Detail }) {
               <details>
                 <summary className="cursor-pointer py-3 text-sm text-primary">More formats</summary>
                 <div className="flex flex-wrap gap-4">
-                  {(
-                    [
-                      ["tex", "LaTeX (.tex)"],
-                      ["text", "Extracted text (.txt)"],
-                      ["report", "Validation report (.json)"],
-                    ] as const
-                  ).map(([kind, label]) => (
+                  {([["text", "Plain text (.txt)"]] as const).map(([kind, label]) => (
                     <a
                       key={kind}
                       className="py-3 text-sm text-primary underline"
@@ -376,41 +370,13 @@ function Review({ detail }: { detail: Detail }) {
           )}
           {detail.source && (
             <section className="space-y-3 border-t pt-5">
-              <h3 className="text-xl">Accepted source checkpoint</h3>
+              <h3 className="text-xl">Refined document</h3>
               <p className="text-sm">
-                This document has a reviewed source override. Its original structured tree is
-                retained separately.
-              </p>
-              <p className="break-all font-mono text-xs">
-                Base {detail.source.baseCheckpointId} · Original structured base{" "}
-                {detail.source.structuredBaseId}
+                This document includes reviewed layout or wording changes. You can still return to
+                its earlier editor version.
               </p>
             </section>
           )}
-          <details>
-            <summary className="cursor-pointer text-sm text-primary">
-              Checkpoint and original review details
-            </summary>
-            <div className="mt-4 space-y-3 text-sm">
-              <p>Checkpoint {checkpoint.id}</p>
-              <p>Posting snapshot {checkpoint.snapshotId}</p>
-              <p>Review {report.id}</p>
-              <p className="break-all">Issue digest {report.digest}</p>
-              <p>Policy {report.policyVersion}</p>
-              <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all text-xs">
-                {JSON.stringify(
-                  {
-                    exported,
-                    acknowledgments: detail.acknowledgments,
-                    artifacts: operation?.artifacts,
-                    templateIdentity: JSON.parse(checkpoint.templateIdentity),
-                  },
-                  null,
-                  2,
-                )}
-              </pre>
-            </div>
-          </details>
         </section>
         <aside className="min-w-0 space-y-4 bg-muted/40 p-5 md:p-7 xl:overflow-y-auto">
           <p className="eyebrow">
@@ -421,7 +387,7 @@ function Review({ detail }: { detail: Detail }) {
               <TabsList>
                 <TabsTrigger value="pdf">PDF</TabsTrigger>
                 <TabsTrigger value="text">Extracted text</TabsTrigger>
-                <TabsTrigger value="report">Report</TabsTrigger>
+                <TabsTrigger value="report">Text checks</TabsTrigger>
               </TabsList>
               <TabsContent value="pdf">
                 <PdfPreview url={`/api/artifacts/${operation.id}/pdf`} />
@@ -468,11 +434,11 @@ function Review({ detail }: { detail: Detail }) {
                     {validation.checks && (
                       <div>
                         <Check
-                          label="Completeness"
+                          label="All wording present"
                           status={validation.checks.completeness ? "Passed" : "Blocked"}
                         />
                         <Check
-                          label="Expected multiplicity"
+                          label="Repeated wording preserved"
                           status={validation.checks.multiplicity ? "Passed" : "Blocked"}
                         />
                         <Check
@@ -482,40 +448,17 @@ function Review({ detail }: { detail: Detail }) {
                       </div>
                     )}
                     <p className="text-xs">
-                      {validation.normalization} · {validation.pageCount ?? "Unknown"} pages
+                      {validation.pageCount ?? "Unknown"}{" "}
+                      {validation.pageCount === 1 ? "page" : "pages"}
                     </p>
                     {validation.firstDifference && (
                       <div className="space-y-2 border-l-2 border-destructive p-4">
                         <p className="text-sm font-semibold">First text difference</p>
-                        <p className="break-all font-mono text-xs">
-                          {validation.firstDifference.locator}
-                        </p>
                         <p className="whitespace-pre-wrap text-sm">
                           {validation.firstDifference.expectedText}
                         </p>
-                        <p className="text-xs">
-                          Normalized text offset {validation.firstDifference.expectedOffset}
-                        </p>
                       </div>
                     )}
-                    <details open={!validation.passed}>
-                      <summary className="cursor-pointer text-sm text-primary">
-                        Compare complete expected and extracted text
-                      </summary>
-                      <div className="mt-4 grid gap-4">
-                        {[
-                          ["Expected", validation.expectedText],
-                          ["Extracted", validation.extractedText],
-                        ].map(([label, value]) => (
-                          <div key={label}>
-                            <h3 className="mb-2 font-semibold">{label}</h3>
-                            <pre className="overflow-auto whitespace-pre-wrap break-words border bg-background p-3 text-xs">
-                              {value}
-                            </pre>
-                          </div>
-                        ))}
-                      </div>
-                    </details>
                   </>
                 )}
               </TabsContent>
@@ -620,7 +563,7 @@ function Acknowledgments({ detail: current, onClose }: { detail: Detail; onClose
   return (
     <EvidenceDialog
       title="Review evidence for this checkpoint"
-      description={`Checkpoint ${detail.checkpoint.id.slice(-8)} · Report ${detail.report.id.slice(-8)}. Each choice applies only to this checkpoint and issue set.`}
+      description="Each acknowledgment applies to this saved résumé and the issues shown below. It does not verify the evidence."
       onClose={onClose}
       dirty={selected.some((id) => !detail.acknowledgments.some((ack) => ack.issueId === id))}
       pending={save.isPending}
@@ -662,7 +605,6 @@ function Acknowledgments({ detail: current, onClose }: { detail: Detail; onClose
                     Inspect captured assertion, citations and context
                   </summary>
                   <MaterialSummary material={captured.material} contexts={captured.contexts} />
-                  <p className="my-3 font-mono text-xs">Evidence Revision {captured.revisionId}</p>
                   <EvidenceLinks
                     value={[{ claimId: captured.claimId, revisionId: captured.revisionId }]}
                   />

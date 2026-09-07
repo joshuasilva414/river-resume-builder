@@ -2,6 +2,8 @@
 
 Status: V1 is released at https://river.jilva.dev on the personal Cloudflare account. All three phases are implemented. Final-domain Owner sign-in, recovery email receipt, the approved fictional document/export test, scheduled backup and isolated restore pass. A prepared-workspace real tailoring/export session took 4 minutes 23 seconds with agent assistance; this is not first-use or unaided Owner timing. See [implementation status](docs/implementation/status.md), [release evidence](docs/implementation/release-gates.md) and [production acceptance](docs/implementation/production.md).
 
+V1.1 is released to production. OpenAI connection setup, all seven AI task families, exact PDF/DOCX claims, and refined export pass on staging. Production connection, fictional claim/PDF export, data preservation and backup/restore pass. See [production release evidence](docs/implementation/v1.1-production.md). See [v1.1 delivery status](docs/implementation/v1.1.md), [Paper designs](docs/implementation/v1.1-paper.md), and [BYOK cutover](docs/implementation/v1.1-cutover.md). The V1 release evidence below remains historical.
+
 ## Approved implementation decisions
 
 - The Owner authorizes overriding staging application UI decisions for testing. Label test acknowledgments and lifecycle decisions; they do not establish evidence verification or production approval.
@@ -46,7 +48,7 @@ All three delivery phases constitute V1. Phase 1 includes checkpoint storage and
 | Account authentication | Better Auth, GitHub OAuth and allowlisted email/password | Verification/reset emails; revocable D1 sessions for 30 days; no KV or cookie session cache |
 | Authentication email | Cloudflare Email Service binding | Restrict senders to the application domain; application admission policy restricts recipients |
 | Agent authentication | Named scoped bearer credentials | One-time secret display, stored hash, expiration/revocation; shared REST/MCP services |
-| AI | OpenAI, server-side deployment secret | OpenAI SDK 7.10.0; task profiles pin gpt-5.4-mini-2026-03-17 |
+| AI | AI SDK 7; personal OpenAI, Anthropic, Gemini and OpenRouter connections | Encrypted account keys, provider catalogs and captured per-task model/credential revisions; Effect validates returned output |
 | Diagnostics | Effect structured logs/spans into Workers Observability | Correlation identifiers without private document content |
 | Tests | Vitest, matching @effect/vitest, cloudflare:test, Playwright | Pure rules, service behavior, platform integration, critical owner journeys |
 

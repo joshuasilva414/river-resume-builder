@@ -1,13 +1,13 @@
+import type { AiModelConfiguration } from "@river/domain";
 import { type DuplicateAiInput, DuplicateAiOutput, type DuplicateAiProfile } from "@river/domain";
 import { Schema } from "effect";
-import { generateAiProposal } from "./ai-provider";
-import type { Env } from "./env";
+import { type AiExecutionObserver, generateAiProposal } from "./ai-provider";
 export function duplicateAiProfile(
-  env: Pick<Env, "OPENAI_API_KEY" | "OPENAI_DUPLICATE_MODEL">,
+  configuration: AiModelConfiguration | null,
 ): DuplicateAiProfile | null {
-  return env.OPENAI_API_KEY && env.OPENAI_DUPLICATE_MODEL
+  return configuration
     ? {
-        model: env.OPENAI_DUPLICATE_MODEL,
+        ...configuration,
         contract: "river-duplicate-comparison-v1",
         maxInputCharacters: 160000,
         maxOutputTokens: 8000,
@@ -30,6 +30,7 @@ export const generateDuplicateComparison = (
   input: DuplicateAiInput,
   profile: DuplicateAiProfile,
   transport: typeof fetch = fetch,
+  onExecution?: AiExecutionObserver,
 ) =>
   generateAiProposal(
     apiKey,
@@ -39,4 +40,5 @@ export const generateDuplicateComparison = (
     "duplicate_comparison",
     duplicateAiOutputSchema(),
     transport,
+    onExecution,
   );

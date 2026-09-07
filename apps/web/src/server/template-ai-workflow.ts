@@ -4,10 +4,11 @@ import { createRepository } from "@river/db";
 import { canonicalJson, fingerprint } from "@river/domain";
 import { CUSTOM_RENDERER_VERSION, fixtureSetPayload, graphInventory } from "@river/templates";
 import { Schema } from "effect";
+import { loadAiCredential } from "./ai-settings";
 import { storeCompiledArtifacts } from "./compiled-artifacts";
 import type { Env } from "./env";
 import { cleanRejectedTemplatePreviews } from "./template-ai-cleanup";
-import { generateTemplateCandidate, templateAiProfile } from "./template-ai-provider";
+import { generateTemplateCandidate } from "./template-ai-provider";
 
 export class TemplateAiWorkflow extends WorkflowEntrypoint<Env, { operationId: string }> {
   async run(event: WorkflowEvent<{ operationId: string }>, step: WorkflowStep) {
@@ -32,22 +33,23 @@ export class TemplateAiWorkflow extends WorkflowEntrypoint<Env, { operationId: s
             operation.input.taskId,
           );
           if (detail.task.latestOperationId !== id || detail.proposal) return;
-          const profile = templateAiProfile(this.env);
-          if (
-            !profile ||
-            !this.env.OPENAI_API_KEY ||
-            canonicalJson({ ...profile, contract: detail.task.profile.contract }) !==
-              canonicalJson(detail.task.profile)
-          )
-            throw new Error("Template profile unavailable");
+          const profile = detail.task.profile;
+          const apiKey = await loadAiCredential(
+            this.env,
+            repository,
+            operation.ownerId,
+            profile.connection,
+          );
           await repository.updateOperation(id, {
             state: "Running",
             stage: "Generating scoped template proposal",
           });
           const output = await generateTemplateCandidate(
-            this.env.OPENAI_API_KEY,
+            apiKey,
             detail.task.input,
             detail.task.profile,
+            fetch,
+            (metadata) => repository.recordAiExecution(operation.ownerId, id, metadata),
           );
           await repository.publishTemplateCandidate(operation.ownerId, detail.task.id, id, output);
         },

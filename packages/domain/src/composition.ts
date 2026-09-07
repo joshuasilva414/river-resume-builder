@@ -240,7 +240,7 @@ export function renderComposition(
 ): ResumeDocument {
   validateComposition(data, graph);
   const contact = data.sections.find((section) => section.type === "contact")?.blocks[0];
-  if (!contact) fail("Add a contact/header Block with a name before previewing.");
+  if (!contact) fail("Add your name in a contact section before previewing.");
   const words = (block: BlockPlacement, key: string) =>
     (block.fields.find((field) => field.key === key)?.contents ?? []).map(
       (content) => contentValue(content, graph).wording,

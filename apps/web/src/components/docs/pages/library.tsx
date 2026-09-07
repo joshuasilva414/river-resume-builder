@@ -3,10 +3,35 @@ import { type Guide, GuideLink } from "../shared";
 export const library = {
   slug: "library",
   title: "Build reusable sections",
-  description:
-    "Save résumé wording as content items, arrange the items in blocks, and group the blocks into sections.",
+  description: "Fill a starter with your own details and reuse it across résumés.",
   group: "How-to guides",
   sections: [
+    {
+      id: "starters",
+      title: "Start with your details",
+      body: (
+        <>
+          <p>
+            Open Content library and choose Contact, Summary, Experience, Projects, Education,
+            Skills, or Credentials under Start with the essentials.
+          </p>
+          <ol>
+            <li>Enter a name in Save as.</li>
+            <li>Fill in your own wording. For a field with several items, enter one per line.</li>
+            <li>Select Save to library.</li>
+          </ol>
+          <p>
+            River saves the complete reusable section together. Nothing is added when you cancel.
+            Starters contain headings and empty fields, not example qualifications. New wording
+            remains unverified until you link and review its evidence.
+          </p>
+          <p>
+            When editing an entry, child forms and evidence pickers replace the current view. Back
+            returns to your unsaved parent form. Discard confirmation appears in the same editor.
+          </p>
+        </>
+      ),
+    },
     {
       id: "create",
       title: "Save a content item",
@@ -19,10 +44,10 @@ export const library = {
           <p>To save a piece of wording, follow these steps.</p>
           <ol>
             <li>
-              Open <strong>Content library → Content items</strong>.
+              Open <strong>Content library → Individual wording</strong>.
             </li>
             <li>
-              Select <strong>New content item</strong>.
+              Select <strong>New wording</strong>.
             </li>
             <li>
               Enter a <strong>Library label</strong>.
@@ -41,7 +66,7 @@ export const library = {
               Select <strong>Link this revision</strong>.
             </li>
             <li>
-              Select <strong>Create content item</strong>.
+              Select <strong>Create wording</strong>.
             </li>
           </ol>
           <p>
@@ -59,10 +84,10 @@ export const library = {
           <p>To combine content into an entry, create a block of the matching type.</p>
           <ol>
             <li>
-              In <strong>Content library</strong>, select <strong>Blocks</strong>.
+              In <strong>Content library</strong>, select <strong>Entries</strong>.
             </li>
             <li>
-              Select <strong>New block</strong>.
+              Select <strong>New entry</strong>.
             </li>
             <li>
               Enter a <strong>Library label</strong>.
@@ -75,11 +100,11 @@ export const library = {
             </li>
             <li>Select the content item for that field.</li>
             <li>
-              If a field needs new wording, use <strong>Create reusable content</strong> instead.
+              If a field needs new wording, use <strong>Write new wording</strong> instead.
             </li>
             <li>Add any optional fields you want to print.</li>
             <li>
-              Select <strong>Create block</strong>.
+              Select <strong>Create entry</strong>.
             </li>
           </ol>
         </>
@@ -109,7 +134,7 @@ export const library = {
               <strong>Section heading</strong>.
             </li>
             <li>
-              Under <strong>Blocks in reading order</strong>, select{" "}
+              Under <strong>Entries in reading order</strong>, select{" "}
               <strong>Choose from library</strong>.
             </li>
             <li>Select a block.</li>

@@ -2,9 +2,9 @@ import { type Guide, GuideLink } from "../shared";
 
 export const sourceRefinement = {
   slug: "source-refinement",
-  title: "Refine document source",
+  title: "Refine the final document",
   description:
-    "Review AI changes to a checkpoint's LaTeX source and save an accepted result as a separate checkpoint.",
+    "Review proposed wording and layout changes, then save an accepted result as a separate checkpoint.",
   group: "How-to guides",
   sections: [
     {
@@ -24,7 +24,7 @@ export const sourceRefinement = {
             <li>
               Enter the intended change in <strong>Refinement goal</strong>.
             </li>
-            <li>Inspect the captured input before starting.</li>
+            <li>Check the provider and model under AI for this action.</li>
             <li>
               Select <strong>Suggest document changes</strong>.
             </li>
@@ -40,10 +40,12 @@ export const sourceRefinement = {
         <>
           <p>Inspect every change before confirming review coverage.</p>
           <ol>
-            <li>Compare the original and proposed LaTeX source.</li>
-            <li>Inspect changes to the expected text fields and extracted text.</li>
+            <li>Open Preview &amp; checks and compare the original and proposed PDFs.</li>
+            <li>
+              Open Wording &amp; evidence and inspect the actual wording changes and citations.
+            </li>
             <li>Check changes in meaning and factual support.</li>
-            <li>Compare the PDFs and validation reports.</li>
+            <li>Check the preview warnings.</li>
             <li>
               If the candidate passes validation and you want the changes, confirm the
               review-coverage checkbox.
@@ -71,8 +73,9 @@ export const sourceRefinement = {
       body: (
         <>
           <p>
-            Regeneration can exclude changes made only in document source. Review the excluded
-            changes before creating a structured draft.
+            Returning to the earlier editor version leaves out layout and wording changes made only
+            during final-document refinement. Review those differences first. The refined checkpoint
+            remains saved.
           </p>
           <ol>
             <li>

@@ -1,7 +1,9 @@
 import type { ArtifactManifest, CreateSourceRequest } from "@river/contracts";
 import type {
   AgentScope,
+  AiExecutionMetadata,
   AiProfile,
+  AiProvider,
   BackupObject,
   CapturedEvidence,
   CommandOutcome,
@@ -35,6 +37,7 @@ import type {
   WordingInput,
   WordingProfile,
   WordingProposal,
+  WorkspacePreferences,
 } from "@river/domain";
 import type {
   AtsFixtureSet,
@@ -84,6 +87,34 @@ export const user = sqliteTable("user", {
   image: text("image"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+export const aiConnections = sqliteTable(
+  "ai_connections",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id),
+    provider: text("provider").$type<AiProvider>().notNull(),
+    revision: integer("revision").notNull().default(0),
+    encryptedKey: text("encrypted_key"),
+    keySuffix: text("key_suffix").notNull(),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+    removedAt: integer("removed_at"),
+  },
+  (table) => [
+    uniqueIndex("ai_connection_active_provider")
+      .on(table.ownerId, table.provider)
+      .where(sql`${table.removedAt} IS NULL`),
+  ],
+);
+export const workspacePreferences = sqliteTable("workspace_preferences", {
+  ownerId: text("owner_id")
+    .primaryKey()
+    .references(() => user.id),
+  revision: integer("revision").notNull().default(0),
+  data: text("data", { mode: "json" }).$type<WorkspacePreferences>().notNull(),
 });
 /** Shared auth throttles survive request-scoped Better Auth instances and Worker isolates. */
 export const rateLimit = sqliteTable("rate_limit", {
@@ -1362,3 +1393,14 @@ export const templateScoringFixtureAttempts = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.operationId, table.fixtureId] })],
 );
+
+export const aiExecutionMetadata = sqliteTable("ai_execution_metadata", {
+  operationId: text("operation_id")
+    .primaryKey()
+    .references(() => operations.id),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => user.id),
+  data: text("data", { mode: "json" }).$type<AiExecutionMetadata>().notNull(),
+  createdAt: integer("created_at").notNull(),
+});

@@ -13,6 +13,7 @@ import {
   type LibraryDetail,
   useLibraryDetail,
 } from "~/components/library/shared";
+import { LibraryStarters } from "~/components/library/starters";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/library")({
 });
 function LibraryPage() {
   const session = Route.useRouteContext();
-  const [kind, setKind] = useState<LibraryKind>("content");
+  const [kind, setKind] = useState<LibraryKind>("section");
   const [type, setType] = useState<ContentType | null>(null);
   const [search, setSearch] = useState("");
   const query = useDeferredValue(search);
@@ -57,8 +58,7 @@ function LibraryPage() {
         <div>
           <h1 className="page-heading">Content library</h1>
           <p className="mt-2 text-muted-foreground">
-            Save wording, blocks, and sections to reuse across résumés. Keep supporting evidence
-            linked to your content.
+            Save your details and accomplishments once, then reuse them across résumés.
           </p>
         </div>
         <Button onClick={() => setEditor({ kind })}>
@@ -66,6 +66,14 @@ function LibraryPage() {
           New {kindLabels[kind].toLowerCase()}
         </Button>
       </header>
+      {!selected && !archived && (
+        <LibraryStarters
+          onSaved={(id) => {
+            setKind("section");
+            setSelected({ id });
+          }}
+        />
+      )}
       <div className="grid flex-1 xl:grid-cols-[minmax(400px,1fr)_minmax(0,1fr)]">
         <section
           className={cn("space-y-5 border-r px-5 py-6 md:px-8", selected && "hidden xl:block")}
@@ -81,8 +89,8 @@ function LibraryPage() {
             }}
           >
             <TabsList variant="line">
-              <TabsTrigger value="content">Content items</TabsTrigger>
-              <TabsTrigger value="block">Blocks</TabsTrigger>
+              <TabsTrigger value="content">Individual wording</TabsTrigger>
+              <TabsTrigger value="block">Entries</TabsTrigger>
               <TabsTrigger value="section">Sections</TabsTrigger>
             </TabsList>
           </Tabs>
@@ -171,7 +179,7 @@ function LibraryPage() {
               <p className="text-sm text-muted-foreground">
                 {archived
                   ? "Archived items remain available here to inspect or restore."
-                  : "Start with a wording unit. Blocks bind items into fields; Sections arrange Blocks."}
+                  : "Choose a starter above to add your details, or create a section of your own."}
               </p>
               {!archived && (
                 <Button onClick={() => setEditor({ kind })}>

@@ -1,8 +1,8 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { createRepository } from "@river/db";
-import { canonicalJson } from "@river/domain";
-import { Effect } from "effect";
-import { duplicateAiProfile, generateDuplicateComparison } from "./duplicate-ai-provider";
+import { ApplicationError } from "@river/domain";
+import { loadAiCredential } from "./ai-settings";
+import { generateDuplicateComparison } from "./duplicate-ai-provider";
 import type { Env } from "./env";
 
 export class DuplicateAiWorkflow extends WorkflowEntrypoint<Env, { operationId: string }> {
@@ -28,31 +28,23 @@ export class DuplicateAiWorkflow extends WorkflowEntrypoint<Env, { operationId: 
             operation.input.taskId,
           );
           if (detail.task.latestOperationId !== id || detail.proposal) return;
-          const profile = duplicateAiProfile(this.env);
-          if (
-            !profile ||
-            !this.env.OPENAI_API_KEY ||
-            canonicalJson(profile) !== canonicalJson(detail.task.profile)
-          )
-            throw new Error("Profile unavailable");
+          const profile = detail.task.profile;
+          const apiKey = await loadAiCredential(
+            this.env,
+            repository,
+            operation.ownerId,
+            profile.connection,
+          );
           await repository.updateOperation(id, {
             state: "Running",
             stage: "Comparing exact evidence revisions",
           });
-          const result = await Effect.runPromise(
-            Effect.tryPromise({
-              try: () =>
-                generateDuplicateComparison(
-                  this.env.OPENAI_API_KEY ?? "",
-                  detail.task.input,
-                  profile,
-                ),
-              catch: () => new Error("AI provider unavailable"),
-            }).pipe(
-              Effect.withSpan("river.duplicate-comparison", {
-                attributes: { operationId: id, pairId: detail.task.pairId },
-              }),
-            ),
+          const result = await generateDuplicateComparison(
+            apiKey,
+            detail.task.input,
+            profile,
+            fetch,
+            (metadata) => repository.recordAiExecution(operation.ownerId, id, metadata),
           );
           await repository.updateOperation(id, {
             state: "Running",
@@ -61,13 +53,15 @@ export class DuplicateAiWorkflow extends WorkflowEntrypoint<Env, { operationId: 
           await repository.publishDuplicateAi(operation.ownerId, detail.task.id, id, result);
         },
       );
-    } catch {
+    } catch (error) {
       await step.do("record-safe-failure", () =>
         repository.updateOperation(id, {
           state: "Failed",
           stage: "Duplicate comparison failed",
           failure:
-            "The configured provider, output validation, or proposal save failed. No proposal was applied. Continue manually or retry within this task's three-attempt limit.",
+            error instanceof ApplicationError && error.code === "Unavailable"
+              ? error.message
+              : "The configured provider, output validation, or proposal save failed. No proposal was applied. Continue manually or retry within this task's three-attempt limit.",
         }),
       );
       throw new Error(`AI operation ${id} failed`);

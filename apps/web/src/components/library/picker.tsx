@@ -69,7 +69,7 @@ export function LibraryPicker({
                 {entry.item.type} · Revision {entry.item.revision}
               </span>
               {entry.revision.data.kind === "content" && (
-                <span className="mt-2 block whitespace-pre-wrap text-sm">
+                <span className="mt-2 block line-clamp-2 text-sm">
                   {entry.revision.data.wording}
                 </span>
               )}

@@ -16,7 +16,7 @@ export type LibraryDetail = Extract<
   { ok: true }
 >["value"];
 export type LibraryNode = LibraryDetail["graph"][number];
-export const kindLabels = { content: "Content item", block: "Block", section: "Section" } as const;
+export const kindLabels = { content: "Wording", block: "Entry", section: "Section" } as const;
 export function useLibraryCommand(onSaved?: (outcome: CommandOutcome) => void) {
   const client = useQueryClient();
   const request = useRef<{ key: string; payload: string } | null>(null);

@@ -4,14 +4,14 @@
   "applicationUrl": "https://river-staging.jilva.workers.dev",
   "intendedProductionHostname": "river.jilva.dev",
   "ownerEmail": "joshuasilva414@gmail.com",
-  "webVersion": "31075387-924b-4c79-8c74-763065337f00",
+  "webVersion": "ea22521f-2fa7-40d2-a2b4-a202957784f2",
   "documentWorkerVersion": "8ad4cf9e-bb6e-4a1d-8fbc-7107e78f818f",
   "containerImageDigest": "sha256:a35ce74287fdce2c7a7152e2afd107ac2d9b736bd31b8f9eb8b42bdf5cec3a2f",
   "database": "river-staging",
   "databaseId": "1b837147-de99-4aaa-a4ad-386b826412b0",
   "bucket": "river-staging-artifacts",
   "workflow": "river-staging-documents",
-  "migrationsThrough": "0030_auth_rate_limits.sql",
+  "migrationsThrough": "0032_ai_execution_metadata.sql",
   "checks": {
     "signIn": 200,
     "unauthenticatedSettings": 307,
@@ -52,7 +52,7 @@
     "jobAnalysis": "Passed: hosted live v2 requirement extraction and complete-map acceptance; v3 ranking with one cited Draft match and two explicit gaps; review alone leaves selections empty, separate exact-revision selection persists. Weak v2 ranking rejected with null payload. Fictional job and claims archived. Citation fix: 136 Workers tests; latest ranking guard: 10 focused tests; workspace types/lint and staging build pass.",
     "streamedRestoreDrill": "passed: v2 format derived from a real 42-table staging snapshot; isolated SQLite, FTS, foreign keys, one citation, 14 retained objects, one export; live scheduled export remains unverified",
     "wording": "Passed: live local and hosted gpt-5.4-mini-2026-03-17 generation and complete inline review on synthetic fixtures. Local unrelated rename, acceptance r8, undo r9, redo r10; hosted visible name-formatting acceptance r3, undo r4, retained r3 decision. Actual PDFs and 75% zoom retained. 14 focused Workers tests, workspace types/lint and staging build pass.",
-    "sourceProposals": "Passed: v2 hosted synthetic retry yields five Pending candidates with exact Unicode and distinct repeated-line citations. First attempt rejected invented context atomically. New Owner r\u00e9sum\u00e9 run awaits explicit OpenAI transfer permission.",
+    "sourceProposals": "Passed: v2 hosted synthetic retry yields five Pending candidates with exact Unicode and distinct repeated-line citations. First attempt rejected invented context atomically. New Owner résumé run awaits explicit OpenAI transfer permission.",
     "duplicateComparison": "Passed: hosted first-attempt generation, full findings/captured/current inspection, independent acknowledgment preserving both claims, separate attributed Keep separate decision and saved access through both claim histories. Fictional claims archived. Model inconsistency retained and identified in review rationale.",
     "templateStudio": "Passed: local real fixture validation, approval, concurrent preservation, mixing, exact draft/preview/checkpoint, retirement and retained export. Hosted third validation passed all four fixtures twice after fixing Container RPC stream ownership. Hosted graph remains Validated pending Owner visual approval. Anonymous PDF request returns 401.",
     "templateGeneration": "Hosted real model response and first-attempt 11-point PDF passed graph, text-integrity and runtime checks. Full component change, PDF, text and report reviewed; accepted into immutable Draft. All 86 Workers tests through conversations and eight focused backup tests pass; workspace checks/lint/build pass.",
@@ -156,7 +156,10 @@
       "scoringRuns": 2,
       "scoringRawDigestsVerified": true,
       "cachedIdentityPreserved": true,
-      "ownerAuthProviders": ["credential", "github"],
+      "ownerAuthProviders": [
+        "credential",
+        "github"
+      ],
       "published": false
     },
     "ownerExportAndQualificationDrill": {
@@ -202,7 +205,7 @@
     "validation": "All four fixtures rendered twice and passed. Each fixture was visually inspected and exact graph approved for staging QA under Owner authorization; graph/digest unchanged.",
     "conversationId": "01a071e6-f217-7952-93c0-b97743159fc3"
   },
-  "deployedWebCommit": "11e33fa",
+  "deployedWebCommit": "uncommitted v1.1 working tree based on be9a9c04f44dab1238b6d310a6a6971065f57e61; see v11Activation",
   "requestLifetimeProof": {
     "webVersion": "230d70d0-0600-4020-818c-e46daf72f84a",
     "report": "test-results/runtime/river-lifetime-4c7f4b67-b5c5-4ed2-b735-86101a834fc2/report.json",
@@ -285,7 +288,10 @@
   "hostedEvidenceAi": {
     "sourceId": "01a07316-636d-74af-9a45-c12ffa42e177",
     "sourceTaskId": "01a07317-38b0-7cb7-a328-59ec1692a4fb",
-    "claimIds": ["01a07317-e671-7eea-98f2-a7b92c5be987", "01a0732d-7f64-7b83-9fcd-f62c1473540b"],
+    "claimIds": [
+      "01a07317-e671-7eea-98f2-a7b92c5be987",
+      "01a0732d-7f64-7b83-9fcd-f62c1473540b"
+    ],
     "claimsArchived": true,
     "jobId": "01a07317-0c52-7545-b111-8a05135624a8",
     "jobArchived": true,
@@ -348,18 +354,28 @@
     "checkpointRevision": 0,
     "populatedScoring": true,
     "scoringComparison": true,
-    "scoringAppearance": ["light", "dark"],
+    "scoringAppearance": [
+      "light",
+      "dark"
+    ],
     "qualification": true,
     "sourceRefinement": {
       "commit": "11e33fa",
-      "viewports": [390, 610, 1280],
+      "viewports": [
+        390,
+        610,
+        1280
+      ],
       "narrowListHeight": 96,
       "desktopListHeight": 44,
       "horizontalOverflow": false,
       "keyboardNavigation": true,
       "applicationConsoleErrors": 0,
       "viewportReset": true,
-      "paperBoards": [100, 101]
+      "paperBoards": [
+        100,
+        101
+      ]
     }
   },
   "productionPreparation": {
@@ -414,13 +430,22 @@
   },
   "hostedScoring": {
     "checkpointId": "01a07091-d743-76c2-a7ee-51294410467a",
-    "runIds": ["01a073f2-5579-7a3a-99b1-4ea3e586bbe8", "01a073f4-331d-7f35-b652-f7795e70bea1"],
+    "runIds": [
+      "01a073f2-5579-7a3a-99b1-4ea3e586bbe8",
+      "01a073f4-331d-7f35-b652-f7795e70bea1"
+    ],
     "operationIds": [
       "01a073f2-5579-7604-84ad-d92449cde648",
       "01a073f4-331d-7821-8a65-38dabd9058bf"
     ],
-    "attempts": [1, 1],
-    "cached": [false, true],
+    "attempts": [
+      1,
+      1
+    ],
+    "cached": [
+      false,
+      true
+    ],
     "inputCoverage": {
       "resumeText": 17,
       "jobDescription": 95,
@@ -463,8 +488,20 @@
     "pendingCandidates": 5,
     "newClaims": 0,
     "source": "fictional fixture",
-    "repeatedOffsets": [[335, 357], [358, 380]],
-    "unicodeOffsets": [301, 334]
+    "repeatedOffsets": [
+      [
+        335,
+        357
+      ],
+      [
+        358,
+        380
+      ]
+    ],
+    "unicodeOffsets": [
+      301,
+      334
+    ]
   },
   "hostedTemplateQualification": {
     "qualified": false,
@@ -496,7 +533,11 @@
     "domainTests": 5,
     "finalAdapterTests": 10,
     "privateValuesRetained": false,
-    "requestFields": ["mode", "resumeText", "jobDescription"],
+    "requestFields": [
+      "mode",
+      "resumeText",
+      "jobDescription"
+    ],
     "classicFinalOperation": "01a0744e-3a4f-74da-aca0-9d761d380e6e",
     "aliasCorrection": {
       "commit": "9eb25db",
@@ -515,7 +556,11 @@
     "productionDiagnostics": false,
     "sharedHeaderWorkspaceLabel": false,
     "phaseBadge": false,
-    "paperArtboards": ["NG-0", "AGI-0", "14H-0"],
+    "paperArtboards": [
+      "NG-0",
+      "AGI-0",
+      "14H-0"
+    ],
     "focusedTests": 8,
     "stagingBrowserVerified": true,
     "productionBuildDryRun": true,
@@ -639,26 +684,38 @@
       "isolatedRestorePassed": true
     }
   },
-  "milestoneHistoryNote": "Earlier nested milestone checks retain their original scope; productionActivation and libraryArchival describe the final released state.",
+  "milestoneHistoryNote": "Earlier nested milestone checks retain their original scope. v11Activation records the current release and links its production acceptance and recovery evidence.",
   "libraryArchival": {
     "mainCommit": "b46bc7e",
     "releaseCommit": "2754539",
     "migration": "0028_library_archival.sql",
-    "paperBoards": ["AJ4-0", "ALY-0"],
+    "paperBoards": [
+      "AJ4-0",
+      "ALY-0"
+    ],
     "workersTests": 160,
     "stagingArchiveRestorePassed": true,
     "productionCleanupPassed": true,
     "immutableRevisionsPreserved": true,
-    "viewports": [1280, 390],
-    "appearances": ["light", "dark"],
+    "viewports": [
+      1280,
+      390
+    ],
+    "appearances": [
+      "light",
+      "dark"
+    ],
     "viewportReset": true
   },
-  "productionWebVersion": "9d3ce1ab-ab71-47cb-93ad-3f7afa3d2aca",
+  "productionWebVersion": "85da80c2-566f-44da-bd84-0533fb29ac3d",
   "multiUserDeployment": {
     "recordedAt": "2026-09-06T07:59:24.022629+00:00",
     "status": "deployed",
     "administratorEmail": "joshuasilva414@gmail.com",
-    "allowedEmails": ["jilvadev@gmail.com", "karisamscott@gmail.com"],
+    "allowedEmails": [
+      "jilvadev@gmail.com",
+      "karisamscott@gmail.com"
+    ],
     "migrationsThrough": "0030_auth_rate_limits.sql",
     "migrationCount": 31,
     "baseTables": 73,
@@ -667,7 +724,10 @@
       "releaseDirectory": "/tmp/river-multiuser-release-20260906",
       "manifestPath": "test-results/multi-user-deployment/source-manifest.json",
       "manifestSha256": "6b1cac82737d33c3f91e585be4d97f148d137f220035745071a1eec47d56bb97",
-      "excludedFiles": ["apps/web/public/favicon.svg", "apps/web/src/routes/__root.tsx"]
+      "excludedFiles": [
+        "apps/web/public/favicon.svg",
+        "apps/web/src/routes/__root.tsx"
+      ]
     },
     "checks": {
       "testsPassed": 211,
@@ -694,7 +754,9 @@
         "tables": 73
       },
       "unchangedOriginalTables": 71,
-      "changedOperationalTables": ["verification"],
+      "changedOperationalTables": [
+        "verification"
+      ],
       "restoredIntegrityPassed": true
     },
     "production": {
@@ -728,5 +790,83 @@
         "scope": "Access-list configuration only; no migrations or administrator changes."
       }
     ]
+  },
+  "v11Activation": {
+    "status": "released",
+    "record": "v1.1-production.md",
+    "deployedAt": "2026-09-06T23:56:29.939047Z",
+    "finalCloudflareCheckAt": "2026-09-07T00:15:19.313Z",
+    "baseCommit": "be9a9c04f44dab1238b6d310a6a6971065f57e61",
+    "committed": false,
+    "bundleSha256": "6d459d562501d44fd78ef4fb880d37bae55928da43024ad00832c03f598ab3d6",
+    "sourceSha256": "3ef1ae7068cd3988811452591118a63790fdaa3d0ca4f8dce2a57f1f0a066626",
+    "staging": {
+      "webVersion": "ea22521f-2fa7-40d2-a2b4-a202957784f2",
+      "deploymentId": "9540bd25-4c90-4657-a5a5-e3228abe2593",
+      "allSevenOpenAiFamiliesPassed": true,
+      "pdfDocxExactClaimJourneysPassed": true
+    },
+    "production": {
+      "applicationUrl": "https://river.jilva.dev",
+      "webVersion": "85da80c2-566f-44da-bd84-0533fb29ac3d",
+      "deploymentId": "b404dee2-678d-4521-b052-3d089e922cd9",
+      "percentage": 100,
+      "migrationsThrough": "0032_ai_execution_metadata.sql",
+      "migrationCount": 33,
+      "baseTables": 76,
+      "pendingOrRunningOperations": 0,
+      "aiAdmissionPaused": false,
+      "documentRuntimeChanged": false
+    },
+    "personalConnection": {
+      "accountEmail": "jilvadev@gmail.com",
+      "connectionId": "01a07927-8b6c-733a-9e9f-bed80d76e766",
+      "provider": "openai",
+      "defaultModel": "gpt-5.4-mini",
+      "returnedModel": "gpt-5.4-mini-2026-03-17",
+      "restoredConnectionCatalogPassed": true
+    },
+    "acceptance": {
+      "fictional": true,
+      "evidenceState": "Draft",
+      "sourceId": "01a0792b-1131-7de1-8bac-9a1beb2721a4",
+      "claimId": "01a0792c-6c28-7e61-aef1-539038f828ab",
+      "draftId": "01a0792d-e16f-7d64-abcb-36f0175c1c5e",
+      "checkpointId": "01a0792f-6c69-7e97-bc2f-5384aceb881e",
+      "operationId": "01a0792f-6c69-7c4b-8039-c125ae394306",
+      "exportedAt": "2026-09-07T00:06:50.254Z",
+      "acknowledgments": 2,
+      "pdfSha256": "2c5774dcc9b0fe39e69398661d4e7930f76d0adfed87e950f4e9cdcd8aab986c",
+      "downloadBytes": 7946,
+      "downloadHashMatches": true,
+      "onboardingStepsComplete": 6,
+      "preservedRows": 215,
+      "comparedBaseTables": 71,
+      "excludedBaseTables": [
+        "session",
+        "rate_limit"
+      ],
+      "proof": "test-results/v1.1-acceptance/production-final-proof.json"
+    },
+    "recovery": {
+      "backup": "backups/database/production/2026-09-07T00-07-40.191Z-3693281c-4979-4d28-88d6-95bd835cb64d/snapshot.json.gz",
+      "sha256": "ad91343c9efc4621b143fc7a298db21b38709f2cf86ccd8dece2af1135b02e6c",
+      "restoreReport": "test-results/recovery/drill-a427a972-6feb-481c-a848-a8e4dfa5e9b0/report.json",
+      "passed": true,
+      "baseTables": 76,
+      "citations": 1,
+      "exportedCheckpoints": 2,
+      "retainedFiles": 28,
+      "encryptionSecretRetainedSeparately": true
+    },
+    "limits": {
+      "liveUntestedProviders": [
+        "anthropic",
+        "google",
+        "openrouter"
+      ],
+      "unaidedFirstUseTimingMeasured": false,
+      "exhaustiveBrowserCoverage": false
+    }
   }
 }

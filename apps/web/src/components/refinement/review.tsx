@@ -115,6 +115,7 @@ export function SourceReview({ detail }: { detail: Detail }) {
         previewOperationId: p.previewOperationId,
         reviewDigest: p.reviewDigest,
         decision,
+        reviewPolicy: "river-document-review-v2",
         coverageConfirmed: coverage === coverageKey,
         idempotencyKey: crypto.randomUUID(),
       },
@@ -141,13 +142,13 @@ export function SourceReview({ detail }: { detail: Detail }) {
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Compare the proposed wording, LaTeX, extracted text, and PDF. Accepting saves the changes
-          as a new checkpoint.
+          Compare the proposed wording, supporting evidence, PDF, and layout warnings. Accepting
+          saves the changes as a new checkpoint.
         </p>
       </header>
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="min-w-0 space-y-6 rounded-md border bg-card p-5 md:p-6">
-          <h2 className="text-[28px] leading-[34px]">Complete source comparison</h2>
+          <h2 className="text-[28px] leading-[34px]">Document changes</h2>
           {sourceReview ? (
             <>
               {p?.comparison && (
@@ -207,7 +208,7 @@ export function SourceReview({ detail }: { detail: Detail }) {
           )}
           {stale && !accepted && (
             <div className="space-y-2 border-l-2 border-highlight bg-highlight/10 p-4 text-sm">
-              <p className="font-semibold">Captured inputs changed</p>
+              <p className="font-semibold">Your source information changed</p>
               {detail.staleReasons.map((reason) => (
                 <p key={reason}>{reason}</p>
               ))}
@@ -295,8 +296,8 @@ export function SourceReview({ detail }: { detail: Detail }) {
                   onCheckedChange={(value) => setCoverage(value === true ? coverageKey : null)}
                 />
                 <span>
-                  I reviewed all source, expected fields, extracted-text, meaning/support and
-                  PDF/report changes for this exact candidate.
+                  I reviewed the PDF, wording changes, supporting evidence, and warnings for this
+                  version.
                 </span>
               </label>
               <div className="flex flex-col gap-3">
@@ -341,7 +342,7 @@ export function SourceReview({ detail }: { detail: Detail }) {
                 Review / export checkpoint
               </Link>
               <p className="text-sm text-muted-foreground">
-                PDF, LaTeX, extracted text and validation report are retained. Earlier export
+                The reviewed document and its supporting files are retained. Earlier export
                 acknowledgments do not carry over.
               </p>
             </>
@@ -352,30 +353,14 @@ export function SourceReview({ detail }: { detail: Detail }) {
               normal retention.
             </p>
           )}
-          <details>
-            <summary className="cursor-pointer text-sm text-primary">
-              Exact review and operation identities
-            </summary>
-            <div className="mt-3 space-y-2 break-all font-mono text-xs">
-              <p>
-                Task {task.id} · revision {task.revision}
-              </p>
-              <p>Candidate {p?.candidateDigest ?? "Unavailable"}</p>
-              <p>Review {p?.reviewDigest ?? "Unavailable"}</p>
-              <p>Preview {p?.previewOperationId ?? "Unavailable"}</p>
-              <p>Latest operation {operation?.id}</p>
-              <p>Publication {acceptance?.id ?? "Not started"}</p>
-              <p>Model {task.profile.model}</p>
-            </div>
-          </details>
           <Button variant="outline" onClick={() => setCaptured(!captured)} aria-expanded={captured}>
-            Captured input and support
+            Supporting evidence
           </Button>
         </aside>
       </div>
       {captured && (
         <section className="space-y-5 rounded-md border p-6">
-          <h2 className="text-2xl">Captured input and current evidence</h2>
+          <h2 className="text-2xl">Supporting evidence</h2>
           <p className="whitespace-pre-wrap">{task.input.goal}</p>
           <p className="text-sm text-muted-foreground">
             Exact captured values are preserved below. Evidence inspectors show the pinned revision

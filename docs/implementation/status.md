@@ -2,6 +2,10 @@
 
 Updated 2026-09-06 (America/Chicago). V1 is released at https://river.jilva.dev. This page describes current state; milestone documents retain earlier deployment and verification history. [Release evidence](release-gates.md) records completed acceptance and its limits.
 
+## v1.1 release
+
+V1.1 is released at https://river.jilva.dev as web version `85da80c2-566f-44da-bd84-0533fb29ac3d`, through migration 0032. Staging remains `ea22521f-2fa7-40d2-a2b4-a202957784f2`. All seven OpenAI task families, PDF/DOCX claims, populated review and refined export pass on staging. Production acceptance includes the saved OpenAI connection, fictional source/claim/PDF export, preservation of 215 pre-existing rows and an isolated restore of 76 tables, one citation, two exported checkpoints and 28 retained files. Other providers lack live keys; unaided first-use timing remains unmeasured. See [v1.1 status](v1.1.md), [staging acceptance](v1.1-acceptance.md) and [production release](v1.1-production.md). Earlier V1 records below retain their original verification scope.
+
 ## Multi-user extension
 
 The 2026-09-06 extension is deployed to staging and production with `jilvadev@gmail.com` and `karisamscott@gmail.com` admitted and the existing account retained as administrator. It adds private accounts, administrator-only backup/runtime controls, database-backed authentication throttles, and atomic per-account/service task budgets. Both environments have 31 migrations through `0030_auth_rate_limits.sql` and 73 base tables. The 211-test release passes; existing hosted sessions and anonymous access denial pass, and backup comparisons preserve all original production rows. See [multi-user operation](multi-user.md) for current versions, verification and the new recipient's pending signup/email verification. The sections below retain the earlier V1 acceptance history.

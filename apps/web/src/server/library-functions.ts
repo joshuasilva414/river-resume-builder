@@ -1,4 +1,5 @@
 import {
+  CreateLibraryStarterRequest,
   InspectLibraryRequest,
   LibrarySearch,
   SaveLibraryRequest,
@@ -8,7 +9,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
 import { Schema } from "effect";
 import { bindings } from "./env";
-import { inspectLibrary, saveLibrary, searchLibrary, setLibraryArchived } from "./library";
+import {
+  createLibraryStarter,
+  inspectLibrary,
+  saveLibrary,
+  searchLibrary,
+  setLibraryArchived,
+} from "./library";
 import { execute } from "./services";
 export const getLibrary = createServerFn({ method: "GET" })
   .validator(Schema.decodeUnknownSync(LibrarySearch))
@@ -22,3 +29,7 @@ export const mutateLibrary = createServerFn({ method: "POST" })
 export const archiveLibrary = createServerFn({ method: "POST" })
   .validator(Schema.decodeUnknownSync(SetLibraryArchivedRequest))
   .handler(({ data }) => execute(bindings(), getRequestHeaders(), setLibraryArchived(data)));
+
+export const addLibraryStarter = createServerFn({ method: "POST" })
+  .validator(Schema.decodeUnknownSync(CreateLibraryStarterRequest))
+  .handler(({ data }) => execute(bindings(), getRequestHeaders(), createLibraryStarter(data)));

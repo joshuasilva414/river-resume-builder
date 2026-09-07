@@ -13,6 +13,12 @@ import {
   structuredSourceFields,
 } from "@river/templates/source-refinement";
 import { Effect } from "effect";
+import {
+  aiConfiguration,
+  aiConnectionsAvailable,
+  aiTaskConfigured,
+  loadAiCredential,
+} from "./ai-settings";
 import type { Env } from "./env";
 import { readRefinementBase } from "./refinement-artifacts";
 import { sourceRefinementProfile } from "./refinement-provider";
@@ -22,11 +28,12 @@ export const startSourceRefinement = (env: Env, input: StartSourceRefinementRequ
   Effect.gen(function* () {
     const actor = yield* Actor,
       store = yield* Store;
+    const configuration = yield* aiConfiguration(env, input.ai);
     const replay = yield* attempt(() =>
       store.replayCommand(actor.id, "start-source-refinement", input.idempotencyKey, input),
     );
     if (replay) return replay;
-    const profile = env.SOURCE_REFINEMENT_WORKFLOW ? sourceRefinementProfile(env) : null;
+    const profile = env.SOURCE_REFINEMENT_WORKFLOW ? sourceRefinementProfile(configuration) : null;
     if (!profile)
       return yield* Effect.fail(
         new ApplicationError({
@@ -58,6 +65,12 @@ export const retrySourceRefinement = (env: Env, input: RetrySourceRefinementRequ
   Effect.gen(function* () {
     const actor = yield* Actor,
       store = yield* Store;
+    const captured = yield* attempt(() => store.inspectSourceRefinement(actor.ownerId, input.id));
+    if (!captured.proposal?.payload)
+      yield* attempt(() =>
+        loadAiCredential(env, store, actor.ownerId, captured.task.profile.connection),
+      );
+    const configuration = captured.task.profile;
     const replay = yield* attempt(() =>
       store.replayCommand(actor.id, "retry-source-refinement", input.idempotencyKey, input),
     );
@@ -69,9 +82,7 @@ export const retrySourceRefinement = (env: Env, input: RetrySourceRefinementRequ
           message: "The source document runtime is unavailable.",
         }),
       );
-    return yield* attempt(() =>
-      store.retrySourceRefinement(actor, input, sourceRefinementProfile(env)),
-    );
+    return yield* attempt(() => store.retrySourceRefinement(actor, input, configuration));
   });
 export const reviewSourceRefinement = (env: Env, input: ReviewSourceRefinementRequest) =>
   Effect.gen(function* () {
@@ -98,21 +109,34 @@ export const inspectSourceRefinement = (env: Env, id: string) =>
     const detail = yield* attempt(() => store.inspectSourceRefinement(actor.ownerId, id));
     return {
       ...detail,
+      task: {
+        ...detail.task,
+        input: {
+          ...detail.task.input,
+          checkpoint: { ...detail.task.input.checkpoint, source: "" },
+        },
+      },
+      proposal: detail.proposal
+        ? {
+            ...detail.proposal,
+            comparison: detail.proposal.comparison
+              ? { ...detail.proposal.comparison, source: completeTextDiff("", "", "source") }
+              : null,
+            payload: detail.proposal.payload ? { ...detail.proposal.payload, source: "" } : null,
+          }
+        : null,
       sourceReview: detail.proposal?.payload
         ? {
-            source:
-              detail.proposal.comparison?.source ??
-              completeTextDiff(
-                detail.task.input.checkpoint.source,
-                detail.proposal.payload.source,
-                "source",
-              ),
+            source: completeTextDiff("", "", "source"),
             fields:
               detail.proposal.comparison?.fields ??
               compareSourceFields(detail.task.input.checkpoint.fields, detail.proposal.payload),
           }
         : null,
-      configured: Boolean(env.SOURCE_REFINEMENT_WORKFLOW && sourceRefinementProfile(env)),
+      configured: Boolean(
+        env.SOURCE_REFINEMENT_WORKFLOW &&
+          (yield* aiTaskConfigured(env, detail.task.profile.connection)),
+      ),
       runtimeConfigured: Boolean(env.SOURCE_REFINEMENT_WORKFLOW),
     };
   });
@@ -120,10 +144,11 @@ export const listSourceRefinements = (env: Env, input: SourceRefinementList) =>
   Effect.gen(function* () {
     const actor = yield* Actor,
       store = yield* Store;
+    const connected = yield* aiConnectionsAvailable(env);
     const result = yield* attempt(() => store.listSourceRefinements(actor.ownerId, input));
     return {
       ...result,
-      configured: Boolean(env.SOURCE_REFINEMENT_WORKFLOW && sourceRefinementProfile(env)),
+      configured: Boolean(env.SOURCE_REFINEMENT_WORKFLOW && connected),
       runtimeConfigured: Boolean(env.SOURCE_REFINEMENT_WORKFLOW),
     };
   });
@@ -170,7 +195,8 @@ export const inspectStructuredReturn = (env: Env, checkpointId: string) =>
     );
     return {
       ...detail,
-      comparison,
+      source: { ...detail.source, source: "" },
+      comparison: { ...comparison, source: completeTextDiff("", "", "source") },
       templateIssue: eligibility.templateIssue,
       baseOperationId: baseOperation.id,
       acceptedOperationId: acceptedOperation.id,

@@ -1,7 +1,9 @@
 import { RecordId, Revision, WordingInput, WordingPath } from "@river/domain";
 import { Schema } from "effect";
+import { AiSelectionFields } from "./ai";
 import { CommandKey } from "./evidence";
 export const StartWordingRequest = Schema.Struct({
+  ...AiSelectionFields,
   idempotencyKey: CommandKey,
   draftId: RecordId,
   revision: Revision,
