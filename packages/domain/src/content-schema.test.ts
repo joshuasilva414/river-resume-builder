@@ -69,8 +69,8 @@ describe("composable content", () => {
             entries: [
               {
                 id: "entry",
-                schema: { id: "experience-entry", revision: 1 },
-                layout: { id: layout, revision: 1 },
+                schema: { id: "experience-entry", revision: 2 },
+                layout: { id: layout, revision: 2 },
                 values,
               },
             ],
@@ -104,8 +104,8 @@ describe("composable content", () => {
                   label: "Self",
                   kind: "record",
                   required: false,
-                  schema: { id: root.id, revision: 1 },
-                  defaultLayout: { id: `${root.id}-classic`, revision: 1 },
+                  schema: { id: root.id, revision: 2 },
+                  defaultLayout: { id: `${root.id}-classic`, revision: 2 },
                 },
               ],
             }
@@ -122,7 +122,7 @@ describe("composable content", () => {
                 ...schema,
                 fields: schema.fields.map((field) =>
                   field.kind === "records"
-                    ? { ...field, defaultLayout: { id: "experience-section-classic", revision: 1 } }
+                    ? { ...field, defaultLayout: { id: "experience-section-classic", revision: 2 } }
                     : field,
                 ),
               }
@@ -148,8 +148,8 @@ describe("composable content", () => {
     const education = emptyStructuredContent("education", "education");
     const entry = {
       id: "edu",
-      schema: { id: "education-entry", revision: 1 },
-      layout: { id: "education-entry-classic", revision: 1 },
+      schema: { id: "education-entry", revision: 2 },
+      layout: { id: "education-entry-classic", revision: 2 },
       values: { institution: "Example University", degree: "BS", gpa: "3.8" },
     };
     expect(() =>

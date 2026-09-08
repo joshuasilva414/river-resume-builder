@@ -22,6 +22,7 @@ import {
   placeBlock,
   placeSection,
   renderComposition,
+  upgradeCompositionLayouts,
   validateComposition,
 } from "@river/domain";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
@@ -537,6 +538,33 @@ export function createCompositionRepository(db: Database) {
           ],
         };
       });
+    },
+    async upgradeResumeLayouts(actor: Principal, id: string) {
+      owner(actor);
+      const previous = await getResume(actor.ownerId, id);
+      if (!previous)
+        throw new ApplicationError({ code: "NotFound", message: "Résumé draft not found." });
+      const data = upgradeCompositionLayouts(previous.data);
+      if (data === previous.data) return { id, revision: previous.revision, revisionId: null };
+      // Revision guard and retained audit run in the same D1 batch. A competing edit wins intact.
+      return commands.commit(
+        actor,
+        "upgrade-resume-layouts",
+        `v1.2.1/${id}/${previous.revision}`,
+        { id, revision: previous.revision },
+        async () => ({
+          result: { id, revision: previous.revision + 1, revisionId: null },
+          guards: [guard(actor, id, previous.revision)],
+          writes: await updateWrites(actor, id, previous.revision, data),
+          history: [
+            {
+              entityId: id,
+              before: { revision: previous.revision, data: previous.data },
+              after: { revision: previous.revision + 1, data },
+            },
+          ],
+        }),
+      );
     },
     async branchResume(actor: Principal, input: BranchResumeRequest) {
       owner(actor);

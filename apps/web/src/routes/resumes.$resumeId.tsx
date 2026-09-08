@@ -19,7 +19,7 @@ import type { TemplateBase } from "@river/templates";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useBlocker } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, Redo2, Undo2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CaptureCheckpoint, CheckpointHistory } from "~/components/composition/checkpoints";
 import { CopyDialog } from "~/components/composition/copy";
 import { DraftPreview } from "~/components/composition/preview";
@@ -40,9 +40,10 @@ import {
   unwrap,
 } from "~/components/evidence/shared";
 import { LibraryEditor } from "~/components/library/editor";
+import { EditorDisclosure, revealEditorErrors } from "~/components/library/editor-disclosure";
 import { EvidenceLinks } from "~/components/library/evidence-links";
 import { LibraryPicker } from "~/components/library/picker";
-import { StructuredFields } from "~/components/library/schema-fields";
+import { recordTitle, StructuredFields } from "~/components/library/schema-fields";
 import type { LibraryNode } from "~/components/library/shared";
 import { BindingInspection, compositionBase, TemplateLayout } from "~/components/templates/binding";
 import { BasePicker, useTemplateBase } from "~/components/templates/shared";
@@ -81,13 +82,43 @@ type Destination =
   | { kind: "section"; type: null }
   | { kind: "block"; type: ContentType; sectionId: string }
   | { kind: "content"; type: ContentType; sectionId: string; blockId: string; field: string };
+function sectionSummary(content: StructuredContent) {
+  const { values } = content.record;
+  if (Array.isArray(values.entries))
+    return `${values.entries.length} ${values.entries.length === 1 ? "entry" : "entries"}`;
+  if (typeof values.name === "string")
+    return [values.name, values.location]
+      .filter((value) => typeof value === "string" && value)
+      .join(" · ");
+  if (typeof values.summary === "string") return values.summary;
+  if (Array.isArray(values.skills))
+    return values.skills.filter((value) => typeof value === "string").join(" · ");
+  return undefined;
+}
 function Editor({ detail }: { detail: ResumeDetail }) {
   const navigationAllowed = useRef(false);
+  const fields = useRef<HTMLElement>(null);
+  const initialPlacements = useRef(
+    new Set(
+      detail.draft.data.sections.flatMap((section) => [
+        section.id,
+        ...section.blocks.map((block) => block.id),
+      ]),
+    ),
+  );
   const [copy, setCopy] = useState<PlacementPath | null>(null);
   const [reuse, setReuse] = useState<PlacementPath | null>(null);
   const session = useDraft(detail),
     navigate = Route.useNavigate(),
     client = useQueryClient();
+  useEffect(() => {
+    if (
+      fields.current &&
+      session.error instanceof RequestFailure &&
+      session.error.problem.code === "InvalidInput"
+    )
+      revealEditorErrors(fields.current);
+  }, [session.error]);
   const [graph, setGraph] = useState<readonly LibraryNode[]>(detail.graph),
     [picker, setPicker] = useState<(Destination & { reference?: LibraryReference }) | null>(null),
     [creating, setCreating] = useState<Destination | null>(null);
@@ -99,6 +130,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
     } | null>(null),
     [history, setHistory] = useState(false),
     [review, setReview] = useState(false),
+    [settings, setSettings] = useState(false),
     [compare, setCompare] = useState(false),
     [inspect, setInspect] = useState<ContentPlacement | null>(null);
   const [branchTemplate, setBranchTemplate] = useState<TemplateBase | null>(null);
@@ -270,7 +302,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
         ? "Save failed"
         : session.dirty
           ? "Unsaved changes"
-          : "All changes saved";
+          : "Saved";
   const shift = <T,>(values: readonly T[], index: number, direction: number) => {
     const next = [...values],
       value = next[index];
@@ -317,7 +349,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
   );
   return (
     <>
-      <header className="shrink-0 space-y-3 border-b px-5 py-7 md:px-8">
+      <header className="shrink-0 space-y-3 border-b px-5 py-7 md:px-8 xl:px-10">
         <Link
           to="/jobs/$jobId"
           params={{ jobId: detail.draft.jobId }}
@@ -326,18 +358,15 @@ function Editor({ detail }: { detail: ResumeDetail }) {
           {detail.snapshot.details.company} / {detail.snapshot.details.role}
         </Link>
         <div className="flex flex-wrap items-center gap-4">
-          <h1 className="page-heading">{session.data.name}</h1>
-          <Button variant="outline" onClick={() => setReview(true)}>
-            Review résumé
-          </Button>
-          <Button variant="outline" onClick={() => setHistory(true)}>
-            History
-          </Button>
+          <h1 className="page-heading mr-auto">{session.data.name}</h1>
+          <span role="status" className="text-sm text-muted-foreground">
+            {status}
+          </span>
+          <Button onClick={() => setReview(true)}>Save version</Button>
+
           {assistance.queueButton}
         </div>
-        <p role="status" className="text-sm text-muted-foreground">
-          {status}
-        </p>
+
         {(session.error || outdated) && (
           <div className="space-y-3">
             <Failure error={session.error} />
@@ -366,41 +395,35 @@ function Editor({ detail }: { detail: ResumeDetail }) {
         Composition editing is available on a larger screen. Review the saved draft and its PDF
         here.
       </div>
-      <div className="grid flex-1 xl:min-h-0 xl:overflow-hidden xl:grid-cols-[minmax(0,660fr)_minmax(0,576fr)]">
-        <section className="hidden min-w-0 border-r lg:block xl:overflow-y-auto">
-          <div className="flex flex-wrap items-center gap-3 border-b p-6">
-            <h2 className="font-sans font-semibold">Content</h2>
+      <div className="grid flex-1 gap-8 px-5 md:px-8 xl:min-h-0 xl:overflow-hidden xl:px-10 xl:grid-cols-[minmax(360px,540px)_minmax(0,1fr)]">
+        <section ref={fields} className="hidden min-w-0 lg:block xl:overflow-y-auto">
+          <div className="flex flex-wrap items-center gap-2 py-4">
             <Button
-              variant="outline"
+              variant="ghost"
+              size="icon"
+              aria-label="Undo"
               disabled={!session.canUndo || session.pending}
               onClick={session.undo}
             >
               <Undo2 />
-              Undo
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
+              size="icon"
+              aria-label="Redo"
               disabled={!session.canRedo || session.pending}
               onClick={session.redo}
             >
               <Redo2 />
-              Redo
             </Button>
-            <Button variant="outline" onClick={() => setPicker({ kind: "section", type: null })}>
-              Choose library section
+            <Button variant="ghost" className="ml-auto" onClick={() => setHistory(true)}>
+              Saved versions
             </Button>
-            <Button variant="outline" onClick={() => setCreating({ kind: "section", type: null })}>
-              Create section
+            <Button variant="ghost" onClick={() => setSettings(true)}>
+              Résumé settings
             </Button>
           </div>
-          <div className="space-y-6 p-6">
-            <FormField label="Résumé name">
-              <Input
-                value={session.data.name}
-                maxLength={160}
-                onChange={(event) => change({ ...session.data, name: event.target.value })}
-              />
-            </FormField>
+          <div className="pb-8">
             {!session.data.sections.length && (
               <div className="space-y-3 py-8">
                 <h2 className="font-editorial text-2xl">Add your first section.</h2>
@@ -411,72 +434,16 @@ function Editor({ detail }: { detail: ResumeDetail }) {
               </div>
             )}
             {session.data.sections.map((section, index) => (
-              <section key={section.id} className="space-y-4 border-t pt-5">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h2 className="font-editorial text-2xl">
-                    {section.heading || "Contact / header"}
-                  </h2>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Move ${section.heading || "header"} up`}
-                    disabled={
-                      index === 0 ||
-                      section.type === "contact" ||
-                      session.data.sections[index - 1]?.type === "contact"
-                    }
-                    onClick={() =>
-                      change({ ...session.data, sections: shift(session.data.sections, index, -1) })
-                    }
-                  >
-                    <ArrowUp />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Move ${section.heading || "header"} down`}
-                    disabled={
-                      section.type === "contact" || index === session.data.sections.length - 1
-                    }
-                    onClick={() =>
-                      change({ ...session.data, sections: shift(session.data.sections, index, 1) })
-                    }
-                  >
-                    <ArrowDown />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() =>
-                      change({
-                        ...session.data,
-                        sections: session.data.sections.filter((value) => value.id !== section.id),
-                      })
-                    }
-                  >
-                    Remove section
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={session.dirty || session.pending || outdated}
-                    onClick={() =>
-                      setReuse({ sectionId: section.id, blockId: null, contentId: null })
-                    }
-                  >
-                    Inspect section reuse
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={session.dirty || session.pending || outdated}
-                    onClick={() =>
-                      setCopy({ sectionId: section.id, blockId: null, contentId: null })
-                    }
-                  >
-                    Copy section
-                  </Button>
-                </div>
-                <p className="eyebrow">
-                  {section.reason ? "Changed for this résumé" : "Saved from your library"}
-                </p>
+              <EditorDisclosure
+                key={section.id}
+                title={section.heading || "Contact"}
+                defaultOpen={!initialPlacements.current.has(section.id)}
+                summary={
+                  section.structured
+                    ? sectionSummary(section.structured)
+                    : `${section.blocks.length} entries`
+                }
+              >
                 {!section.structured && (
                   <Button
                     variant="outline"
@@ -533,7 +500,15 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                   </FormField>
                 )}
                 {section.blocks.map((block, blockIndex) => (
-                  <article key={block.id} className="space-y-4 rounded-sm border p-5">
+                  <EditorDisclosure
+                    key={block.id}
+                    title={
+                      block.structured
+                        ? recordTitle(block.structured.record, block.type)
+                        : blockDefinitions[block.type].label
+                    }
+                    defaultOpen={!initialPlacements.current.has(block.id)}
+                  >
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-sans text-base font-semibold">
                         {blockDefinitions[block.type].label}
@@ -800,7 +775,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                           </section>
                         );
                       })}
-                  </article>
+                  </EditorDisclosure>
                 ))}
                 {!section.structured && (section.type !== "contact" || !section.blocks.length) && (
                   <div className="flex flex-wrap gap-3">
@@ -822,17 +797,85 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                     </Button>
                   </div>
                 )}
-              </section>
+                <EditorDisclosure title="Section actions">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Move ${section.heading || "header"} up`}
+                      disabled={
+                        index === 0 ||
+                        section.type === "contact" ||
+                        session.data.sections[index - 1]?.type === "contact"
+                      }
+                      onClick={() =>
+                        change({
+                          ...session.data,
+                          sections: shift(session.data.sections, index, -1),
+                        })
+                      }
+                    >
+                      <ArrowUp />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Move ${section.heading || "header"} down`}
+                      disabled={
+                        section.type === "contact" || index === session.data.sections.length - 1
+                      }
+                      onClick={() =>
+                        change({
+                          ...session.data,
+                          sections: shift(session.data.sections, index, 1),
+                        })
+                      }
+                    >
+                      <ArrowDown />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() =>
+                        change({
+                          ...session.data,
+                          sections: session.data.sections.filter(
+                            (value) => value.id !== section.id,
+                          ),
+                        })
+                      }
+                    >
+                      Remove section
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={session.dirty || session.pending || outdated}
+                      onClick={() =>
+                        setReuse({ sectionId: section.id, blockId: null, contentId: null })
+                      }
+                    >
+                      Inspect section reuse
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={session.dirty || session.pending || outdated}
+                      onClick={() =>
+                        setCopy({ sectionId: section.id, blockId: null, contentId: null })
+                      }
+                    >
+                      Copy section
+                    </Button>
+                  </div>
+                </EditorDisclosure>
+              </EditorDisclosure>
             ))}
-            <TemplateLayout
-              detail={detail}
-              waiting={
-                session.dirty ||
-                session.pending ||
-                Boolean(session.error) ||
-                session.ack.revision !== detail.draft.revision
-              }
-            />
+            <div className="flex flex-wrap gap-3 pt-6">
+              <Button variant="outline" onClick={() => setPicker({ kind: "section", type: null })}>
+                Add section
+              </Button>
+              <Button variant="ghost" onClick={() => setCreating({ kind: "section", type: null })}>
+                Create section
+              </Button>
+            </div>
           </div>
         </section>
         <div className="space-y-6 p-5 lg:hidden">
@@ -840,9 +883,9 @@ function Editor({ detail }: { detail: ResumeDetail }) {
         </div>
         <div className={assistance.panel ? "hidden" : "contents"}>
           <DraftPreview
-            detail={detail}
-            revision={session.ack.revision}
-            dirty={session.dirty || session.pending}
+            data={session.data}
+            graph={mergedGraph}
+            templateGraph={detail.templateGraph}
           />
         </div>
         {assistance.panel && (
@@ -884,6 +927,8 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                   id: detail.draft.id,
                   revision: session.ack.revision,
                   data: session.data,
+                  graph: mergedGraph,
+                  templateGraph: detail.templateGraph,
                   ...(picker.kind === "block" ? { sectionId: picker.sectionId } : {}),
                 }
           }
@@ -952,20 +997,33 @@ function Editor({ detail }: { detail: ResumeDetail }) {
       {history && <CheckpointHistory draftId={detail.draft.id} onClose={() => setHistory(false)} />}
       {review && (
         <EvidenceDialog
-          title="Review résumé draft"
-          description={
-            session.dirty
-              ? "This is your visible draft, including unsaved edits. Export review follows the saved checkpoint workflow."
-              : "Review the saved wording and supporting evidence."
-          }
+          title="Save a version"
+          description="Preserve this résumé, then review its PDF, score it, or refine its layout."
           onClose={() => setReview(false)}
-          wide
         >
-          <CompositionView data={session.data} graph={mergedGraph} provenance />
           <CaptureCheckpoint
             key={`${detail.draft.id}:${session.ack.revision}`}
             id={detail.draft.id}
             revision={session.ack.revision}
+            waiting={session.dirty || session.pending || !!session.error || outdated}
+          />
+        </EvidenceDialog>
+      )}
+      {settings && (
+        <EvidenceDialog
+          title="Résumé settings"
+          description="Name this draft and choose its document template."
+          onClose={() => setSettings(false)}
+        >
+          <FormField label="Résumé name">
+            <Input
+              value={session.data.name}
+              maxLength={160}
+              onChange={(event) => change({ ...session.data, name: event.target.value })}
+            />
+          </FormField>
+          <TemplateLayout
+            detail={detail}
             waiting={session.dirty || session.pending || !!session.error || outdated}
           />
         </EvidenceDialog>

@@ -17,9 +17,12 @@ const commands = new Set([
   "parskip",
   "setlist",
   "titleformat",
+  "titlerule",
   "titlespacing",
   "hyphenpenalty",
   "exhyphenpenalty",
+  "clubpenalty",
+  "widowpenalty",
   "begin",
   "end",
   "begingroup",
@@ -90,6 +93,7 @@ const commands = new Set([
   "textasciitilde",
   "textasciicircum",
   "textbullet",
+  "href",
   "textendash",
   "textemdash",
   "&",
@@ -117,7 +121,7 @@ const environments = new Set([
   "minipage",
   "quote",
 ]);
-const packages = new Set(["fontspec", "geometry", "enumitem", "titlesec"]);
+const packages = new Set(["fontspec", "geometry", "enumitem", "titlesec", "hyperref"]);
 const fonts = new Set(["Latin Modern Roman", "Latin Modern Sans", "Latin Modern Mono"]);
 
 /** Full source may change layout or wording, but cannot introduce executable macros, file access or unpinned assets. */

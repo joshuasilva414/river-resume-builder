@@ -14,7 +14,13 @@ export function useScoringAllowance() {
           : false,
   });
 }
-export function ScoringAllowance({ cost = 1 }: { cost?: number }) {
+export function ScoringAllowance({
+  cost = 1,
+  compact = false,
+}: {
+  cost?: number;
+  compact?: boolean;
+}) {
   const result = useScoringAllowance(),
     allowance = result.data;
   if (result.isPending)
@@ -27,7 +33,10 @@ export function ScoringAllowance({ cost = 1 }: { cost?: number }) {
     return <p className="text-sm text-destructive">Scoring allowance could not be loaded.</p>;
   if (!allowance) return null;
   return (
-    <aside className="space-y-2 rounded-lg border p-4" aria-label="Scoring allowance">
+    <aside
+      className={compact ? "space-y-2" : "space-y-2 rounded-lg border p-4"}
+      aria-label="Scoring allowance"
+    >
       <p className="text-sm font-semibold">
         {allowance.exempt
           ? "Unlimited scoring for administrators"
@@ -45,9 +54,11 @@ export function ScoringAllowance({ cost = 1 }: { cost?: number }) {
           This run scores {cost} samples. Each successful sample uses one result.
         </p>
       )}
-      <p className="text-xs text-muted-foreground">
-        Attempts without a saved result do not use allowance. Reusing a saved result is free.
-      </p>
+      {!compact && (
+        <p className="text-xs text-muted-foreground">
+          Attempts without a saved result do not use allowance. Reusing a saved result is free.
+        </p>
+      )}
       {!allowance.exempt && (allowance.remaining ?? 0) < cost && (
         <p className="text-sm text-destructive">
           There is not enough allowance for this run. Saved scores and exports remain available.

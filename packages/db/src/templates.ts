@@ -240,7 +240,7 @@ export function createTemplateRepository(db: Database) {
       if (!data.template)
         return {
           graph: undefined,
-          identity: canonicalJson(templateInventory(data.theme)),
+          identity: canonicalJson(templateInventory(data.theme, data.templateRevision)),
           guards: [] as Guard[],
         };
       const { design, revision } = await revisionById(ownerId, data.template.revisionId);

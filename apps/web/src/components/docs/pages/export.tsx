@@ -15,7 +15,7 @@ export const exportGuide = {
             <li>
               Resolve any failed save or edit conflict. Wait for <strong>Saved</strong>.
             </li>
-            <li>Open the résumé review and capture the current version for export.</li>
+            <li>Select Save version, optionally name it, then save to open the exact document.</li>
             <li>Wait for the saved document to finish rendering.</li>
           </ol>
           <p>

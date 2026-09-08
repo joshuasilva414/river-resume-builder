@@ -1,4 +1,14 @@
-import { newId, type SourceFields, sourceExportIssues } from "@river/domain";
+import {
+  type Composition,
+  emptyStructuredContent,
+  type LibraryData,
+  type LibraryGraphNode,
+  newId,
+  placeSection,
+  renderComposition,
+  type SourceFields,
+  sourceExportIssues,
+} from "@river/domain";
 import { describe, expect, it } from "vitest";
 import { allTypesDocument } from "./fixtures";
 import { compose, textLocations, validateRefinedSource } from "./index";
@@ -8,7 +18,170 @@ import {
   completeTextDiff,
   type SourceRefinementOutput,
   sourceCandidateDigest,
+  structuredSourceFields,
 } from "./source-proposals";
+
+function structuredFixture() {
+  const evidence = [{ claimId: newId(), revisionId: newId() }];
+  const contact = emptyStructuredContent("contact", newId());
+  const experience = emptyStructuredContent("experience", newId());
+  const entryId = newId();
+  const graph: LibraryGraphNode[] = [
+    {
+      item: { id: newId(), currentRevisionId: newId() },
+      revision: {
+        id: newId(),
+        data: {
+          kind: "section",
+          type: "contact",
+          heading: "",
+          blocks: [],
+          structured: {
+            ...contact,
+            record: {
+              ...contact.record,
+              values: { name: "Alex Example", email: "alex@example.test" },
+            },
+          },
+        },
+      },
+    },
+    {
+      item: { id: newId(), currentRevisionId: newId() },
+      revision: {
+        id: newId(),
+        data: {
+          kind: "section",
+          type: "experience",
+          heading: "Experience",
+          blocks: [],
+          structured: {
+            ...experience,
+            evidence,
+            record: {
+              ...experience.record,
+              values: {
+                heading: "Experience",
+                entries: [
+                  {
+                    id: entryId,
+                    schema: { id: "experience-entry", revision: 2 },
+                    layout: { id: "experience-entry-classic", revision: 2 },
+                    values: {
+                      employer: "Northstar",
+                      title: "Engineer",
+                      accomplishments: ["Built accessible tools.", "Added focused tests."],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    },
+  ];
+  const data: Composition = {
+    name: "Structured refinement",
+    theme: "classic",
+    templateRevision: 1,
+    sections: graph.map((node) =>
+      placeSection({ itemId: node.item.id, revisionId: node.revision.id }, graph),
+    ),
+  };
+  return { data, graph, evidence, entryId };
+}
+
+it("prepares nested structured text with stable field identities, obligations and evidence", () => {
+  const { data, graph, evidence, entryId } = structuredFixture();
+  const document = renderComposition(data, graph);
+  expect(compose(document, "classic").tex).toContain("Alex Example");
+  const fields = structuredSourceFields(data, graph);
+  expect(fields.map(({ locator, text }) => ({ locator, text }))).toEqual(textLocations(document));
+  expect(fields.find((field) => field.text === "Engineer")).toMatchObject({
+    required: true,
+    evidence,
+  });
+  expect(fields.find((field) => field.text === "Built accessible tools.")).toMatchObject({
+    required: false,
+    evidence,
+  });
+  expect(fields.find((field) => field.text === "Experience")).toMatchObject({
+    role: "heading",
+    evidence: [],
+  });
+  expect(fields.find((field) => field.text === "Engineer")?.locator).toContain(entryId);
+  const candidate = captureSourceCandidate(fields, evidence, newId(), {
+    source: compose(document, "classic").tex,
+    fields: fields.map((field) => ({
+      baseLocator: field.locator,
+      text: field.text,
+      evidence: field.evidence,
+      meaning: { assessment: "Preserved", explanation: "Layout only." },
+    })),
+    explanation: "Layout only.",
+  });
+  expect(candidate.fields).toEqual(fields);
+  expect(() =>
+    captureSourceCandidate(fields, evidence, newId(), {
+      ...candidate,
+      fields: candidate.fields
+        .filter((field) => field.text !== "Engineer")
+        .map((field) => ({
+          baseLocator: field.locator,
+          text: field.text,
+          evidence: field.evidence,
+          meaning: { assessment: "Preserved", explanation: "Layout only." },
+        })),
+    }),
+  ).toThrow("required structured field");
+});
+
+it("keeps legacy and structured entry identities together in a mixed document", () => {
+  const { data, graph, evidence } = structuredFixture();
+  const add = (value: LibraryData) => {
+    const node = {
+      item: { id: newId(), currentRevisionId: newId() },
+      revision: { id: newId(), data: value },
+    };
+    graph.push(node);
+    return { itemId: node.item.id, revisionId: node.revision.id };
+  };
+  const wording = add({ kind: "content", type: "summary", wording: "Legacy wording.", evidence });
+  const block = add({
+    kind: "block",
+    type: "summary",
+    fields: [{ key: "paragraphs", contents: [{ id: newId(), ...wording }] }],
+  });
+  const section = add({
+    kind: "section",
+    type: "summary",
+    heading: "Summary",
+    blocks: [{ id: newId(), ...block }],
+  });
+  const placement = placeSection(section, graph);
+  const contact = data.sections[0];
+  if (!contact) throw new Error("Missing contact fixture");
+  const mixed = { ...data, sections: [contact, placement, ...data.sections.slice(1)] };
+  const fields = structuredSourceFields(mixed, graph);
+  expect(fields.map(({ locator, text }) => ({ locator, text }))).toEqual(
+    textLocations(renderComposition(mixed, graph)),
+  );
+  const legacy = fields.find((field) => field.text === "Legacy wording.");
+  expect(legacy).toMatchObject({ required: true, evidence });
+  expect(legacy?.locator).toContain(
+    `/paragraphs/${placement.blocks[0]?.fields[0]?.contents[0]?.id}`,
+  );
+  const retained = structuredSourceFields(data, graph);
+  expect(fields.filter((field) => !field.locator.startsWith(placement.id))).toEqual(retained);
+});
+
+it("reports a bounded actionable preparation error without echoing saved content", () => {
+  const { data, graph } = structuredFixture();
+  expect(() =>
+    structuredSourceFields({ ...data, sections: data.sections.slice(1) }, graph),
+  ).toThrow("Refinement preparation failed");
+});
 
 const source = compose(allTypesDocument, "classic").tex;
 const base: SourceFields = textLocations(allTypesDocument).map((field, index) => ({
@@ -193,4 +366,33 @@ describe("source proposal review contract", () => {
       });
     }
   });
+});
+
+it("prepares custom root layouts whose heading placeholder follows other fields", () => {
+  const { data, graph } = structuredFixture();
+  const custom: Composition = {
+    ...data,
+    sections: data.sections.map((section) => ({
+      ...section,
+      reason: "Customized layout",
+      structured: section.structured && {
+        ...section.structured,
+        layouts: section.structured.layouts.map((layout) =>
+          layout.id === "contact-section-classic"
+            ? { ...layout, source: "{{email}} {{name}} {{phone}} {{location}} {{links}}" }
+            : layout.id === "experience-section-classic"
+              ? { ...layout, source: "{{entries}} {{heading}}" }
+              : layout,
+        ),
+      },
+    })),
+  };
+  const rendered = renderComposition(custom, graph);
+  expect(() => textLocations(rendered)).not.toThrow();
+  const fields = structuredSourceFields(custom, graph);
+  expect(fields[0]?.text).toBe("Alex Example");
+  expect(fields.map((field) => field.text)).toContain("Built accessible tools.");
+  expect(fields.map(({ locator, text }) => ({ locator, text }))).toEqual(
+    textLocations(renderComposition(custom, graph)),
+  );
 });

@@ -3,8 +3,10 @@ import {
   type ContentSchemaField,
   canonicalJson,
   type EvidenceReference,
+  formatPartialDate,
   newId,
   PartialDate,
+  readLegacyDate,
   type SchemaBundle,
   type StructuredContent,
   sameSchema,
@@ -12,11 +14,12 @@ import {
 } from "@river/domain";
 import { Schema } from "effect";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FormField, selectClass } from "~/components/evidence/shared";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
+import { EditorDisclosure } from "./editor-disclosure";
 import { EvidenceFill, SkillOptions } from "./evidence-fill";
 import { SavedEntryPicker } from "./saved-entry-picker";
 import { schemaHistoryKey } from "./schema-transition";
@@ -27,93 +30,42 @@ function DateControl({
   value,
   onChange,
   disabled,
+  required,
 }: {
   label: string;
   value: Schema.Json | undefined;
   onChange: (value: Schema.Json) => void;
   disabled: boolean;
+  required: boolean;
 }) {
   const decoded = Schema.decodeUnknownOption(PartialDate)(value);
   const date = decoded._tag === "Some" ? decoded.value : undefined;
-  const [chosenPrecision, setChosenPrecision] = useState("month");
-  const precision = date?.kind ?? chosenPrecision;
+  const [text, setText] = useState(() => (date ? formatPartialDate(date) : ""));
+  const emitted = useRef(canonicalJson(value ?? null));
+  useEffect(() => {
+    const current = canonicalJson(value ?? null);
+    if (current === emitted.current) return;
+    emitted.current = current;
+    setText(date ? formatPartialDate(date) : "");
+  }, [value, date]);
   return (
-    <fieldset className="space-y-2">
-      <legend className="text-sm font-medium">{label}</legend>
-      <div className="flex flex-wrap gap-2">
-        <select
-          aria-label={`${label} precision`}
-          className={selectClass}
-          value={precision}
-          disabled={disabled}
-          onChange={(event) => {
-            const next = event.target.value;
-            setChosenPrecision(next);
-            if (next === "present") onChange({ kind: "present" });
-            else if (next === "year" && (date?.kind === "year" || date?.kind === "month"))
-              onChange({ kind: "year", year: date.year });
-            else if (next === "year" && date?.kind === "day")
-              onChange({ kind: "year", year: Number(date.value.slice(0, 4)) });
-            else if (next === "month" && date?.kind === "day")
-              onChange({
-                kind: "month",
-                year: Number(date.value.slice(0, 4)),
-                month: Number(date.value.slice(5, 7)),
-              });
-            else onChange(null);
-          }}
-        >
-          <option value="year">Year</option>
-          <option value="month">Month and year</option>
-          <option value="day">Full date</option>
-          <option value="present">Present</option>
-          {precision === "legacy" && <option value="legacy">Existing date text</option>}
-        </select>
-        {precision !== "present" && (
-          <Input
-            aria-label={label}
-            disabled={disabled}
-            type={
-              precision === "year"
-                ? "number"
-                : precision === "month"
-                  ? "month"
-                  : precision === "day"
-                    ? "date"
-                    : "text"
-            }
-            min={precision === "year" ? 1 : undefined}
-            max={precision === "year" ? 9999 : undefined}
-            value={
-              date?.kind === "year"
-                ? date.year
-                : date?.kind === "month"
-                  ? `${date.year}-${String(date.month).padStart(2, "0")}`
-                  : date?.kind === "day"
-                    ? date.value
-                    : date?.kind === "legacy"
-                      ? date.text
-                      : ""
-            }
-            onChange={(event) => {
-              const text = event.target.value;
-              if (!text) return onChange(null);
-              if (precision === "year") onChange({ kind: "year", year: Number(text) });
-              else if (precision === "month") {
-                const [year, month] = text.split("-").map(Number);
-                if (year && month) onChange({ kind: "month", year, month });
-              } else if (precision === "day") onChange({ kind: "day", value: text });
-              else onChange({ kind: "legacy", text });
-            }}
-          />
-        )}
-        {date && (
-          <Button type="button" variant="ghost" disabled={disabled} onClick={() => onChange(null)}>
-            Clear
-          </Button>
-        )}
-      </div>
-    </fieldset>
+    <FormField label={label}>
+      <Input
+        aria-label={label}
+        required={required}
+        disabled={disabled}
+        value={text}
+        placeholder="2025, May 2025, or Present"
+        maxLength={200}
+        onChange={(event) => {
+          const input = event.target.value;
+          const next = input.trim() ? readLegacyDate(input) : null;
+          emitted.current = canonicalJson(next);
+          setText(input);
+          onChange(next);
+        }}
+      />
+    </FormField>
   );
 }
 function ScalarControl({
@@ -132,7 +84,15 @@ function ScalarControl({
   disabled: boolean;
 }) {
   if (kind === "date")
-    return <DateControl label={label} value={value} onChange={onChange} disabled={disabled} />;
+    return (
+      <DateControl
+        label={label}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        required={required}
+      />
+    );
   if (kind === "boolean")
     return (
       <label className="flex min-h-11 items-center gap-3">
@@ -281,6 +241,7 @@ function ScalarListField({
   onChange: (values: readonly Schema.Json[]) => void;
 }) {
   const [rows, setRows] = useState(() => values.map((value) => ({ id: newId(), value })));
+  const [initialRows] = useState(() => new Set(rows.map((row) => row.id)));
   const current = canonicalJson(values),
     previous = canonicalJson(rows.map((row) => row.value));
   if (current !== previous) {
@@ -300,14 +261,21 @@ function ScalarListField({
     onChange(next.map((row) => row.value));
   };
   return (
-    <section className="space-y-3">
-      <h3 className="text-sm font-semibold">{field.label}</h3>
+    <EditorDisclosure
+      title={field.label}
+      summary={`${rows.length} ${rows.length === 1 ? "item" : "items"}`}
+      defaultOpen={!rows.length}
+      revealKey={rows
+        .filter((row) => !initialRows.has(row.id))
+        .map((row) => row.id)
+        .join("/")}
+    >
       {rows.map((row, index) => (
         <div key={row.id} className="space-y-2 rounded-sm border p-3">
           <ScalarControl
             kind={field.items}
             label={`${field.label} ${index + 1}`}
-            required={false}
+            required={field.required && index === 0}
             value={row.value}
             disabled={disabled}
             onChange={(value) =>
@@ -341,7 +309,29 @@ function ScalarListField({
         <Plus />
         Add {field.label.toLowerCase()}
       </Button>
-    </section>
+    </EditorDisclosure>
+  );
+}
+
+export function recordTitle(record: ContentRecord, fallback = "Entry") {
+  const values = [
+    "employer",
+    "title",
+    "project",
+    "institution",
+    "degree",
+    "credential",
+    "url",
+    "name",
+    "heading",
+  ].flatMap((key) =>
+    typeof record.values[key] === "string" && record.values[key]
+      ? [String(record.values[key])]
+      : [],
+  );
+  return (
+    values.slice(0, 2).join(" · ") ||
+    `New ${fallback.toLowerCase().replace(/ies$/, "y").replace(/s$/, "")}`
   );
 }
 
@@ -360,6 +350,18 @@ export function SchemaRecordFields({
 }) {
   const latestRecord = useRef(record);
   latestRecord.current = record;
+  const [initialEntries] = useState(
+    () =>
+      new Set(
+        Object.values(record.values).flatMap((value) =>
+          (Array.isArray(value) ? value : [value]).flatMap((item) =>
+            item && typeof item === "object" && !Array.isArray(item) && typeof item.id === "string"
+              ? [item.id]
+              : [],
+          ),
+        ),
+      ),
+  );
   const definition = bundle.schemas.find((item) => sameSchema(item, record.schema));
   if (!definition)
     return (
@@ -381,231 +383,266 @@ export function SchemaRecordFields({
     latestRecord.current = next;
     onChange(next);
   };
-  return (
-    <div className="space-y-5">
-      {definition.fields.map((field) => {
-        const value = record.values[field.id];
-        const shapeProblem = fieldShapeProblem(field, value);
-        if (shapeProblem && value !== undefined)
-          return (
-            <section key={field.id} className="space-y-3 rounded-md border p-4">
-              <h3 className="text-sm font-semibold">{field.label}</h3>
-              <p role="alert" className="text-sm">
-                {shapeProblem} Keep this value and switch back to its fields, or start a new value
-                for this definition.
-              </p>
-              <details>
-                <summary className="cursor-pointer text-sm">View saved value</summary>
-                <pre className="mt-2 whitespace-pre-wrap break-words text-xs">
-                  {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
-                </pre>
-              </details>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={disabled}
-                onClick={() => {
-                  let copy = 1;
-                  while (Object.hasOwn(record.values, `Saved ${field.label} ${copy}`)) copy++;
-                  onChange({
-                    ...record,
-                    values: {
-                      ...record.values,
-                      [`Saved ${field.label} ${copy}`]: value,
-                      [field.id]: null,
-                    },
-                  });
-                }}
-              >
-                Keep saved value and start this field
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                The previous value will remain under Saved fields not used by this schema.
-              </p>
-            </section>
-          );
-        if (field.kind === "record" || field.kind === "records") {
-          const records =
-            value === undefined || value === null
-              ? []
-              : field.kind === "record"
-                ? [Schema.decodeUnknownSync(ContentRecord)(value)]
-                : Schema.decodeUnknownSync(Schema.Array(ContentRecord))(value);
-          const set = (next: readonly ContentRecord[]) =>
-            change(field, field.kind === "record" ? (next[0] ?? null) : next);
-          return (
-            <section className="space-y-4 rounded-md border p-5" key={field.id}>
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="font-editorial text-2xl">{field.label}</h3>
-                <span className="text-sm text-muted-foreground">{records.length}</span>
-              </div>
-              {records.map((child, index) => (
-                <div className="space-y-4 border-b pb-5" key={child.id}>
-                  <SchemaRecordFields
-                    bundle={bundle}
-                    record={child}
-                    disabled={disabled}
-                    onEvidence={onEvidence}
-                    onChange={(next) =>
-                      set(records.map((item) => (item.id === child.id ? next : item)))
-                    }
-                  />
-                  <RowActions
-                    label={`${field.label} ${index + 1}`}
-                    index={index}
-                    count={records.length}
-                    disabled={disabled}
-                    onMove={(delta) => set(move(records, index, delta))}
-                    onRemove={() => set(records.filter((item) => item.id !== child.id))}
-                  />
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                disabled={disabled || records.length >= (field.kind === "record" ? 1 : 100)}
-                onClick={() =>
-                  set([
-                    ...records,
-                    { id: newId(), schema: field.schema, layout: field.defaultLayout, values: {} },
-                  ])
-                }
-              >
-                <Plus />
-                Add{" "}
-                {bundle.schemas
-                  .find((item) => sameSchema(item, field.schema))
-                  ?.name.toLowerCase() ?? "entry"}
-              </Button>
-              <SavedEntryPicker
-                schema={field.schema}
-                layout={field.defaultLayout}
-                disabled={disabled || records.length >= (field.kind === "record" ? 1 : 100)}
-                onPick={(entry, evidence) => {
-                  const value = latestRecord.current.values[field.id];
-                  const current = Schema.decodeUnknownSync(Schema.Array(ContentRecord))(
-                    value === undefined || value === null
-                      ? []
-                      : field.kind === "record"
-                        ? [value]
-                        : value,
-                  );
-                  if (current.length >= (field.kind === "record" ? 1 : 100))
-                    throw new Error("This field has reached its entry limit.");
-                  set([
-                    ...current,
-                    current.some((item) => item.id === entry.id)
-                      ? { ...entry, id: newId() }
-                      : entry,
-                  ]);
-                  onEvidence?.(evidence);
-                }}
-              />
-            </section>
-          );
-        }
-        if (field.kind === "list") {
-          const values =
-            value === undefined || value === null
-              ? []
-              : Schema.decodeUnknownSync(Schema.Array(Schema.Json))(value);
-          if (field.items === "skill")
-            return (
-              <SkillOptions
-                key={field.id}
-                values={values.filter((item): item is string => typeof item === "string")}
-                disabled={disabled}
-                onChange={(next, evidence) => {
-                  change(field, next);
-                  onEvidence?.(evidence);
-                }}
-              />
-            );
-          return (
-            <ScalarListField
-              key={field.id}
-              field={field}
-              values={values}
-              disabled={disabled}
-              onChange={(next) => change(field, next)}
-            />
-          );
-        }
-        return (
-          <ScalarControl
-            key={field.id}
-            kind={field.kind}
-            label={field.label}
-            required={field.required}
-            value={value}
+  const renderField = (field: ContentSchemaField) => {
+    const value = record.values[field.id];
+    const shapeProblem = fieldShapeProblem(field, value);
+    if (shapeProblem && value !== undefined)
+      return (
+        <section key={field.id} className="space-y-3 rounded-md border p-4">
+          <h3 className="text-sm font-semibold">{field.label}</h3>
+          <p role="alert" className="text-sm">
+            {shapeProblem} Keep this value and switch back to its fields, or start a new value for
+            this definition.
+          </p>
+          <details>
+            <summary className="cursor-pointer text-sm">View saved value</summary>
+            <pre className="mt-2 whitespace-pre-wrap break-words text-xs">
+              {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
+            </pre>
+          </details>
+          <Button
+            type="button"
+            variant="outline"
             disabled={disabled}
-            onChange={(next) => change(field, next)}
+            onClick={() => {
+              let copy = 1;
+              while (Object.hasOwn(record.values, `Saved ${field.label} ${copy}`)) copy++;
+              onChange({
+                ...record,
+                values: {
+                  ...record.values,
+                  [`Saved ${field.label} ${copy}`]: value,
+                  [field.id]: null,
+                },
+              });
+            }}
+          >
+            Keep saved value and start this field
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            The previous value will remain under Saved fields not used by this schema.
+          </p>
+        </section>
+      );
+    if (field.kind === "record" || field.kind === "records") {
+      const records =
+        value === undefined || value === null
+          ? []
+          : field.kind === "record"
+            ? [Schema.decodeUnknownSync(ContentRecord)(value)]
+            : Schema.decodeUnknownSync(Schema.Array(ContentRecord))(value);
+      const set = (next: readonly ContentRecord[]) =>
+        change(field, field.kind === "record" ? (next[0] ?? null) : next);
+      return (
+        <EditorDisclosure
+          key={field.id}
+          title={field.label}
+          summary={`${records.length} ${records.length === 1 ? "entry" : "entries"}`}
+          defaultOpen={records.length === 0}
+          revealKey={records
+            .filter((child) => !initialEntries.has(child.id))
+            .map((child) => child.id)
+            .join("/")}
+        >
+          {records.map((child, index) => (
+            <EditorDisclosure
+              key={child.id}
+              title={recordTitle(child, field.label)}
+              defaultOpen={!initialEntries.has(child.id)}
+            >
+              <SchemaRecordFields
+                bundle={bundle}
+                record={child}
+                disabled={disabled}
+                onEvidence={onEvidence}
+                onChange={(next) =>
+                  set(records.map((item) => (item.id === child.id ? next : item)))
+                }
+              />
+              <RowActions
+                label={`${field.label} ${index + 1}`}
+                index={index}
+                count={records.length}
+                disabled={disabled}
+                onMove={(delta) => set(move(records, index, delta))}
+                onRemove={() => set(records.filter((item) => item.id !== child.id))}
+              />
+            </EditorDisclosure>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={disabled || records.length >= (field.kind === "record" ? 1 : 100)}
+            onClick={() =>
+              set([
+                ...records,
+                { id: newId(), schema: field.schema, layout: field.defaultLayout, values: {} },
+              ])
+            }
+          >
+            <Plus />
+            Add{" "}
+            {bundle.schemas.find((item) => sameSchema(item, field.schema))?.name.toLowerCase() ??
+              "entry"}
+          </Button>
+          <SavedEntryPicker
+            schema={field.schema}
+            layout={field.defaultLayout}
+            disabled={disabled || records.length >= (field.kind === "record" ? 1 : 100)}
+            onPick={(entry, evidence) => {
+              const value = latestRecord.current.values[field.id];
+              const current = Schema.decodeUnknownSync(Schema.Array(ContentRecord))(
+                value === undefined || value === null
+                  ? []
+                  : field.kind === "record"
+                    ? [value]
+                    : value,
+              );
+              if (current.length >= (field.kind === "record" ? 1 : 100))
+                throw new Error("This field has reached its entry limit.");
+              set([
+                ...current,
+                current.some((item) => item.id === entry.id) ? { ...entry, id: newId() } : entry,
+              ]);
+              onEvidence?.(evidence);
+            }}
+          />
+        </EditorDisclosure>
+      );
+    }
+    if (field.kind === "list") {
+      const values =
+        value === undefined || value === null
+          ? []
+          : Schema.decodeUnknownSync(Schema.Array(Schema.Json))(value);
+      if (field.items === "skill")
+        return (
+          <SkillOptions
+            key={field.id}
+            values={values.filter((item): item is string => typeof item === "string")}
+            disabled={disabled}
+            onChange={(next, evidence) => {
+              change(field, next);
+              onEvidence?.(evidence);
+            }}
           />
         );
-      })}
-      {Object.keys(record.values).some(
-        (key) => key !== schemaHistoryKey && !definition.fields.some((field) => field.id === key),
-      ) && (
-        <details className="rounded-md border p-4">
-          <summary className="cursor-pointer text-sm font-semibold">
-            Saved fields not used by this schema
-          </summary>
-          <p className="mt-3 text-sm text-muted-foreground">
-            These values are preserved. Restore previous fields and values to return to an earlier
-            definition, or copy a value into a compatible field.
-          </p>
-          <dl className="mt-3 space-y-3">
-            {Object.entries(record.values)
-              .filter(
-                ([key]) =>
-                  key !== schemaHistoryKey && !definition.fields.some((field) => field.id === key),
-              )
-              .map(([key, value]) => (
-                <div key={key}>
-                  <dt className="text-sm font-medium">{key}</dt>
-                  <dd className="whitespace-pre-wrap break-words text-sm">
-                    {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
-                  </dd>
-                </div>
-              ))}
-          </dl>
-        </details>
-      )}
-      {definition.level === "entry" && definition.id !== "contact-link" && (
-        <EvidenceFill
-          bundle={bundle}
-          record={record}
+      return (
+        <ScalarListField
+          key={field.id}
+          field={field}
+          values={values}
           disabled={disabled}
-          onApply={(next, evidence) => {
-            onChange(next);
-            onEvidence?.(evidence);
-          }}
+          onChange={(next) => change(field, next)}
         />
-      )}
-      <FormField label="Layout">
-        <select
-          className={selectClass}
-          disabled={disabled}
-          value={schemaKey(record.layout)}
-          onChange={(event) => {
-            const layout = bundle.layouts.find((item) => schemaKey(item) === event.target.value);
-            if (layout)
-              onChange({ ...record, layout: { id: layout.id, revision: layout.revision } });
-          }}
-        >
-          {!bundle.layouts.some(
-            (layout) =>
-              sameSchema(layout, record.layout) && sameSchema(layout.schema, record.schema),
-          ) && <option value={schemaKey(record.layout)}>Choose a compatible layout</option>}
-          {bundle.layouts
-            .filter((layout) => sameSchema(layout.schema, record.schema))
-            .map((layout) => (
-              <option value={schemaKey(layout)} key={schemaKey(layout)}>
-                {layout.name}
-              </option>
-            ))}
-        </select>
-      </FormField>
+      );
+    }
+    return (
+      <ScalarControl
+        key={field.id}
+        kind={field.kind}
+        label={field.label}
+        required={field.required}
+        value={value}
+        disabled={disabled}
+        onChange={(next) => change(field, next)}
+      />
+    );
+  };
+  const essential = (field: ContentSchemaField) =>
+    field.required ||
+    field.kind === "records" ||
+    field.kind === "record" ||
+    field.kind === "list" ||
+    ["email", "startDate", "endDate", "issuedDate", "expirationDate", "description"].includes(
+      field.id,
+    );
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 gap-5">
+        {definition.fields.filter(essential).map((field) => (
+          <div
+            key={field.id}
+            className={
+              field.kind === "date" ||
+              (definition.level === "entry" &&
+                ["employer", "title", "institution", "degree", "credential", "issuer"].includes(
+                  field.id,
+                ))
+                ? "min-w-0"
+                : "col-span-2 min-w-0"
+            }
+          >
+            {renderField(field)}
+          </div>
+        ))}
+      </div>
+      <EditorDisclosure title="Additional settings">
+        {definition.fields.filter((field) => !essential(field)).map(renderField)}
+        {Object.keys(record.values).some(
+          (key) => key !== schemaHistoryKey && !definition.fields.some((field) => field.id === key),
+        ) && (
+          <details className="rounded-md border p-4">
+            <summary className="cursor-pointer text-sm font-semibold">
+              Saved fields not used by this schema
+            </summary>
+            <p className="mt-3 text-sm text-muted-foreground">
+              These values are preserved. Copy a value into a compatible field when needed.
+            </p>
+            <dl className="mt-3 space-y-3">
+              {Object.entries(record.values)
+                .filter(
+                  ([key]) =>
+                    key !== schemaHistoryKey &&
+                    !definition.fields.some((field) => field.id === key),
+                )
+                .map(([key, value]) => (
+                  <div key={key}>
+                    <dt className="text-sm font-medium">{key}</dt>
+                    <dd className="whitespace-pre-wrap break-words text-sm">
+                      {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
+                    </dd>
+                  </div>
+                ))}
+            </dl>
+          </details>
+        )}
+        {definition.level === "entry" && definition.id !== "contact-link" && (
+          <EvidenceFill
+            bundle={bundle}
+            record={record}
+            disabled={disabled}
+            onApply={(next, evidence) => {
+              onChange(next);
+              onEvidence?.(evidence);
+            }}
+          />
+        )}
+        <FormField label="Layout">
+          <select
+            className={selectClass}
+            disabled={disabled}
+            value={schemaKey(record.layout)}
+            onChange={(event) => {
+              const layout = bundle.layouts.find((item) => schemaKey(item) === event.target.value);
+              if (layout)
+                onChange({ ...record, layout: { id: layout.id, revision: layout.revision } });
+            }}
+          >
+            {!bundle.layouts.some(
+              (layout) =>
+                sameSchema(layout, record.layout) && sameSchema(layout.schema, record.schema),
+            ) && <option value={schemaKey(record.layout)}>Choose a compatible layout</option>}
+            {bundle.layouts
+              .filter((layout) => sameSchema(layout.schema, record.schema))
+              .map((layout) => (
+                <option value={schemaKey(layout)} key={schemaKey(layout)}>
+                  {layout.name}
+                </option>
+              ))}
+          </select>
+        </FormField>
+      </EditorDisclosure>
     </div>
   );
 }

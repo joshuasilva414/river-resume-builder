@@ -56,7 +56,7 @@ const references = contentTypes.map((type) => {
 export const allTypesComposition: Composition = {
   name: "All seven types",
   theme: "classic",
-  templateRevision: 1,
+  templateRevision: 2,
   sections: references.map((reference) => placeSection(reference, graph, id)),
 };
 export const allTypesGraph: readonly LibraryGraphNode[] = graph;

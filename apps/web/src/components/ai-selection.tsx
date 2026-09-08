@@ -136,7 +136,7 @@ export function AiSelector({
   const selected = value ?? settings.data?.preferences.defaultAi;
   const connection = settings.data?.connections.find((item) => item.id === selected?.connectionId);
   return (
-    <section className="space-y-4 rounded-lg border p-6" aria-label="AI for this action">
+    <section className="space-y-3" aria-label="Model for this action">
       {settings.isPending ? (
         <p role="status">Loading AI settings…</p>
       ) : !settings.data?.connections.length ? (
@@ -151,8 +151,7 @@ export function AiSelector({
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold">AI for this action</p>
-              <p className="mt-1 break-words text-sm text-muted-foreground">
+              <p className="break-words text-sm text-muted-foreground">
                 {connection && selected
                   ? `${aiProviderLabels[connection.provider]} · ${selected.model}`
                   : "Choose a provider and model"}
@@ -186,10 +185,6 @@ export function AiSelector({
               Use saved default
             </Button>
           )}
-          <p className="text-xs text-muted-foreground">
-            This request uses your provider account. Model availability and charges are set by your
-            provider.
-          </p>
         </>
       )}
       <Failure error={settings.error} />

@@ -28,8 +28,8 @@ function experience(): StructuredContent {
         entries: [
           {
             id: "entry-1",
-            schema: { id: "experience-entry", revision: 1 },
-            layout: { id: "experience-entry-compact", revision: 1 },
+            schema: { id: "experience-entry", revision: 2 },
+            layout: { id: "experience-entry-compact", revision: 2 },
             values: {
               employer: "Example Company",
               title: "Engineer",
@@ -47,7 +47,7 @@ describe("schema switching preserves definitions and values", () => {
     const original = emptyStructuredContent("summary", "record-1");
     const switched = switchContentSchema(original, builtInSchemaBundle, {
       id: "contact-section",
-      revision: 1,
+      revision: 2,
     });
     const structured: StructuredContent = {
       ...switched,
@@ -76,7 +76,7 @@ describe("schema switching preserves definitions and values", () => {
       {
         name: "Fictional preview",
         theme: "classic",
-        templateRevision: 1,
+        templateRevision: 2,
         sections: [placeSection(reference, graph, () => "placement-1")],
       },
       graph,
@@ -89,7 +89,7 @@ describe("schema switching preserves definitions and values", () => {
 
   it("restores Experience after editing Projects without losing either set of entries", () => {
     const original = experience();
-    const projectSchema = { id: "project-section", revision: 1 };
+    const projectSchema = { id: "project-section", revision: 2 };
     const switched = switchContentSchema(original, builtInSchemaBundle, projectSchema);
     expect(switched.record.values.entries).toEqual(original.record.values.entries);
     expect(() => validateStructuredContent(switched)).toThrow(/requires project-entry/);
@@ -103,8 +103,8 @@ describe("schema switching preserves definitions and values", () => {
           entries: [
             {
               id: "project-1",
-              schema: { id: "project-entry", revision: 1 },
-              layout: { id: "project-entry-classic", revision: 1 },
+              schema: { id: "project-entry", revision: 2 },
+              layout: { id: "project-entry-classic", revision: 2 },
               values: { project: "Example App", description: "A scheduling tool" },
             },
           ],

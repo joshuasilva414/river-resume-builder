@@ -354,8 +354,8 @@ it("saves nested entries with the section atomically and preserves earlier reusa
         entries: [
           {
             id: entryId,
-            schema: { id: "experience-entry", revision: 1 },
-            layout: { id: "experience-entry-classic", revision: 1 },
+            schema: { id: "experience-entry", revision: 2 },
+            layout: { id: "experience-entry-classic", revision: 2 },
             values: {
               employer: "Example Labs",
               title: "Engineer",

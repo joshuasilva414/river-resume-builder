@@ -5,6 +5,7 @@ import {
   type SchemaReference,
   sameSchema,
   schemaKey,
+  upgradeBuiltInContent,
 } from "@river/domain";
 import { useQuery } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
@@ -77,7 +78,10 @@ export function SavedEntryPicker({
               (item) =>
                 item.revision.data.kind === "block" &&
                 (item.revision.data.structured
-                  ? sameSchema(item.revision.data.structured.record.schema, schema)
+                  ? sameSchema(
+                      upgradeBuiltInContent(item.revision.data.structured).record.schema,
+                      schema,
+                    )
                   : `${item.item.type}-entry` === schema.id),
             )
             .map((item) => (

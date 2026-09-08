@@ -1,9 +1,16 @@
 import { Schema } from "effect";
-import { contentRecordText, StructuredContent, validateStructuredContent } from "./content-schema";
+import {
+  contentRecordFields,
+  contentRecordText,
+  StructuredContent,
+  validateStructuredContent,
+} from "./content-schema";
+import { upgradeBuiltInContent } from "./content-upgrades";
 import { ApplicationError, canonicalJson, newId, type ResumeDocument, Theme } from "./core";
 import { RecordId } from "./evidence";
 import {
   BlockFieldKey,
+  blockDefinitions,
   type ContentData,
   ContentType,
   EvidenceReference,
@@ -11,6 +18,7 @@ import {
   LibraryReference,
   validateLibraryData,
 } from "./library";
+import type { SourceFields } from "./refinement";
 
 const Reason = Schema.NonEmptyString.check(Schema.isMaxLength(4000));
 export const ContentOverride = Schema.Struct({
@@ -51,7 +59,7 @@ export type SectionPlacement = typeof SectionPlacement.Type;
 export const Composition = Schema.Struct({
   name: Schema.NonEmptyString.check(Schema.isMaxLength(160)),
   theme: Theme,
-  templateRevision: Schema.Literal(1),
+  templateRevision: Schema.Literals([1, 2]),
   template: Schema.optional(Schema.Struct({ designId: RecordId, revisionId: RecordId })),
   sections: Schema.Array(SectionPlacement).check(Schema.isMaxLength(20)),
 });
@@ -83,12 +91,13 @@ export function placeBlock(
   const data = resolveLibrary(reference, graph);
   if (data.kind !== "block")
     throw new ApplicationError({ code: "InvalidInput", message: "Choose a reusable Block." });
+  const structured = data.structured ? upgradeBuiltInContent(data.structured) : undefined;
   return {
     id: createId(),
     reference,
     type: data.type,
-    reason: null,
-    ...(data.structured ? { structured: data.structured } : {}),
+    reason: structured !== data.structured ? "Updated built-in layout" : null,
+    ...(structured ? { structured } : {}),
     fields: data.fields.map((field) => ({
       key: field.key,
       contents: field.contents.map((ref) =>
@@ -105,17 +114,39 @@ export function placeSection(
   const data = resolveLibrary(reference, graph);
   if (data.kind !== "section")
     throw new ApplicationError({ code: "InvalidInput", message: "Choose a reusable Section." });
+  const structured = data.structured ? upgradeBuiltInContent(data.structured) : undefined;
   return {
     id: createId(),
     reference,
     type: data.type,
-    reason: null,
+    reason: structured !== data.structured ? "Updated built-in layout" : null,
     heading: data.heading,
-    ...(data.structured ? { structured: data.structured } : {}),
+    ...(structured ? { structured } : {}),
     blocks: data.blocks.map((ref) =>
       placeBlock({ itemId: ref.itemId, revisionId: ref.revisionId }, graph, createId),
     ),
   };
+}
+/** Preserve saved bases while advancing editable placements to unchanged built-in definitions. */
+export function upgradeCompositionLayouts(data: Composition): Composition {
+  const upgrade = <T extends SectionPlacement | BlockPlacement>(placement: T): T => {
+    if (!placement.structured) return placement;
+    const structured = upgradeBuiltInContent(placement.structured);
+    return structured === placement.structured
+      ? placement
+      : { ...placement, structured, reason: placement.reason ?? "Updated built-in layout" };
+  };
+  const sections = data.sections.map((section) => {
+    const next = upgrade(section);
+    const blocks = next.blocks.map(upgrade);
+    return blocks.some((block, index) => block !== next.blocks[index]) ? { ...next, blocks } : next;
+  });
+  const templateRevision =
+    !data.template && data.templateRevision === 1 ? 2 : data.templateRevision;
+  return templateRevision !== data.templateRevision ||
+    sections.some((section, index) => section !== data.sections[index])
+    ? { ...data, templateRevision, sections }
+    : data;
 }
 /** Copies retain all visible local values and base references while giving every placement a new identity. */
 export function copySection(section: SectionPlacement): SectionPlacement {
@@ -262,7 +293,77 @@ export function validateComposition(data: Composition, graph: readonly LibraryGr
     }
   }
 }
-/** Resolve registered fields in deterministic reading order; no mutable evidence or profile reads. */
+/** Preserve the same field identities for legacy, structured and mixed compositions. */
+export function compositionTextFields(
+  data: Composition,
+  graph: readonly LibraryGraphNode[],
+): SourceFields {
+  const base = { origin: "structured" as const, reviewRequired: false };
+  const structured = (content: StructuredContent, prefix: string): SourceFields =>
+    contentRecordFields(content, content.record).map((field) => ({
+      ...base,
+      ...field,
+      locator: `${prefix}${field.locator}`,
+      evidence: field.role === "heading" ? [] : content.evidence,
+    }));
+  return data.sections.flatMap((section): SourceFields => {
+    if (section.structured) {
+      const header = `${section.id}/${encodeURIComponent(section.structured.record.id)}/${section.type === "contact" ? "name" : "heading"}`;
+      const fields = structured(section.structured, section.id).toSorted(
+        (left, right) => Number(right.locator === header) - Number(left.locator === header),
+      );
+      return section.type !== "contact" && section.structured.record.values.heading === undefined
+        ? [
+            {
+              ...base,
+              locator: `${section.id}/heading`,
+              text: section.heading,
+              role: "heading",
+              required: true,
+              evidence: [],
+            },
+            ...fields,
+          ]
+        : fields;
+    }
+    return [
+      ...(section.type !== "contact" && section.blocks.length
+        ? [
+            {
+              ...base,
+              locator: `${section.id}/heading`,
+              text: section.heading,
+              role: "heading" as const,
+              required: true,
+              evidence: [],
+            },
+          ]
+        : []),
+      ...section.blocks.flatMap((block): SourceFields => {
+        if (block.structured) return structured(block.structured, `${section.id}/${block.id}`);
+        return (
+          ["name", "title", "detail", "dates", "paragraphs", "lines", "items", "bullets"] as const
+        ).flatMap((key) => {
+          const definition = blockDefinitions[block.type].fields.find((field) => field.key === key);
+          return (block.fields.find((field) => field.key === key)?.contents ?? []).map(
+            (content, index) => {
+              const value = contentValue(content, graph);
+              return {
+                ...base,
+                locator: `${section.id}/${block.id}/${key}/${content.id}`,
+                text: value.wording,
+                role: "content" as const,
+                required: index < (definition?.min ?? 0),
+                evidence: value.evidence,
+              };
+            },
+          );
+        });
+      }),
+    ];
+  });
+}
+
 export function renderComposition(
   data: Composition,
   graph: readonly LibraryGraphNode[],
@@ -286,23 +387,13 @@ export function renderComposition(
   if (!name) fail("Add a name to the contact/header Block.");
   const document: ResumeDocument = {
     ...(contactSection?.structured ? { structuredContact: contactSection.structured } : {}),
-    textLocators: data.sections.flatMap((section) => [
-      ...(section.type !== "contact" && section.blocks.length
-        ? [{ locator: `${section.id}/heading`, text: section.heading }]
-        : []),
-      ...section.blocks.flatMap((block) =>
-        ["name", "title", "detail", "dates", "paragraphs", "lines", "items", "bullets"].flatMap(
-          (key) =>
-            (block.fields.find((field) => field.key === key)?.contents ?? []).map((content) => ({
-              locator: `${section.id}/${block.id}/${key}/${content.id}`,
-              text: contentValue(content, graph).wording,
-            })),
-        ),
-      ),
-    ]),
+    textLocators: compositionTextFields(data, graph).map(({ locator, text }) => ({
+      locator,
+      text,
+    })),
     name,
     contact: contactSection?.structured
-      ? contentRecordText(contactSection.structured, contactSection.structured.record).slice(1)
+      ? contentRecordText(contactSection.structured, contactSection.structured.record, ["name"])
       : contact
         ? words(contact, "lines")
         : [],
@@ -350,15 +441,6 @@ export function renderComposition(
   };
   if (canonicalJson(document).length > 100000)
     fail("The resolved document exceeds 100,000 characters.");
-  if (
-    data.sections.some(
-      (section) => section.structured || section.blocks.some((block) => block.structured),
-    )
-  ) {
-    // Mixed-version documents derive a fresh complete locator list from their resolved values.
-    const { textLocators: _legacyLocators, ...resolved } = document;
-    return resolved;
-  }
   return document;
 }
 export function compositionEvidence(data: Composition, graph: readonly LibraryGraphNode[]) {

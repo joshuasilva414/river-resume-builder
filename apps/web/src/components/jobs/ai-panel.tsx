@@ -2,6 +2,7 @@ import type { RetryJobAiRequest, ReviewJobAiRequest, StartJobAiRequest } from "@
 import type { AiSelection } from "@river/domain";
 import { canonicalJson, isQualification, type JobAiTask, selectionIdentity } from "@river/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LoaderCircle } from "lucide-react";
 import { useRef, useState } from "react";
 import { AiSelector } from "~/components/ai-selection";
 import {
@@ -698,54 +699,47 @@ function Execution({
   onRetry: () => void;
 }) {
   const operation = saved.operation;
-  return (
-    <section className="space-y-3 rounded-sm border bg-muted p-4">
-      <div className="flex flex-wrap gap-2">
-        <Badge variant="outline">
-          Generation{" "}
-          {operation?.state === "Pending" ? "Queued" : (operation?.state ?? "Unavailable")}
-        </Badge>
-        <p className="font-mono text-[11px]">Attempt {saved.task.attempts} of 3</p>
+  if (operation?.state === "Succeeded") return null;
+  if (active(operation?.state))
+    return (
+      <div className="flex items-center gap-3 py-3" role="status">
+        <LoaderCircle className="size-4 animate-spin text-primary" aria-hidden="true" />
+        <span className="flex-1 text-sm">
+          {saved.task.input.task === "extract-requirements"
+            ? "Analyzing job…"
+            : "Finding matching evidence…"}
+        </span>
+        <Button variant="ghost" disabled={pending || readOnly} onClick={onCancel}>
+          Cancel
+        </Button>
       </div>
-      <p role="status" aria-live="polite" className="text-sm">
-        {operation?.stage === "Proposal ready for review" ? "Ready to review" : operation?.stage}
+    );
+  return (
+    <div className="flex flex-wrap items-center gap-3 py-3">
+      <p className="min-w-0 flex-1 text-sm" role="status">
+        {operation?.state === "Cancelled"
+          ? "Generation cancelled."
+          : operation?.failure || "Couldn’t generate suggestions."}
       </p>
-      {operation?.failure && <p className="text-sm">{operation.failure}</p>}
-      <p className="text-xs text-muted-foreground">{saved.task.profile.model}</p>
-      {active(operation?.state) && (
-        <>
-          <p className="text-xs text-muted-foreground">
-            You can leave this page. Cancellation may wait for the current provider step to finish;
-            late output cannot apply changes.
-          </p>
-          <Button variant="outline" disabled={pending || readOnly} onClick={onCancel}>
-            Cancel analysis
+      {saved.configured &&
+        saved.task.attempts < 3 &&
+        !saved.proposal &&
+        !saved.staleReasons.length &&
+        !readOnly && (
+          <Button variant="outline" disabled={pending} onClick={onRetry}>
+            Retry
           </Button>
-        </>
+        )}
+      {saved.task.attempts >= 3 && (
+        <p className="w-full text-sm text-muted-foreground">
+          Start a new request or continue manually.
+        </p>
       )}
-      {(operation?.state === "Failed" || operation?.state === "Cancelled") && (
-        <>
-          {!saved.configured && (
-            <p className="text-sm">
-              This task profile is currently unavailable. Saved review records remain accessible.
-            </p>
-          )}
-          {saved.task.attempts >= 3 && (
-            <p className="text-sm">
-              The three-attempt budget is exhausted. Continue manually or request new suggestions.
-            </p>
-          )}
-          {saved.configured &&
-            saved.task.attempts < 3 &&
-            !saved.proposal &&
-            !saved.staleReasons.length &&
-            !readOnly && (
-              <Button variant="outline" disabled={pending} onClick={onRetry}>
-                Retry analysis
-              </Button>
-            )}
-        </>
+      {!saved.configured && (
+        <p className="w-full text-sm text-muted-foreground">
+          Check your AI connection in Settings, then start a new request.
+        </p>
       )}
-    </section>
+    </div>
   );
 }

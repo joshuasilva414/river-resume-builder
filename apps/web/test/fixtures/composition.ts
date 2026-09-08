@@ -74,7 +74,7 @@ export async function compositionFixture() {
   const data: Composition = {
     name: "Fixture draft",
     theme: "classic",
-    templateRevision: 1,
+    templateRevision: 2,
     sections: [placeSection(contact, graph), placeSection(section, graph)],
   };
   const create = async (key: string, composition = data) =>

@@ -9,15 +9,15 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Schema } from "effect";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { CheckpointHistory } from "~/components/composition/checkpoints";
 import { EvidenceDialog, Failure, MaterialSummary, unwrap } from "~/components/evidence/shared";
 import { EvidenceLinks } from "~/components/library/evidence-links";
 import { PdfPreview } from "~/components/pdf-preview";
-import { SourceRefinements } from "~/components/refinement/launch";
+import { SavedRefinements, SourceRefinements } from "~/components/refinement/launch";
 import { StructuredReturn } from "~/components/refinement/structured-return";
 import { TemplatePromotion } from "~/components/refinement/template-promotion";
-import { CheckpointScoring } from "~/components/scoring/launch";
+import { CheckpointScoring, ScoringHistory } from "~/components/scoring/launch";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { WorkspaceShell } from "~/components/workspace-shell";
@@ -69,7 +69,12 @@ function CheckpointPage() {
 function Review({ detail }: { detail: Detail }) {
   const client = useQueryClient(),
     { checkpoint, state, report, operation, exported } = detail;
-  const [scores, setScores] = useState(Boolean(Route.useSearch().scores));
+  const [scores, setScores] = useState(false);
+  const searchScores = Route.useSearch().scores;
+  const [tab, setTab] = useState(searchScores ? "scores" : "document");
+  useEffect(() => {
+    if (searchScores) setTab("scores");
+  }, [searchScores]);
   const [history, setHistory] = useState(false),
     [refinements, setRefinements] = useState(false),
     [structuredReturn, setStructuredReturn] = useState(false),
@@ -168,7 +173,7 @@ function Review({ detail }: { detail: Detail }) {
             Refine final document
           </Button>
           <Button variant="outline" onClick={() => setScores(true)}>
-            Scores
+            Score résumé
           </Button>
           {detail.source && (
             <>
@@ -186,295 +191,317 @@ function Review({ detail }: { detail: Detail }) {
           {checkpoint.data.name} · Saved {new Date(checkpoint.createdAt).toLocaleString()}
         </p>
       </header>
-      <div className="grid min-h-0 flex-1 xl:grid-cols-[1.05fr_1fr]">
-        <section className="min-w-0 space-y-5 border-b p-5 md:p-7 xl:overflow-y-auto xl:border-r xl:border-b-0">
-          <h2 className="font-editorial text-2xl font-medium">
-            Check the document before exporting.
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            The PDF and text below belong to this saved version. Later edits do not change these
-            files.
-          </p>
-          <div className="divide-y">
-            <Check
-              label="PDF prepared"
-              status={operation?.artifacts ? "Passed" : active ? "Pending" : "Blocked"}
-            />
-            <Check
-              label="Template checks"
-              status={matchingRuntime ? "Passed" : active ? "Pending" : "Not validated"}
-            />
-            <Check
-              label="Wording preserved"
-              status={validation ? (validation.passed ? "Passed" : "Blocked") : "Pending"}
-            />
-            <Check
-              label="Saved review"
-              status={
-                report.issues.length === 0
-                  ? "No additional review needed"
-                  : `${acknowledged} of ${report.issues.length} reviewed`
-              }
-            />
-          </div>
-          <Failure error={action.error} />
-          {request && action.error && (
-            <div className="flex gap-3">
-              <Button disabled={action.isPending} onClick={() => action.mutate(request.kind)}>
-                Retry {request.kind}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setRequest(null);
-                  action.reset();
-                }}
-              >
-                Review current status
-              </Button>
-            </div>
-          )}
-          {detail.previousReport && !exported && (
-            <div className="space-y-3 border-l-2 border-warning bg-warning/10 p-4" role="status">
-              <h3 className="font-semibold">Evidence changed during review</h3>
-              <p className="text-sm">
-                Review the updated items before exporting. Your previous review remains in the
-                history.
+      <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col">
+        <TabsList className="mx-5 mt-4 w-fit">
+          <TabsTrigger value="document">Document</TabsTrigger>
+          <TabsTrigger value="scores">Scores</TabsTrigger>
+          <TabsTrigger value="refinements">Refinements</TabsTrigger>
+        </TabsList>
+        <TabsContent value="document" className="min-h-0 flex-1 overflow-y-auto">
+          <div className="grid min-h-0 flex-1 xl:grid-cols-[1.05fr_1fr]">
+            <section className="min-w-0 space-y-5 border-b p-5 md:p-7 xl:overflow-y-auto xl:border-r xl:border-b-0">
+              <h2 className="font-editorial text-2xl font-medium">
+                Check the document before exporting.
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                The PDF and text below belong to this saved version. Later edits do not change these
+                files.
               </p>
-              <details>
-                <summary className="cursor-pointer text-sm text-primary">
-                  Compare previous and current reports
-                </summary>
-                <div className="mt-3 grid gap-4 md:grid-cols-2">
-                  {[detail.previousReport, report].map((value) => (
-                    <div key={value.id} className="space-y-2">
-                      <p className="eyebrow">
-                        {value.id === report.id ? "Current" : "Previous"} · {value.id.slice(-8)}
-                      </p>
-                      {value.issues.length === 0 && <p>No evidence issues.</p>}
-                      {value.issues.map((issue) => (
-                        <div key={issue.id} className="border-t py-2 text-sm">
-                          <strong>{issue.kind}</strong>
-                          <p className="whitespace-pre-wrap">{issue.wording}</p>
-                          <p>{issue.rationale}</p>
+              <div className="divide-y">
+                <Check
+                  label="PDF prepared"
+                  status={operation?.artifacts ? "Passed" : active ? "Pending" : "Blocked"}
+                />
+                <Check
+                  label="Template checks"
+                  status={matchingRuntime ? "Passed" : active ? "Pending" : "Not validated"}
+                />
+                <Check
+                  label="Wording preserved"
+                  status={validation ? (validation.passed ? "Passed" : "Blocked") : "Pending"}
+                />
+                <Check
+                  label="Saved review"
+                  status={
+                    report.issues.length === 0
+                      ? "No additional review needed"
+                      : `${acknowledged} of ${report.issues.length} reviewed`
+                  }
+                />
+              </div>
+              <Failure error={action.error} />
+              {request && action.error && (
+                <div className="flex gap-3">
+                  <Button disabled={action.isPending} onClick={() => action.mutate(request.kind)}>
+                    Retry {request.kind}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setRequest(null);
+                      action.reset();
+                    }}
+                  >
+                    Review current status
+                  </Button>
+                </div>
+              )}
+              {detail.previousReport && !exported && (
+                <div
+                  className="space-y-3 border-l-2 border-warning bg-warning/10 p-4"
+                  role="status"
+                >
+                  <h3 className="font-semibold">Evidence changed during review</h3>
+                  <p className="text-sm">
+                    Review the updated items before exporting. Your previous review remains in the
+                    history.
+                  </p>
+                  <details>
+                    <summary className="cursor-pointer text-sm text-primary">
+                      Compare previous and current reports
+                    </summary>
+                    <div className="mt-3 grid gap-4 md:grid-cols-2">
+                      {[detail.previousReport, report].map((value) => (
+                        <div key={value.id} className="space-y-2">
+                          <p className="eyebrow">
+                            {value.id === report.id ? "Current" : "Previous"} · {value.id.slice(-8)}
+                          </p>
+                          {value.issues.length === 0 && <p>No evidence issues.</p>}
+                          {value.issues.map((issue) => (
+                            <div key={issue.id} className="border-t py-2 text-sm">
+                              <strong>{issue.kind}</strong>
+                              <p className="whitespace-pre-wrap">{issue.wording}</p>
+                              <p>{issue.rationale}</p>
+                            </div>
+                          ))}
                         </div>
                       ))}
                     </div>
-                  ))}
+                  </details>
                 </div>
-              </details>
-            </div>
-          )}
-          {validation?.warnings.map((warning) => (
-            <p key={warning} className="border-l-2 border-warning bg-warning/10 p-4 text-sm">
-              Layout advisory: {warning}
-            </p>
-          ))}
-          {operation && (
-            <div className="space-y-3">
-              <p role="status" className="text-sm">
-                {operation.stage} · Attempt {state.attempts} of 3
-              </p>
-              {operation.failure && <p className="text-sm text-destructive">{operation.failure}</p>}
-              {active && (
-                <Button
-                  variant="outline"
-                  disabled={action.isPending || !!request}
-                  onClick={() => action.mutate("cancel")}
-                >
-                  Cancel document preparation
-                </Button>
               )}
-              {!detail.source &&
-                !active &&
-                !exported &&
-                ["Failed", "Cancelled"].includes(operation.state) &&
-                operation.artifacts?.validationPassed !== false && (
-                  <Button
-                    variant="outline"
-                    disabled={action.isPending || !!request || state.attempts >= 3}
-                    onClick={() => action.mutate("retry")}
+              {validation?.warnings.map((warning) => (
+                <p key={warning} className="border-l-2 border-warning bg-warning/10 p-4 text-sm">
+                  Layout advisory: {warning}
+                </p>
+              ))}
+              {operation && (
+                <div className="space-y-3">
+                  <p role="status" className="text-sm">
+                    {operation.stage} · Attempt {state.attempts} of 3
+                  </p>
+                  {operation.failure && (
+                    <p className="text-sm text-destructive">{operation.failure}</p>
+                  )}
+                  {active && (
+                    <Button
+                      variant="outline"
+                      disabled={action.isPending || !!request}
+                      onClick={() => action.mutate("cancel")}
+                    >
+                      Cancel document preparation
+                    </Button>
+                  )}
+                  {!detail.source &&
+                    !active &&
+                    !exported &&
+                    ["Failed", "Cancelled"].includes(operation.state) &&
+                    operation.artifacts?.validationPassed !== false && (
+                      <Button
+                        variant="outline"
+                        disabled={action.isPending || !!request || state.attempts >= 3}
+                        onClick={() => action.mutate("retry")}
+                      >
+                        Retry document preparation
+                      </Button>
+                    )}
+                </div>
+              )}
+              {!exported && (
+                <div className="space-y-3">
+                  {report.issues.length > 0 && (
+                    <Button variant="outline" onClick={() => setAcknowledge(true)}>
+                      Review {report.issues.length} evidence issues
+                    </Button>
+                  )}
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      variant="outline"
+                      disabled={action.isPending || !!request}
+                      onClick={() => action.mutate("review")}
+                    >
+                      Refresh review
+                    </Button>
+                    <Button
+                      disabled={!ready || action.isPending || !!request}
+                      onClick={() => action.mutate("export")}
+                    >
+                      {action.isPending ? "Saving review…" : "Export résumé files"}
+                    </Button>
+                  </div>
+                  {!ready && (
+                    <p className="text-xs text-muted-foreground">
+                      {acknowledged < report.issues.length
+                        ? "Complete the document checks and review the saved items before exporting."
+                        : "Export becomes available when the document checks pass."}
+                    </p>
+                  )}
+                </div>
+              )}
+              {exported && (
+                <div className="space-y-4 border-t pt-5">
+                  <h3 className="font-editorial text-2xl font-medium">Export complete</h3>
+                  <p className="text-sm">
+                    {new Date(exported.createdAt).toLocaleString()} · Your saved version and its
+                    review remain available.
+                  </p>
+                  <a
+                    className="inline-flex rounded-sm bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"
+                    href={`/api/artifacts/${exported.operationId}/pdf?download`}
+                    target="_blank"
+                    rel="noreferrer"
                   >
-                    Retry document preparation
-                  </Button>
-                )}
-            </div>
-          )}
-          {!exported && (
-            <div className="space-y-3">
-              {report.issues.length > 0 && (
-                <Button variant="outline" onClick={() => setAcknowledge(true)}>
-                  Review {report.issues.length} evidence issues
-                </Button>
+                    Download PDF
+                  </a>
+                  <details>
+                    <summary className="cursor-pointer py-3 text-sm text-primary">
+                      More formats
+                    </summary>
+                    <div className="flex flex-wrap gap-4">
+                      {([["text", "Plain text (.txt)"]] as const).map(([kind, label]) => (
+                        <a
+                          key={kind}
+                          className="py-3 text-sm text-primary underline"
+                          href={`/api/artifacts/${exported.operationId}/${kind}?download`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {label}
+                        </a>
+                      ))}
+                    </div>
+                  </details>
+                  <p className="text-xs text-muted-foreground">
+                    If a download is interrupted, use the same file link again. Your retained export
+                    stays available.
+                  </p>
+                </div>
               )}
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  variant="outline"
-                  disabled={action.isPending || !!request}
-                  onClick={() => action.mutate("review")}
-                >
-                  Refresh review
-                </Button>
-                <Button
-                  disabled={!ready || action.isPending || !!request}
-                  onClick={() => action.mutate("export")}
-                >
-                  {action.isPending ? "Saving review…" : "Export résumé files"}
-                </Button>
-              </div>
-              {!ready && (
-                <p className="text-xs text-muted-foreground">
-                  {acknowledged < report.issues.length
-                    ? "Complete the document checks and review the saved items before exporting."
-                    : "Export becomes available when the document checks pass."}
+              {detail.source && (
+                <section className="space-y-3 border-t pt-5">
+                  <h3 className="text-xl">Refined document</h3>
+                  <p className="text-sm">
+                    This document includes reviewed layout or wording changes. You can still return
+                    to its earlier editor version.
+                  </p>
+                </section>
+              )}
+            </section>
+            <aside className="min-w-0 space-y-4 bg-muted/40 p-5 md:p-7 xl:overflow-y-auto">
+              <p className="eyebrow">{checkpoint.label ?? "Saved version"} · Document preview</p>
+              {operation?.artifacts ? (
+                <Tabs defaultValue="pdf">
+                  <TabsList>
+                    <TabsTrigger value="pdf">PDF</TabsTrigger>
+                    <TabsTrigger value="text">Extracted text</TabsTrigger>
+                    <TabsTrigger value="report">Text checks</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="pdf">
+                    <PdfPreview url={`/api/artifacts/${operation.id}/pdf`} />
+                  </TabsContent>
+                  <TabsContent value="text" className="space-y-4">
+                    <Failure error={reportQuery.error} />
+                    {reportQuery.error && (
+                      <Button onClick={() => void reportQuery.refetch()}>Retry report</Button>
+                    )}
+                    <label className="flex flex-col gap-2 text-sm">
+                      Find in extracted text
+                      <input
+                        className="rounded-sm border bg-background p-2"
+                        value={search}
+                        maxLength={200}
+                        onChange={(event) => setSearch(event.target.value)}
+                      />
+                    </label>
+                    {search && (
+                      <p role="status" className="text-xs">
+                        {matches} matches · First 200 highlighted
+                      </p>
+                    )}
+                    <pre className="overflow-auto whitespace-pre-wrap break-words rounded-sm border bg-background p-4 font-mono text-xs leading-5">
+                      {text
+                        ? highlightedText(text, search)
+                        : reportQuery.isPending
+                          ? "Loading text…"
+                          : "No text extracted."}
+                    </pre>
+                  </TabsContent>
+                  <TabsContent value="report" className="space-y-4">
+                    <Failure error={reportQuery.error} />
+                    {reportQuery.error && (
+                      <Button onClick={() => void reportQuery.refetch()}>Retry report</Button>
+                    )}
+                    {validation && (
+                      <>
+                        <p className={validation.passed ? "text-approved" : "text-destructive"}>
+                          {validation.passed
+                            ? "Text validation passed"
+                            : "Text integrity blocks export"}
+                        </p>
+                        {validation.checks && (
+                          <div>
+                            <Check
+                              label="All wording present"
+                              status={validation.checks.completeness ? "Passed" : "Blocked"}
+                            />
+                            <Check
+                              label="Repeated wording preserved"
+                              status={validation.checks.multiplicity ? "Passed" : "Blocked"}
+                            />
+                            <Check
+                              label="Reading order"
+                              status={validation.checks.readingOrder ? "Passed" : "Blocked"}
+                            />
+                          </div>
+                        )}
+                        <p className="text-xs">
+                          {validation.pageCount ?? "Unknown"}{" "}
+                          {validation.pageCount === 1 ? "page" : "pages"}
+                        </p>
+                        {validation.firstDifference && (
+                          <div className="space-y-2 border-l-2 border-destructive p-4">
+                            <p className="text-sm font-semibold">First text difference</p>
+                            <p className="whitespace-pre-wrap text-sm">
+                              {validation.firstDifference.expectedText}
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              ) : (
+                <p className="py-12 text-center text-sm text-muted-foreground">
+                  {active
+                    ? "Your document is being prepared. Its files will appear here when ready."
+                    : "Document preparation has not completed. Your saved résumé is preserved."}
                 </p>
               )}
-            </div>
-          )}
-          {exported && (
-            <div className="space-y-4 border-t pt-5">
-              <h3 className="font-editorial text-2xl font-medium">Export complete</h3>
-              <p className="text-sm">
-                {new Date(exported.createdAt).toLocaleString()} · Your saved version and its review
-                remain available.
-              </p>
-              <a
-                className="inline-flex rounded-sm bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"
-                href={`/api/artifacts/${exported.operationId}/pdf?download`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Download PDF
-              </a>
-              <details>
-                <summary className="cursor-pointer py-3 text-sm text-primary">More formats</summary>
-                <div className="flex flex-wrap gap-4">
-                  {([["text", "Plain text (.txt)"]] as const).map(([kind, label]) => (
-                    <a
-                      key={kind}
-                      className="py-3 text-sm text-primary underline"
-                      href={`/api/artifacts/${exported.operationId}/${kind}?download`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {label}
-                    </a>
-                  ))}
-                </div>
-              </details>
-              <p className="text-xs text-muted-foreground">
-                If a download is interrupted, use the same file link again. Your retained export
-                stays available.
-              </p>
-            </div>
-          )}
-          {detail.source && (
-            <section className="space-y-3 border-t pt-5">
-              <h3 className="text-xl">Refined document</h3>
-              <p className="text-sm">
-                This document includes reviewed layout or wording changes. You can still return to
-                its earlier editor version.
-              </p>
-            </section>
-          )}
-        </section>
-        <aside className="min-w-0 space-y-4 bg-muted/40 p-5 md:p-7 xl:overflow-y-auto">
-          <p className="eyebrow">{checkpoint.label ?? "Saved version"} · Document preview</p>
-          {operation?.artifacts ? (
-            <Tabs defaultValue="pdf">
-              <TabsList>
-                <TabsTrigger value="pdf">PDF</TabsTrigger>
-                <TabsTrigger value="text">Extracted text</TabsTrigger>
-                <TabsTrigger value="report">Text checks</TabsTrigger>
-              </TabsList>
-              <TabsContent value="pdf">
-                <PdfPreview url={`/api/artifacts/${operation.id}/pdf`} />
-              </TabsContent>
-              <TabsContent value="text" className="space-y-4">
-                <Failure error={reportQuery.error} />
-                {reportQuery.error && (
-                  <Button onClick={() => void reportQuery.refetch()}>Retry report</Button>
-                )}
-                <label className="flex flex-col gap-2 text-sm">
-                  Find in extracted text
-                  <input
-                    className="rounded-sm border bg-background p-2"
-                    value={search}
-                    maxLength={200}
-                    onChange={(event) => setSearch(event.target.value)}
-                  />
-                </label>
-                {search && (
-                  <p role="status" className="text-xs">
-                    {matches} matches · First 200 highlighted
-                  </p>
-                )}
-                <pre className="overflow-auto whitespace-pre-wrap break-words rounded-sm border bg-background p-4 font-mono text-xs leading-5">
-                  {text
-                    ? highlightedText(text, search)
-                    : reportQuery.isPending
-                      ? "Loading text…"
-                      : "No text extracted."}
-                </pre>
-              </TabsContent>
-              <TabsContent value="report" className="space-y-4">
-                <Failure error={reportQuery.error} />
-                {reportQuery.error && (
-                  <Button onClick={() => void reportQuery.refetch()}>Retry report</Button>
-                )}
-                {validation && (
-                  <>
-                    <p className={validation.passed ? "text-approved" : "text-destructive"}>
-                      {validation.passed
-                        ? "Text validation passed"
-                        : "Text integrity blocks export"}
-                    </p>
-                    {validation.checks && (
-                      <div>
-                        <Check
-                          label="All wording present"
-                          status={validation.checks.completeness ? "Passed" : "Blocked"}
-                        />
-                        <Check
-                          label="Repeated wording preserved"
-                          status={validation.checks.multiplicity ? "Passed" : "Blocked"}
-                        />
-                        <Check
-                          label="Reading order"
-                          status={validation.checks.readingOrder ? "Passed" : "Blocked"}
-                        />
-                      </div>
-                    )}
-                    <p className="text-xs">
-                      {validation.pageCount ?? "Unknown"}{" "}
-                      {validation.pageCount === 1 ? "page" : "pages"}
-                    </p>
-                    {validation.firstDifference && (
-                      <div className="space-y-2 border-l-2 border-destructive p-4">
-                        <p className="text-sm font-semibold">First text difference</p>
-                        <p className="whitespace-pre-wrap text-sm">
-                          {validation.firstDifference.expectedText}
-                        </p>
-                      </div>
-                    )}
-                  </>
-                )}
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <p className="py-12 text-center text-sm text-muted-foreground">
-              {active
-                ? "Your document is being prepared. Its files will appear here when ready."
-                : "Document preparation has not completed. Your saved résumé is preserved."}
-            </p>
-          )}
-        </aside>
-      </div>
+            </aside>
+          </div>
+        </TabsContent>
+        <TabsContent value="scores" className="min-h-0 flex-1 overflow-y-auto p-5 md:p-8">
+          <ScoringHistory checkpointId={checkpoint.id} draftId={checkpoint.draftId} />
+        </TabsContent>
+        <TabsContent value="refinements" className="min-h-0 flex-1 overflow-y-auto p-5 md:p-8">
+          <SavedRefinements checkpointId={checkpoint.id} />
+        </TabsContent>
+      </Tabs>
       {refinements && <SourceRefinements detail={detail} onClose={() => setRefinements(false)} />}
       {scores && (
         <CheckpointScoring
           checkpointId={checkpoint.id}
-          draftId={checkpoint.draftId}
+          onStarted={() => setTab("scores")}
           onClose={() => setScores(false)}
         />
       )}

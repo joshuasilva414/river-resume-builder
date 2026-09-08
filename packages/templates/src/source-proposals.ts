@@ -2,10 +2,9 @@ import {
   AiExecutionFields,
   AiModel,
   ApplicationError,
-  blockDefinitions,
   type Composition,
   canonicalJson,
-  contentValue,
+  compositionTextFields,
   EvidenceReference,
   fingerprint,
   type LibraryGraphNode,
@@ -40,9 +39,9 @@ export const SourceRefinementOutput = Schema.Struct({
   source: Schema.NonEmptyString.check(Schema.isMaxLength(250000)),
   fields: Schema.Array(
     Schema.Struct({
-      baseLocator: Schema.NullOr(Schema.NonEmptyString.check(Schema.isMaxLength(300))),
+      baseLocator: Schema.NullOr(Schema.NonEmptyString.check(Schema.isMaxLength(4096))),
       text: Schema.NonEmptyString.check(Schema.isMaxLength(20000)),
-      evidence: Schema.Array(EvidenceReference).check(Schema.isMaxLength(20)),
+      evidence: Schema.Array(EvidenceReference).check(Schema.isMaxLength(200)),
       meaning: SourceMeaning,
     }),
   ).check(Schema.isMinLength(1), Schema.isMaxLength(2000)),
@@ -55,35 +54,18 @@ export function structuredSourceFields(
   data: Composition,
   graph: readonly LibraryGraphNode[],
 ): SourceFields {
-  const metadata = new Map<string, Omit<SourceField, "locator" | "text">>();
-  for (const section of data.sections) {
-    metadata.set(`${section.id}/heading`, {
-      origin: "structured",
-      role: "heading",
-      required: true,
-      evidence: [],
-      reviewRequired: false,
+  try {
+    textLocations(renderComposition(data, graph));
+    const fields = compositionTextFields(data, graph);
+    validateSourceFields(fields);
+    return fields;
+  } catch {
+    throw new ApplicationError({
+      code: "InvalidInput",
+      message:
+        "Refinement preparation failed: this saved version’s fields could not be matched to its document. Return to editing, check the content, and save a new version before refining.",
     });
-    for (const block of section.blocks)
-      for (const field of block.fields) {
-        const definition = blockDefinitions[block.type].fields.find(
-          (item) => item.key === field.key,
-        );
-        for (const [index, content] of field.contents.entries())
-          metadata.set(`${section.id}/${block.id}/${field.key}/${content.id}`, {
-            origin: "structured",
-            role: "content",
-            required: index < (definition?.min ?? 0),
-            evidence: contentValue(content, graph).evidence,
-            reviewRequired: false,
-          });
-      }
   }
-  return textLocations(renderComposition(data, graph)).map((location) => {
-    const field = metadata.get(location.locator);
-    if (!field) throw new Error("Structured field metadata is incomplete.");
-    return { ...location, ...field };
-  });
 }
 
 export function validateSourceFields(fields: SourceFields) {

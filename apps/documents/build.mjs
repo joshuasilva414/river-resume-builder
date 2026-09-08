@@ -27,5 +27,5 @@ await build({
 await mkdir("dist", { recursive: true });
 await writeFile(
   "dist/build.json",
-  JSON.stringify({ compiler: "tectonic@0.17.0", renderer: "river-tectonic-0.2.0" }),
+  JSON.stringify({ compiler: "tectonic@0.17.0", renderer: "river-tectonic-0.4.0" }),
 );

@@ -11,7 +11,7 @@ it("isolates all supported layout properties into bounded generic values", () =>
       .replace("[10pt,letterpaper]", "[11pt,letterpaper]")
       .replace("Latin Modern Roman", "Latin Modern Sans")
       .replace("margin=0.65in", "margin=0.7in")
-      .replace("{\\parskip}{3pt}", "{\\parskip}{2pt}")
+      .replace("{\\parskip}{2pt}", "{\\parskip}{3pt}")
       .replace("{ 9pt }", "{ 8pt }"),
   );
   expect(result).toEqual({
@@ -20,7 +20,7 @@ it("isolates all supported layout properties into bounded generic values", () =>
       { property: "font", before: "Latin Modern Roman", after: "Latin Modern Sans" },
       { property: "bodySize", before: 10, after: 11 },
       { property: "margin", before: 0.65, after: 0.7 },
-      { property: "paragraphSpacing", before: 3, after: 2 },
+      { property: "paragraphSpacing", before: 2, after: 3 },
       { property: "sectionSpacing", before: 9, after: 8 },
     ],
   });
