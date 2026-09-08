@@ -69,7 +69,7 @@ export function RequirementComparison({
       </section>
       <section className="min-w-0 space-y-3">
         <h3 className="font-editorial text-2xl">
-          Proposed requirements · {proposal.requirements.length}
+          Suggested requirements · {proposal.requirements.length}
         </h3>
         {proposal.requirements.map((requirement) => (
           <div key={requirement.id} className="space-y-2">
@@ -91,7 +91,9 @@ export function RequirementComparison({
           </div>
         ))}
         {!proposed.size && (
-          <p className="text-sm text-muted-foreground">The proposal removes every requirement.</p>
+          <p className="text-sm text-muted-foreground">
+            These suggestions remove every requirement.
+          </p>
         )}
       </section>
     </div>
@@ -270,7 +272,7 @@ export function RankingReview({
           key={gap.requirementId}
           className="space-y-2 rounded-sm border border-highlight bg-highlight/10 p-4"
         >
-          <h4 className="font-semibold">Gap in reviewed candidates</h4>
+          <h4 className="font-semibold">No supporting evidence found</h4>
           <p className="text-sm">
             {input.workspace.requirements.find((item) => item.id === gap.requirementId)?.text}
           </p>

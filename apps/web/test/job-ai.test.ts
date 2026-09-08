@@ -698,7 +698,7 @@ it("rejects ranking acceptance when a captured context changes without changing 
   expect((await store.inspectJob(actor.id, { id: created.id })).selected).toHaveLength(0);
 });
 
-it("keeps initial and accepted analysis clear of false stale warnings and accepts after unrelated detail or selection changes", async () => {
+it("keeps initial and accepted analysis clear of false stale warnings and accepts after unrelated detail changes", async () => {
   const { store, actor, created, request, output } = await fixture();
   const started = await store.startJobAi(actor, request, profile);
   expect((await store.inspectJobAi(actor.id, started.id)).staleReasons).toEqual([]);
@@ -726,12 +726,24 @@ it("keeps initial and accepted analysis clear of false stale warnings and accept
 });
 it("applies selected requirements atomically without losing current unselected requirements", async () => {
   const { store, actor, created, request, output, fields } = await fixture();
-  const started = await store.startJobAi(actor, request, profile);
+  await store.runJobCommand(actor, {
+    type: "requirement",
+    id: created.id,
+    revision: 0,
+    snapshotId: request.snapshotId,
+    requirementId: null,
+    fields,
+    idempotencyKey: "existing-requirement",
+  });
+  const before = await store.inspectJob(actor.id, { id: created.id });
+  const retained = before.workspace.data.requirements[0];
+  if (!retained) throw Error("Missing existing requirement");
+  const started = await store.startJobAi(actor, { ...request, revision: 1 }, profile);
   if (!started.revisionId) throw Error("Missing operation");
   await store.publishJobAi(actor.id, started.id, started.revisionId, {
     ...output,
     requirements: [
-      ...output.requirements,
+      { ...fields, existingId: retained.id, text: "Unselected proposed replacement" },
       { ...fields, existingId: null, text: "Second qualification" },
     ],
   });
@@ -749,11 +761,19 @@ it("applies selected requirements atomically without losing current unselected r
   };
   const outcome = await store.reviewJobAi(actor, review);
   expect(await store.reviewJobAi(actor, review)).toEqual(outcome);
+  const saved = await store.inspectJob(actor.id, { id: created.id });
+  expect(saved.workspace.data.requirements).toEqual([retained, chosen]);
+  expect(saved.job.revision).toBe(before.job.revision + 1);
   expect(
-    (await store.inspectJob(actor.id, { id: created.id })).workspace.data.requirements,
-  ).toEqual([chosen]);
+    (
+      await store.inspectJob(actor.id, {
+        id: created.id,
+        workspaceRevisionId: before.workspace.id,
+      })
+    ).workspace.data,
+  ).toEqual(before.workspace.data);
 });
-it("uses all evidence matches atomically while eligibility and unrelated evidence metadata stay outside ranking staleness", async () => {
+it("uses multiple evidence matches atomically after selection-only edits while eligibility and evidence metadata stay outside ranking staleness", async () => {
   const { store, actor, created, request, fields, current } = await fixture();
   await store.runJobCommand(actor, {
     type: "requirement",
@@ -787,7 +807,17 @@ it("uses all evidence matches atomically while eligibility and unrelated evidenc
     },
     material,
   );
-  if (!evidence.revisionId) throw Error("Missing evidence");
+  const secondMaterial = { ...material, assertion: "TypeScript services" };
+  const secondEvidence = await store.createEvidence(
+    actor,
+    {
+      material: secondMaterial,
+      metadata: { label: "TypeScript services", tags: ["TypeScript"], notes: "" },
+      idempotencyKey: "second-evidence",
+    },
+    secondMaterial,
+  );
+  if (!evidence.revisionId || !secondEvidence.revisionId) throw Error("Missing evidence");
   const task = await store.startJobAi(
     actor,
     { ...request, revision: 2, task: "rank-evidence", idempotencyKey: "rank" },
@@ -803,16 +833,38 @@ it("uses all evidence matches atomically while eligibility and unrelated evidenc
         support: "Positive support",
         explanation: "Direct TypeScript evidence",
       },
+      {
+        claimId: secondEvidence.id,
+        evidenceRevisionId: secondEvidence.revisionId,
+        requirementId: qualification.id,
+        support: "Positive support",
+        explanation: "Additional TypeScript evidence",
+      },
     ],
     gaps: [],
     explanation: "Only qualification matching.",
   };
   const proposalId = await store.publishJobAi(actor.id, task.id, task.revisionId, ranked);
   if (!proposalId) throw Error("Missing result");
+  const generalSelection = {
+    claimId: evidence.id,
+    evidenceRevisionId: evidence.revisionId,
+    requirementId: null,
+  };
+  await store.runJobCommand(actor, {
+    type: "selection",
+    id: created.id,
+    revision: 2,
+    snapshotId: current.snapshot.id,
+    selection: generalSelection,
+    selected: true,
+    idempotencyKey: "select-after-generation",
+  });
+  expect((await store.inspectJobAi(actor.id, task.id)).staleReasons).toEqual([]);
   await store.runJobCommand(actor, {
     type: "requirement",
     id: created.id,
-    revision: 2,
+    revision: 3,
     snapshotId: current.snapshot.id,
     requirementId: eligibility.id,
     fields: { ...eligibility, text: "Updated posting eligibility" },
@@ -835,10 +887,24 @@ it("uses all evidence matches atomically while eligibility and unrelated evidenc
     })),
     idempotencyKey: "use-all",
   };
+  const before = await store.inspectJob(actor.id, { id: created.id });
+  await expect(
+    store.reviewJobAi(actor, {
+      ...review,
+      selections: review.selections.map((selection, index) =>
+        index === 1 ? { ...selection, evidenceRevisionId: newId() } : selection,
+      ),
+      idempotencyKey: "invalid-second-match",
+    }),
+  ).rejects.toMatchObject({ code: "InvalidInput" });
+  const unchanged = await store.inspectJob(actor.id, { id: created.id });
+  expect(unchanged.job.revision).toBe(before.job.revision);
+  expect(unchanged.workspace).toEqual(before.workspace);
+  expect((await store.inspectJobAi(actor.id, task.id)).proposal?.state).toBe("Pending");
   const outcome = await store.reviewJobAi(actor, review);
   expect(await store.reviewJobAi(actor, review)).toEqual(outcome);
-  expect((await store.inspectJob(actor.id, { id: created.id })).workspace.data.selections).toEqual(
-    review.selections,
-  );
+  const saved = await store.inspectJob(actor.id, { id: created.id });
+  expect(saved.job.revision).toBe(before.job.revision + 1);
+  expect(saved.workspace.data.selections).toEqual([generalSelection, ...review.selections]);
   expect((await store.inspectJobAi(actor.id, task.id)).staleReasons).toEqual([]);
 });

@@ -1,4 +1,4 @@
-import { applyD1Migrations } from "cloudflare:test";
+import { applyD1Migrations, introspectWorkflowInstance } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { createRepository, schema } from "@river/db";
 import { type AiProfile, type JobImportAnalysis, newId, type Principal } from "@river/domain";
@@ -42,7 +42,7 @@ const analysis: JobImportAnalysis = {
     },
   ],
 };
-async function fixture() {
+async function fixture(input: { url: string | null; text: string } = { url: null, text: posting }) {
   const store = createRepository(env.DB),
     ownerId = newId(),
     actor: Principal = { kind: "owner", id: ownerId, ownerId };
@@ -54,7 +54,7 @@ async function fixture() {
     createdAt: new Date(),
     updatedAt: new Date(),
   });
-  const request = { input: { url: null, text: posting }, idempotencyKey: "start" };
+  const request = { input, idempotencyKey: "start" };
   const imported = await store.startJobImport(actor, request, profile);
   if (!imported.revisionId) throw Error("Missing operation");
   return { store, actor, request, imported, operationId: imported.revisionId };
@@ -164,6 +164,82 @@ it("retrieves ordinary HTML first and uses the browser JSON response for JavaScr
   });
   expect(browserCalls).toBe(1);
 });
+it("validates declared module and script preload origins and waits for hydration within the deadline", async () => {
+  const checked: string[] = [];
+  const transport: typeof fetch = async (input) => {
+    const url = requestUrl(input);
+    if (url.hostname === "cloudflare-dns.com") {
+      const name = url.searchParams.get("name") ?? "";
+      checked.push(name);
+      return Response.json({
+        Status: 0,
+        Answer: [{ type: 1, data: name === "private.example.com" ? "10.0.0.1" : "1.1.1.1" }],
+      });
+    }
+    return new Response(
+      `<main>Loading</main>
+       <link href="https://cdn.example.com/app.js" rel="modulepreload">
+       <link rel="preload" as="script" href="https://scripts.example.com/chunk.js">
+       <link rel="modulepreload" href="https://private.example.com/app.js">
+       <link rel="modulepreload" href="http://127.0.0.1/app.js">
+       <link rel="preload" as="image" href="https://images.example.com/photo.jpg">`,
+      { headers: { "content-type": "text/html" } },
+    );
+  };
+  const browser: JobBrowser = {
+    quickAction: async (_action, options) => {
+      expect(options.allowRequestPattern).toEqual([
+        "^https://careers\\.example\\.com/",
+        "^https://cdn\\.example\\.com/",
+        "^https://scripts\\.example\\.com/",
+      ]);
+      expect(options.gotoOptions).toEqual({ waitUntil: "networkidle0", timeout: 15000 });
+      return Response.json({
+        success: true,
+        result: `<main>${posting}</main>`,
+        meta: { status: 200, finalUrl: "https://careers.example.com/job" },
+      });
+    },
+  };
+  expect(
+    await retrievePosting("https://careers.example.com/job", browser, transport),
+  ).toMatchObject({
+    method: "browser",
+    text: posting.trim(),
+  });
+  expect(checked).toContain("cdn.example.com");
+  expect(checked).toContain("private.example.com");
+  expect(checked).not.toContain("images.example.com");
+});
+it.each([
+  ["blocked", "This posting is blocked or requires sign-in. Paste the job description instead."],
+  [
+    "incomplete",
+    "The page did not include a complete public posting. Paste the job description instead.",
+  ],
+] as const)(
+  "preserves the %s posting fallback across a real Workflow step",
+  async (mode, message) => {
+    const { store, actor, imported, operationId } = await fixture({
+      url: "https://careers.example.com/job",
+      text: "",
+    });
+    await using workflow = await introspectWorkflowInstance(env.AI_FAILURE_WORKFLOW, operationId);
+    await env.AI_FAILURE_WORKFLOW.create({
+      id: operationId,
+      params: { mode, importId: imported.id, operationId, ownerId: actor.id },
+    });
+    await workflow.waitForStatus("complete");
+    expect(await workflow.getOutput()).toEqual({ code: "Unavailable", message });
+    expect(await workflow.waitForStepResult({ name: "generate-validate-persist" })).toEqual({
+      failure: { message, diagnostic: null },
+    });
+    const result = await store.inspectJobImport(actor.id, imported.id);
+    expect(result.imported.text).toBe("");
+    expect(result.imported.analysis).toBeNull();
+    expect(result.imported.savedJobId).toBeNull();
+  },
+);
 it("blocks private redirects, non-public DNS, blocked pages, oversized output, and browser redirect escapes", async () => {
   const unsafeRedirect: typeof fetch = async (input) =>
     requestUrl(input).hostname === "cloudflare-dns.com"
