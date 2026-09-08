@@ -163,7 +163,8 @@ export function retainedObjects(db) {
     .all()) {
     const artifacts = JSON.parse(row.artifacts);
     if (artifacts.pdf.startsWith("transient/")) continue;
-    for (const field of ["pdf", "tex", "text", "report"]) add(artifacts[field], null, field);
+    for (const field of ["pdf", "tex", "text", "report"])
+      add(artifacts[field], artifacts.objectDigests?.[field], field);
   }
   // Older snapshots predate the template registry. New snapshots retain every published fixture.
   if (
@@ -176,7 +177,8 @@ export function retainedObjects(db) {
     for (const row of db.prepare("SELECT result FROM template_validation_fixtures").all()) {
       const artifacts = JSON.parse(row.result).artifacts;
       if (artifacts)
-        for (const field of ["pdf", "tex", "text", "report"]) add(artifacts[field], null, field);
+        for (const field of ["pdf", "tex", "text", "report"])
+          add(artifacts[field], artifacts.objectDigests?.[field], field);
     }
   }
   if (
@@ -196,6 +198,18 @@ export function retainedObjects(db) {
   }
   return [...references.values()].sort((left, right) =>
     left.key < right.key ? -1 : left.key > right.key ? 1 : 0,
+  );
+}
+
+/** Older inventories omitted artifact hashes; restored records still supply download checks. */
+export function assertRetainedInventory(references, recorded) {
+  assert.deepEqual(
+    references.map((reference, index) => ({
+      ...reference,
+      digest: recorded[index]?.digest === null ? null : reference.digest,
+    })),
+    recorded,
+    "Restored retained objects must match the backup inventory.",
   );
 }
 

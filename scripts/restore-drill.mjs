@@ -4,6 +4,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { gunzipSync } from "node:zlib";
 import {
+  assertRetainedInventory,
   downloadObject,
   privateFile,
   restoreDatabase,
@@ -56,7 +57,7 @@ const { db, counts } = await restoreDatabase(
 );
 try {
   const references = retainedObjects(db);
-  if (snapshot.objects) assert.deepEqual(references, snapshot.objects);
+  if (snapshot.objects) assertRetainedInventory(references, snapshot.objects);
   const objects = new Map();
   console.log(
     `Restored ${snapshot.tables.length} tables. Checking ${references.length} retained objects.`,

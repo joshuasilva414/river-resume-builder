@@ -205,8 +205,8 @@ function renderBeforeDeadline(
   });
 }
 
-/** Include module entry points declared as preload links before client-side hydration. */
-function* scriptResources(html: string) {
+/** Include declared script entry points and preload manifests needed for client-side hydration. */
+function* hydrationResources(html: string) {
   for (const match of html.matchAll(/<(script|link)\b[^>]*>/gi)) {
     const attributes = new Map(
       [...match[0].matchAll(/\s([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g)].map(
@@ -222,10 +222,11 @@ function* scriptResources(html: string) {
     } else {
       const rel = attributes.get("rel")?.toLowerCase().split(/\s+/) ?? [];
       const href = attributes.get("href");
+      const as = attributes.get("as")?.toLowerCase();
       if (
         href &&
         (rel.includes("modulepreload") ||
-          (rel.includes("preload") && attributes.get("as")?.toLowerCase() === "script"))
+          (rel.includes("preload") && (as === "script" || as === "fetch")))
       )
         yield href;
     }
@@ -281,13 +282,13 @@ export async function retrievePosting(
         "This page needs browser rendering, which is unavailable. Paste the job description instead.",
       );
     const origins = new Set([url.origin]);
-    // External script origins are bounded and checked before allowing them into the rendered page.
-    for (const resource of scriptResources(html)) {
+    // Declared hydration origins are bounded and checked before allowing them into the rendered page.
+    for (const resource of hydrationResources(html)) {
       if (origins.size >= 8) break;
       try {
-        const script = publicPostingUrl(new URL(resource, url).href);
-        await validateDns(script, transport, signal);
-        origins.add(script.origin);
+        const destination = publicPostingUrl(new URL(resource, url).href);
+        await validateDns(destination, transport, signal);
+        origins.add(destination.origin);
       } catch {
         signal.throwIfAborted();
         /* Unverified third-party resources remain blocked. */

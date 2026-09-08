@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import {
+  assertRetainedInventory,
   catalogQuery,
   resourcesFor,
   restoreDatabase,
@@ -12,6 +13,63 @@ import {
   root,
   sha256,
 } from "./recovery.mjs";
+
+test("retains artifact integrity expectations and rejects conflicting saved hashes", () => {
+  const db = new DatabaseSync(":memory:");
+  try {
+    db.exec(`
+      CREATE TABLE sources (object_key TEXT, digest TEXT, state TEXT);
+      CREATE TABLE source_processing_results (object_key TEXT, digest TEXT);
+      CREATE TABLE operations (artifacts TEXT);
+      CREATE TABLE template_validation_fixtures (result TEXT);
+    `);
+    const manifest = (prefix) => ({
+      pdf: `retained/${prefix}/document.pdf`,
+      tex: `retained/${prefix}/document.tex`,
+      text: `retained/${prefix}/document.txt`,
+      report: `retained/${prefix}/report.json`,
+      objectDigests: { pdf: sha256(`${prefix} PDF`), text: sha256(`${prefix} text`) },
+    });
+    const exported = manifest("export");
+    const fixture = manifest("fixture");
+    db.prepare("INSERT INTO operations VALUES (?)").run(JSON.stringify(exported));
+    db.prepare("INSERT INTO template_validation_fixtures VALUES (?)").run(
+      JSON.stringify({ artifacts: fixture }),
+    );
+    const references = new Map(retainedObjects(db).map((item) => [item.key, item.digest]));
+    for (const artifacts of [exported, fixture]) {
+      assert.equal(references.get(artifacts.pdf), artifacts.objectDigests.pdf);
+      assert.equal(references.get(artifacts.text), artifacts.objectDigests.text);
+      assert.equal(references.get(artifacts.tex), null, "Historical manifests may omit hashes");
+    }
+    const inventory = retainedObjects(db);
+    assertRetainedInventory(inventory, inventory);
+    assertRetainedInventory(
+      inventory,
+      inventory.map((item) => ({ ...item, digest: null })),
+    );
+    assert.throws(() => assertRetainedInventory(inventory, inventory.slice(1)));
+    assert.throws(() =>
+      assertRetainedInventory(
+        inventory,
+        inventory.map((item, index) =>
+          index === 0 ? { ...item, digest: sha256("unexpected") } : item,
+        ),
+      ),
+    );
+    db.prepare("INSERT INTO template_validation_fixtures VALUES (?)").run(
+      JSON.stringify({
+        artifacts: {
+          ...exported,
+          objectDigests: { ...exported.objectDigests, pdf: sha256("changed") },
+        },
+      }),
+    );
+    assert.throws(() => retainedObjects(db), { code: "ERR_ASSERTION" });
+  } finally {
+    db.close();
+  }
+});
 
 test("restores accepted task history at capacity, then enforces admission on new tasks", async () => {
   const directory = await mkdtemp(join(tmpdir(), "river-recovery-test-"));
