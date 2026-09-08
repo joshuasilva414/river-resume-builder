@@ -164,53 +164,60 @@ it("retrieves ordinary HTML first and uses the browser JSON response for JavaScr
   });
   expect(browserCalls).toBe(1);
 });
-it("validates declared module and script preload origins and waits for hydration within the deadline", async () => {
-  const checked: string[] = [];
-  const transport: typeof fetch = async (input) => {
-    const url = requestUrl(input);
-    if (url.hostname === "cloudflare-dns.com") {
-      const name = url.searchParams.get("name") ?? "";
-      checked.push(name);
-      return Response.json({
-        Status: 0,
-        Answer: [{ type: 1, data: name === "private.example.com" ? "10.0.0.1" : "1.1.1.1" }],
-      });
-    }
-    return new Response(
-      `<main>Loading</main>
-       <link href="https://cdn.example.com/app.js" rel="modulepreload">
+it.each(["modulepreload", "script", "fetch"] as const)(
+  "validates declared %s preload origins and waits for hydration within the deadline",
+  async (kind) => {
+    const checked: string[] = [];
+    const transport: typeof fetch = async (input) => {
+      const url = requestUrl(input);
+      if (url.hostname === "cloudflare-dns.com") {
+        const name = url.searchParams.get("name") ?? "";
+        checked.push(name);
+        return Response.json({
+          Status: 0,
+          Answer: [{ type: 1, data: name === "private.example.com" ? "10.0.0.1" : "1.1.1.1" }],
+        });
+      }
+      return new Response(
+        `<main>Loading</main>
+       ${
+         kind === "modulepreload"
+           ? '<link href="https://cdn.example.com/app.js" rel="modulepreload">'
+           : `<link id="vite-preload" rel="preload" as="${kind}" href="https://cdn.example.com/.vite/manifest.json" crossorigin>`
+}
        <link rel="preload" as="script" href="https://scripts.example.com/chunk.js">
        <link rel="modulepreload" href="https://private.example.com/app.js">
        <link rel="modulepreload" href="http://127.0.0.1/app.js">
        <link rel="preload" as="image" href="https://images.example.com/photo.jpg">`,
-      { headers: { "content-type": "text/html" } },
-    );
-  };
-  const browser: JobBrowser = {
-    quickAction: async (_action, options) => {
-      expect(options.allowRequestPattern).toEqual([
-        "^https://careers\\.example\\.com/",
-        "^https://cdn\\.example\\.com/",
-        "^https://scripts\\.example\\.com/",
-      ]);
-      expect(options.gotoOptions).toEqual({ waitUntil: "networkidle0", timeout: 15000 });
-      return Response.json({
-        success: true,
-        result: `<main>${posting}</main>`,
-        meta: { status: 200, finalUrl: "https://careers.example.com/job" },
-      });
-    },
-  };
-  expect(
-    await retrievePosting("https://careers.example.com/job", browser, transport),
-  ).toMatchObject({
-    method: "browser",
-    text: posting.trim(),
-  });
-  expect(checked).toContain("cdn.example.com");
-  expect(checked).toContain("private.example.com");
-  expect(checked).not.toContain("images.example.com");
-});
+        { headers: { "content-type": "text/html" } },
+      );
+    };
+    const browser: JobBrowser = {
+      quickAction: async (_action, options) => {
+        expect(options.allowRequestPattern).toEqual([
+          "^https://careers\\.example\\.com/",
+          "^https://cdn\\.example\\.com/",
+          "^https://scripts\\.example\\.com/",
+        ]);
+        expect(options.gotoOptions).toEqual({ waitUntil: "networkidle0", timeout: 15000 });
+        return Response.json({
+          success: true,
+          result: `<main>${posting}</main>`,
+          meta: { status: 200, finalUrl: "https://careers.example.com/job" },
+        });
+      },
+    };
+    expect(
+      await retrievePosting("https://careers.example.com/job", browser, transport),
+    ).toMatchObject({
+      method: "browser",
+      text: posting.trim(),
+    });
+    expect(checked).toContain("cdn.example.com");
+    expect(checked).toContain("private.example.com");
+    expect(checked).not.toContain("images.example.com");
+  },
+);
 it.each([
   ["blocked", "This posting is blocked or requires sign-in. Paste the job description instead."],
   [
