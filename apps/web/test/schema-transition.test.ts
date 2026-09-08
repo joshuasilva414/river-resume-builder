@@ -2,6 +2,9 @@ import {
   builtInSchemaBundle,
   captureSchemaBundle,
   emptyStructuredContent,
+  type LibraryGraphNode,
+  placeSection,
+  renderComposition,
   type SchemaBundle,
   StructuredContent,
   validateStructuredContent,
@@ -9,6 +12,7 @@ import {
 import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 import {
+  builtInSchemaType,
   savedSchemaSnapshots,
   switchContentSchema,
 } from "../src/components/library/schema-transition";
@@ -39,6 +43,50 @@ function experience(): StructuredContent {
 }
 
 describe("schema switching preserves definitions and values", () => {
+  it("renders a new section switched from Summary to Contact as the résumé header", () => {
+    const original = emptyStructuredContent("summary", "record-1");
+    const switched = switchContentSchema(original, builtInSchemaBundle, {
+      id: "contact-section",
+      revision: 1,
+    });
+    const structured: StructuredContent = {
+      ...switched,
+      record: {
+        ...switched.record,
+        values: { ...switched.record.values, name: "Alex Example", email: "alex@example.test" },
+      },
+    };
+    const reference = { itemId: "contact-1", revisionId: "revision-1" };
+    const graph = [
+      {
+        item: { id: reference.itemId, currentRevisionId: reference.revisionId },
+        revision: {
+          id: reference.revisionId,
+          data: {
+            kind: "section",
+            type: builtInSchemaType(structured.record.schema) ?? "summary",
+            heading: "",
+            blocks: [],
+            structured,
+          },
+        },
+      },
+    ] satisfies LibraryGraphNode[];
+    const document = renderComposition(
+      {
+        name: "Fictional preview",
+        theme: "classic",
+        templateRevision: 1,
+        sections: [placeSection(reference, graph, () => "placement-1")],
+      },
+      graph,
+    );
+    expect(document.name).toBe("Alex Example");
+    expect(document.contact).toContain("alex@example.test");
+    expect(document.sections).toEqual([]);
+    expect(savedSchemaSnapshots(structured)[0]?.record.schema).toEqual(original.record.schema);
+  });
+
   it("restores Experience after editing Projects without losing either set of entries", () => {
     const original = experience();
     const projectSchema = { id: "project-section", revision: 1 };

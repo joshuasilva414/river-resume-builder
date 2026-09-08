@@ -435,8 +435,8 @@ function TemplateWorkingCopy({
             <Failure error={generate.error ?? task.error} />
             {task.data?.operation?.state === "Failed" && (
               <p role="alert" className="text-sm">
-                The change could not compile. Your working copy and previous PDF are preserved. Edit
-                your instruction and try again.
+                The template change could not finish. Your working copy and previous PDF are
+                preserved. Try again or edit your instruction.
               </p>
             )}
             {working.composition && (

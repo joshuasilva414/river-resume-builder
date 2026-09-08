@@ -1,6 +1,8 @@
 import {
+  type ContentType,
   canonicalJson,
   captureSchemaBundle,
+  contentTypes,
   type SchemaBundle,
   type SchemaReference,
   StructuredContent,
@@ -9,6 +11,18 @@ import {
 import { Schema } from "effect";
 
 export const schemaHistoryKey = "__river_schema_history";
+
+/** Built-in schema identities retain the content category used by résumé placement. */
+export function builtInSchemaType(schema: SchemaReference): ContentType | null {
+  return (
+    contentTypes.find(
+      (type) =>
+        schema.id === `${type === "skill" ? "skills" : type}-section` ||
+        schema.id === `${type}-entry` ||
+        (type === "contact" && schema.id === "contact-link"),
+    ) ?? null
+  );
+}
 
 export function savedSchemaSnapshots(content: StructuredContent): readonly StructuredContent[] {
   const decoded = Schema.decodeUnknownOption(Schema.Array(StructuredContent))(

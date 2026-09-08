@@ -1,29 +1,51 @@
 import {
   adaptLibraryContent,
+  blockDefinitions,
   builtInSchemaBundle,
-  type ContentType,
+  ContentType,
   canonicalJson,
   captureSchemaBundle,
+  contentTypes,
   emptyStructuredContent,
   type LibraryData,
   type LibraryKind,
   type LibraryReference,
   newId,
+  type SchemaBundle,
+  type SchemaReference,
   type StructuredContent,
   validateLibraryData,
 } from "@river/domain";
+import { Schema } from "effect";
 import { useState } from "react";
-import { EvidenceDialog, Failure, FormField } from "~/components/evidence/shared";
+import { EvidenceDialog, Failure, FormField, selectClass } from "~/components/evidence/shared";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { SavedSchemaPicker } from "./saved-schema-picker";
 import { StructuredFields } from "./schema-fields";
-import { savedSchemaSnapshots, switchContentSchema } from "./schema-transition";
+import { builtInSchemaType, savedSchemaSnapshots, switchContentSchema } from "./schema-transition";
 import { LibraryConflict, type LibraryDetail, useLibraryCommand } from "./shared";
+
+function structuredStarter(kind: Exclude<LibraryKind, "content">, type: ContentType) {
+  const content = emptyStructuredContent(type, newId());
+  if (kind !== "block" || !["experience", "project", "education", "credential"].includes(type))
+    return content;
+  const schema = { id: `${type}-entry`, revision: 1 };
+  return {
+    ...content,
+    ...captureSchemaBundle(builtInSchemaBundle, schema),
+    record: {
+      ...content.record,
+      schema,
+      layout: { id: `${type}-entry-classic`, revision: 1 },
+      values: {},
+    },
+  };
+}
 
 export function StructuredLibraryEditor({
   kind,
-  type,
+  type: initialType,
   detail,
   seed,
   onClose,
@@ -36,24 +58,11 @@ export function StructuredLibraryEditor({
   onClose: () => void;
   onSaved: (reference: LibraryReference) => void;
 }) {
+  const [type, setType] = useState(initialType);
   const [original] = useState(() => {
     const legacy = seed ?? detail?.revision.data;
     if (legacy) return adaptLibraryContent(legacy, detail?.graph ?? []);
-    const content = emptyStructuredContent(type, newId());
-    if (kind === "block" && ["experience", "project", "education", "credential"].includes(type)) {
-      const schema = { id: `${type}-entry`, revision: 1 };
-      return {
-        ...content,
-        ...captureSchemaBundle(builtInSchemaBundle, schema),
-        record: {
-          ...content.record,
-          schema,
-          layout: { id: `${type}-entry-classic`, revision: 1 },
-          values: {},
-        },
-      };
-    }
-    return content;
+    return structuredStarter(kind, initialType);
   });
   const [content, setContent] = useState<StructuredContent>(original);
   const [label, setLabel] = useState(
@@ -65,6 +74,18 @@ export function StructuredLibraryEditor({
           : ""),
   );
   const [error, setError] = useState<Error | null>(null);
+  const chooseSchema = (bundle: SchemaBundle, schema: SchemaReference) => {
+    const nextType = builtInSchemaType(schema) ?? type;
+    if (detail && nextType !== type) {
+      setError(new Error("Create a separate library item to use a different content type."));
+      return;
+    }
+    setError(null);
+    if (label === blockDefinitions[type].heading || label === type || label === "Contact")
+      setLabel(blockDefinitions[nextType].heading || "Contact");
+    setType(nextType);
+    setContent(switchContentSchema(content, bundle, schema));
+  };
   const save = useLibraryCommand((result) => {
     if (result.revisionId) onSaved({ itemId: result.id, revisionId: result.revisionId });
     onClose();
@@ -74,7 +95,7 @@ export function StructuredLibraryEditor({
       title={`${detail ? "Edit" : "Add"} ${kind === "block" ? "entry" : "section"}`}
       description="Add your details and save once. Other résumés keep their saved content."
       onClose={onClose}
-      dirty={canonicalJson(content) !== canonicalJson(original)}
+      dirty={type !== initialType || canonicalJson(content) !== canonicalJson(original)}
       pending={save.isPending}
       className="sm:max-w-[820px]"
     >
@@ -120,12 +141,30 @@ export function StructuredLibraryEditor({
             disabled={save.isPending}
           />
         </FormField>
+        {!detail && (
+          <FormField label="Content type">
+            <select
+              className={selectClass}
+              value={type}
+              disabled={save.isPending}
+              onChange={(event) => {
+                const nextType = Schema.decodeUnknownSync(ContentType)(event.target.value);
+                const starter = structuredStarter(kind, nextType);
+                chooseSchema(starter, starter.record.schema);
+              }}
+            >
+              {contentTypes.map((value) => (
+                <option key={value} value={value}>
+                  {blockDefinitions[value].label}
+                </option>
+              ))}
+            </select>
+          </FormField>
+        )}
         <SavedSchemaPicker
           level={kind === "block" ? "entry" : "section"}
           disabled={save.isPending}
-          onPick={(bundle, schema) => {
-            setContent(switchContentSchema(content, bundle, schema));
-          }}
+          onPick={chooseSchema}
         />
         {savedSchemaSnapshots(content).length > 0 && (
           <details className="space-y-3 rounded-md border p-4">
@@ -146,9 +185,7 @@ export function StructuredLibraryEditor({
                 type="button"
                 variant="outline"
                 disabled={save.isPending}
-                onClick={() =>
-                  setContent(switchContentSchema(content, snapshot, snapshot.record.schema))
-                }
+                onClick={() => chooseSchema(snapshot, snapshot.record.schema)}
               >
                 Restore{" "}
                 {snapshot.schemas.find(
