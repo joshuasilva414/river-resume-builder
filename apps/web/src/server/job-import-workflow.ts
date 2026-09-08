@@ -13,6 +13,7 @@ export async function runJobImport(
   operationId: string,
   ownerId: string,
   importId: string,
+  retrieve = retrievePosting,
 ) {
   const { imported } = await repository.inspectJobImport(ownerId, importId);
   if (imported.latestOperationId !== operationId || imported.savedJobId) return;
@@ -24,7 +25,12 @@ export async function runJobImport(
   if (!text) {
     const capture = imported.input.text.trim()
       ? { text: imported.input.text, url: imported.input.url, method: "paste" as const }
-      : await retrievePosting(imported.input.url ?? "", env.BROWSER);
+      : await retrieve(imported.input.url ?? "", env.BROWSER).catch((error: unknown) => {
+          // Retrieval failures are recoverable; preserve their safe fallback across the step boundary.
+          if (error instanceof ApplicationError && error.code === "InvalidInput")
+            throw new ApplicationError({ code: "Unavailable", message: error.message });
+          throw error;
+        });
     const saved = await repository.retainJobImportText(ownerId, importId, operationId, capture);
     if (!saved.length) return;
     text = capture.text;

@@ -10,7 +10,10 @@ import {
 } from "@river/templates";
 import { Schema } from "effect";
 import { expect, it } from "vitest";
-import { generateTemplateCandidate } from "../src/server/template-ai-provider";
+import {
+  generateTemplateCandidate,
+  templateAiOutputSchema,
+} from "../src/server/template-ai-provider";
 
 const input: TemplateAiInput = {
   type: "template-generation",
@@ -47,6 +50,17 @@ function assertStrictObjects(value: unknown, path = "#") {
     for (const [index, item] of value.entries()) assertStrictObjects(item, `${path}/${index}`);
     return;
   }
+  for (const keyword of [
+    "allOf",
+    "oneOf",
+    "not",
+    "dependentRequired",
+    "dependentSchemas",
+    "if",
+    "then",
+    "else",
+  ])
+    expect(value, path).not.toHaveProperty(keyword);
   if ("properties" in value && value.properties && typeof value.properties === "object") {
     expect("required" in value ? value.required : [], path).toEqual(
       expect.arrayContaining(Object.keys(value.properties)),
@@ -109,6 +123,31 @@ it.each(["river-template-generation-v1", "river-template-generation-v4"] as cons
     expect(body.instructions).toContain("Always include composition");
   },
 );
+
+it("retains all schema array bounds as direct provider constraints", () => {
+  expect(templateAiOutputSchema()).toMatchObject({
+    properties: {
+      composition: {
+        anyOf: expect.arrayContaining([
+          expect.objectContaining({
+            properties: expect.objectContaining({
+              schemas: expect.objectContaining({
+                minItems: 1,
+                maxItems: 50,
+                items: expect.objectContaining({
+                  properties: expect.objectContaining({
+                    fields: expect.objectContaining({ minItems: 1, maxItems: 50 }),
+                  }),
+                }),
+              }),
+              layouts: expect.objectContaining({ minItems: 1, maxItems: 100 }),
+            }),
+          }),
+        ]),
+      },
+    },
+  });
+});
 
 it("keeps older persisted output readable and preserves its captured schema bundle", () => {
   expect(Schema.decodeUnknownSync(TemplateAiOutput)(legacyOutput)).toEqual(legacyOutput);

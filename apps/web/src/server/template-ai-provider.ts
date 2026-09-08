@@ -1,4 +1,10 @@
-import { type AiModelConfiguration, SchemaBundle } from "@river/domain";
+import {
+  type AiModelConfiguration,
+  ContentLayout,
+  ContentSchema,
+  ContentSchemaField,
+  SchemaBundle,
+} from "@river/domain";
 import { type TemplateAiInput, TemplateAiOutput, type TemplateAiProfile } from "@river/templates";
 import { Schema } from "effect";
 import { type AiExecutionObserver, generateAiProposal } from "./ai-provider";
@@ -17,9 +23,19 @@ export function templateAiProfile(
     : null;
 }
 export function templateAiOutputSchema() {
+  // isLengthBetween emits unsupported allOf. Keep the same bounds as direct array constraints.
+  const contentSchema = Schema.Struct({
+    ...ContentSchema.fields,
+    fields: Schema.Array(ContentSchemaField).check(Schema.isMinLength(1), Schema.isMaxLength(50)),
+  });
+  const composition = Schema.Struct({
+    ...SchemaBundle.fields,
+    schemas: Schema.Array(contentSchema).check(Schema.isMinLength(1), Schema.isMaxLength(50)),
+    layouts: Schema.Array(ContentLayout).check(Schema.isMinLength(1), Schema.isMaxLength(100)),
+  });
   // Strict provider schemas require every property; persisted readers still accept older omissions.
   const document = Schema.toJsonSchemaDocument(
-    Schema.Struct({ ...TemplateAiOutput.fields, composition: Schema.NullOr(SchemaBundle) }),
+    Schema.Struct({ ...TemplateAiOutput.fields, composition: Schema.NullOr(composition) }),
     {
       referencePolicy: () => undefined,
       additionalProperties: false,
