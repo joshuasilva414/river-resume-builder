@@ -1,7 +1,7 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { CompiledResult } from "@river/contracts";
 import { createRepository } from "@river/db";
-import { fingerprint } from "@river/domain";
+import { ApplicationError, fingerprint } from "@river/domain";
 import {
   refinedSourceIdentity,
   SOURCE_RENDERER_VERSION,
@@ -9,6 +9,7 @@ import {
 } from "@river/templates";
 import { Schema } from "effect";
 import { loadAiCredential } from "./ai-settings";
+import { runAiWorkflowStep } from "./ai-workflow-step";
 import { storeCompiledArtifacts } from "./compiled-artifacts";
 import type { Env } from "./env";
 import { retainRefinementArtifacts } from "./refinement-artifacts";
@@ -81,9 +82,8 @@ export class SourceRefinementWorkflow extends WorkflowEntrypoint<Env, { operatio
         );
         return;
       }
-      await step.do(
-        "generate-and-persist-source-candidate",
-        { retries: { limit: 0, delay: "1 second" }, timeout: "90 seconds" },
+      await runAiWorkflowStep(
+        step,
         async () => {
           const operation = await repository.getOperation(id);
           if (
@@ -127,6 +127,7 @@ export class SourceRefinementWorkflow extends WorkflowEntrypoint<Env, { operatio
           )
             throw new Error("Source proposal publication was cancelled or superseded");
         },
+        "3 minutes",
       );
       await step.do(
         "compile-and-compare-source-candidate",
@@ -212,13 +213,15 @@ export class SourceRefinementWorkflow extends WorkflowEntrypoint<Env, { operatio
           }
         },
       );
-    } catch {
+    } catch (error) {
       await step.do("record-safe-source-failure", () =>
         repository.updateOperation(id, {
           state: "Failed",
           stage: "Source refinement interrupted",
           failure:
-            "Generation, comparison or artifact publication did not finish. Saved candidates and original checkpoints are preserved. Inspect dependencies and remaining attempts before retrying.",
+            error instanceof ApplicationError && error.code === "Unavailable"
+              ? error.message
+              : "Generation, comparison or artifact publication did not finish. Saved candidates and original checkpoints are preserved. Inspect dependencies and remaining attempts before retrying.",
         }),
       );
       throw new Error(`Source refinement operation ${id} failed`);

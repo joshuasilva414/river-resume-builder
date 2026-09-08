@@ -27,7 +27,7 @@ export const SourceRefinementProfile = Schema.Struct({
   contract: Schema.Literal("river-source-refinement-v1"),
   maxInputCharacters: Schema.Literal(160000),
   maxOutputTokens: Schema.Literal(24000),
-  timeoutMs: Schema.Literal(60000),
+  timeoutMs: Schema.Literals([60000, 150000]),
 });
 export type SourceRefinementProfile = typeof SourceRefinementProfile.Type;
 export const SourceMeaning = Schema.Struct({
