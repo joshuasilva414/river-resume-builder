@@ -10,6 +10,7 @@ import { sql } from "drizzle-orm";
 import { conditionGuard } from "./commands";
 import type { Database } from "./index";
 import * as s from "./schema";
+import { prepareScoringAllowance } from "./usage";
 
 export const scoringCapacity = (db: Database, ownerId: string) =>
   conditionGuard(
@@ -42,9 +43,10 @@ export async function prepareScoringRun(
   const id = newId(),
     operationId = newId(),
     now = Date.now();
+  const allowance = prepareScoringAllowance(db, actor, operationId, [`checkpoint:${id}`]);
   return {
     result: { id, revision: 0, revisionId: operationId },
-    guards: [guard],
+    guards: [guard, ...allowance.guards],
     writes: [
       db.insert(s.operations).values({
         id: operationId,
@@ -67,6 +69,7 @@ export async function prepareScoringRun(
       }),
       db.insert(s.scoringAttempts).values({ operationId, runId: id, ordinal: 1, createdAt: now }),
       db.insert(s.dispatches).values({ operationId }),
+      ...allowance.writes,
     ],
     history: [
       {

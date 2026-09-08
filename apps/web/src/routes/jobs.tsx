@@ -3,7 +3,7 @@ import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-ro
 import { ArrowRight, Plus } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 import { Failure, unwrap } from "~/components/evidence/shared";
-import { JobEditor } from "~/components/jobs/job-editor";
+import { JobImport } from "~/components/jobs/job-import";
 import { GettingStarted } from "~/components/onboarding";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -51,7 +51,7 @@ function JobsPage() {
           </div>
           <Button onClick={() => setAdding(true)}>
             <Plus />
-            Add job target
+            Import job
           </Button>
         </div>
       </header>
@@ -66,7 +66,7 @@ function JobsPage() {
           >
             <TabsList variant="line">
               <TabsTrigger value="active">Active</TabsTrigger>
-              <TabsTrigger value="archived">Archived</TabsTrigger>
+              <TabsTrigger value="archived">Trash</TabsTrigger>
             </TabsList>
           </Tabs>
           <Input
@@ -110,7 +110,7 @@ function JobsPage() {
                   </p>
                 </div>
                 <Badge variant="outline" className="hidden sm:inline-flex">
-                  {job.archivedAt ? "Archived" : "Active"}
+                  {job.archivedAt ? "Deleted" : "Active"}
                 </Badge>
                 <time
                   className="hidden text-[13px] text-muted-foreground sm:block"
@@ -128,20 +128,18 @@ function JobsPage() {
                     {query
                       ? "No matching job targets"
                       : archived
-                        ? "No archived job targets"
+                        ? "Trash is empty"
                         : "Start with a job posting"}
                   </EmptyTitle>
                   <EmptyDescription>
                     {query
                       ? "Try a different role, company, or location."
                       : archived
-                        ? "Archived targets keep their posting history and selected evidence."
+                        ? "Deleted jobs keep their posting history and selected evidence."
                         : "Add the job description, review its requirements, and choose relevant experience for your résumé."}
                   </EmptyDescription>
                 </EmptyHeader>
-                {!query && !archived && (
-                  <Button onClick={() => setAdding(true)}>Add job target</Button>
-                )}
+                {!query && !archived && <Button onClick={() => setAdding(true)}>Import job</Button>}
               </Empty>
             )}
             {(offset > 0 || jobs.data.hasMore) && (
@@ -166,8 +164,7 @@ function JobsPage() {
         )}
       </div>
       {adding && (
-        <JobEditor
-          mode="create"
+        <JobImport
           onClose={() => setAdding(false)}
           onSaved={(id) => void navigate({ to: "/jobs/$jobId", params: { jobId: id } })}
         />

@@ -185,6 +185,11 @@ it("retains exact four-file proof, three full results and a compatible qualifica
 it("preserves successful fixtures and immutable failed reports while retrying unfinished work", async () => {
   const f = await fixture(),
     run = await f.start();
+  expect(await f.repository.readScoringAllowance(f.actor)).toMatchObject({
+    used: 0,
+    reserved: 3,
+    remaining: 22,
+  });
   await prepareTemplateScoring(f.runtime, run.operationId, "graduate-web");
   await submitTemplateScoring(f.runtime, run.operationId, "graduate-web", f.transport);
   await f.repository.failTemplateScoringFixture(run.operationId, "experienced-platform", {
@@ -192,7 +197,17 @@ it("preserves successful fixtures and immutable failed reports while retrying un
     message: "Synthetic outage",
     retryAt: null,
   });
+  expect(await f.repository.readScoringAllowance(f.actor)).toMatchObject({
+    used: 1,
+    reserved: 1,
+    remaining: 23,
+  });
   await completeTemplateScoring(f.runtime, run.operationId);
+  expect(await f.repository.readScoringAllowance(f.actor)).toMatchObject({
+    used: 1,
+    reserved: 0,
+    remaining: 24,
+  });
   const before = await f.repository.inspectTemplateScoring(f.actor, run.id);
   expect(before.attempt.report?.qualified).toBe(false);
   expect(before.operation.state).toBe("Failed");
@@ -210,7 +225,17 @@ it("preserves successful fixtures and immutable failed reports while retrying un
   ]);
   expect(retry).toEqual(raced);
   if (!retry.revisionId) throw new Error("Missing retry");
+  expect(await f.repository.readScoringAllowance(f.actor)).toMatchObject({
+    used: 1,
+    reserved: 2,
+    remaining: 22,
+  });
   await f.complete(retry.revisionId);
+  expect(await f.repository.readScoringAllowance(f.actor)).toMatchObject({
+    used: 3,
+    reserved: 0,
+    remaining: 22,
+  });
   const after = await f.repository.inspectTemplateScoring(f.actor, run.id);
   expect(after.attempt.report?.qualified).toBe(true);
   expect(after.attempts[0]?.attempt.reportDigest).toBe(before.attempt.reportDigest);
@@ -237,6 +262,11 @@ it("reserves each submission once, rejects late results and bounds cancellation 
   ]);
   expect(claims.filter(Boolean)).toHaveLength(1);
   await f.repository.cancelOperation(f.actor.id, run.operationId, "cancel");
+  expect(await f.repository.readScoringAllowance(f.actor)).toMatchObject({
+    used: 0,
+    reserved: 0,
+    remaining: 25,
+  });
   const row = await f.repository.getTemplateScoringRuntime(run.operationId),
     document = row?.fixtures.find((f) => f.fixtureId === "graduate-web")?.document;
   if (!document) throw new Error("Missing input");
@@ -379,4 +409,54 @@ it("publishes a retained response after interruption without another external re
   expect(
     (await f.repository.inspectTemplateScoring(f.actor, run.id)).attempt.report?.qualified,
   ).toBe(true);
+});
+
+it("rejects a template run before provider work when fewer than three results remain", async () => {
+  const f = await fixture(),
+    allowance = await f.repository.readScoringAllowance(f.actor);
+  await f.repository.db
+    .insert(schema.scoringUsageDays)
+    .values({ ownerId: f.actor.id, day: allowance.day, used: 23 });
+  await expect(f.start()).rejects.toMatchObject({ code: "RateLimited" });
+  expect(await f.repository.readScoringAllowance(f.actor)).toMatchObject({
+    used: 23,
+    reserved: 0,
+    remaining: 2,
+  });
+  expect(
+    (await f.repository.listTemplateScoring(f.actor, { base: f.input.base, offset: 0 })).items,
+  ).toHaveLength(0);
+  expect(f.documents).not.toHaveBeenCalled();
+  expect(f.transport).not.toHaveBeenCalled();
+});
+
+it("rejects a late sample response after its failed reservation was released", async () => {
+  const f = await fixture(),
+    run = await f.start();
+  await prepareTemplateScoring(f.runtime, run.operationId, "graduate-web");
+  await f.repository.claimTemplateScoringSubmission(
+    run.operationId,
+    "graduate-web",
+    syntheticScoringVersion,
+  );
+  const runtime = await f.repository.getTemplateScoringRuntime(run.operationId);
+  const document = runtime?.fixtures.find((item) => item.fixtureId === "graduate-web")?.document;
+  if (!document) throw Error("Expected prepared sample");
+  await f.repository.failTemplateScoringFixture(run.operationId, "graduate-web", {
+    code: "Unavailable",
+    message: "Timeout",
+    retryAt: null,
+  });
+  expect(
+    await f.repository.retainTemplateScoringResponse(
+      run.operationId,
+      "graduate-web",
+      syntheticScoringResponse(document.input),
+    ),
+  ).toBe(false);
+  expect(await f.repository.readScoringAllowance(f.actor)).toMatchObject({
+    used: 0,
+    reserved: 2,
+    remaining: 23,
+  });
 });

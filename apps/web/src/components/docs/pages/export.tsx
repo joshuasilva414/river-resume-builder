@@ -3,28 +3,24 @@ import { type Guide, GuideLink } from "../shared";
 export const exportGuide = {
   slug: "export",
   title: "Export a résumé",
-  description: "Capture the saved draft, review its document and evidence, and download the PDF.",
+  description: "Capture the saved résumé, inspect its PDF and text, and download the files.",
   group: "How-to guides",
   sections: [
     {
       id: "capture",
-      title: "Capture the saved draft",
+      title: "Capture the saved résumé",
       body: (
         <>
-          <p>Before capture, resolve any failed save or edit conflict.</p>
           <ol>
-            <li>Open the résumé draft.</li>
             <li>
-              Wait for <strong>Saved</strong>, then select <strong>Review draft</strong>.
+              Resolve any failed save or edit conflict. Wait for <strong>Saved</strong>.
             </li>
-            <li>
-              Select <strong>Capture &amp; review export</strong>.
-            </li>
-            <li>Wait for the checkpoint document to finish.</li>
+            <li>Open the résumé review and capture the current version for export.</li>
+            <li>Wait for the saved document to finish rendering.</li>
           </ol>
           <p>
-            If you change the draft after capture, capture another checkpoint to export the revised
-            version.
+            River calls a captured version a checkpoint in history. If you change the working résumé
+            afterward, capture another version to export those changes.
           </p>
         </>
       ),
@@ -34,49 +30,42 @@ export const exportGuide = {
       title: "Inspect the document",
       body: (
         <>
-          <p>Review the exact checkpoint before authorizing export.</p>
           <ol>
             <li>
-              Inspect the PDF for incorrect contact details, dates, wording, spacing, and page
-              breaks.
+              Read every PDF page. Check contact details, dates, wording, spacing, and page breaks.
             </li>
-            <li>Read the extracted text.</li>
-            <li>Confirm that the text is complete and in the intended reading order.</li>
+            <li>Read the extracted text and confirm that expected content is present.</li>
+            <li>Inspect the document checks, including any reading-order findings.</li>
             <li>
-              Open <strong>Text checks</strong> to confirm that all wording, repeated text, and
-              reading order were preserved.
+              Correct blocking errors in the résumé or template, then capture and review the
+              corrected version.
             </li>
-            <li>If a document check fails, correct the draft or template before trying again.</li>
           </ol>
           <p>
-            For blocking failures and advisory findings, see{" "}
-            <GuideLink slug="review-states">Review states and export checks</GuideLink>.
+            Compilation errors, unsafe document source, missing text, and unexpected text
+            duplication can block export. Reading-order findings help you assess the layout,
+            including multiple-column designs.
+          </p>
+          <p>
+            See <GuideLink slug="review-states">Document checks and result status</GuideLink> for
+            the difference between errors and information.
           </p>
         </>
       ),
     },
     {
       id: "evidence-issues",
-      title: "Resolve the evidence review",
+      title: "Review changed information",
       body: (
         <>
-          <p>If evidence issues appear, review each issue before deciding whether to proceed.</p>
-          <ol>
-            <li>Open the evidence-issue review.</li>
-            <li>Inspect the affected wording and its supporting evidence.</li>
-            <li>If the wording needs correction, return to the draft.</li>
-            <li>After a correction, capture and review a new checkpoint.</li>
-            <li>
-              If you decide to proceed with an unresolved issue, select that issue's acknowledgment
-              instead.
-            </li>
-            <li>
-              Select <strong>Save acknowledgments</strong>.
-            </li>
-          </ol>
           <p>
-            If River reports that evidence changed during review, inspect the refreshed report.
-            Acknowledge any new issues you decide to retain.
+            If linked evidence or content has changed or moved to Trash, inspect whether the résumé
+            wording still reflects the facts you intend to present. These references are
+            informational and do not require an acknowledgment to export.
+          </p>
+          <p>
+            Sources are optional. Historical evidence verification states do not block a new export.
+            Previously exported documents retain their original reports.
           </p>
         </>
       ),
@@ -86,10 +75,9 @@ export const exportGuide = {
       title: "Download the files",
       body: (
         <>
-          <p>After document validation and evidence review are complete, export the checkpoint.</p>
           <ol>
             <li>
-              Select <strong>Export checkpoint files</strong>.
+              After document checks pass, select <strong>Export checkpoint files</strong>.
             </li>
             <li>
               Wait for <strong>Export complete</strong>.
@@ -97,19 +85,18 @@ export const exportGuide = {
             <li>
               Select <strong>Download PDF</strong>.
             </li>
-            <li>For a plain-text copy, open More formats and download the extracted text.</li>
+            <li>
+              For a plain-text copy, use <strong>More formats</strong> and download the extracted
+              text.
+            </li>
           </ol>
           <p>
-            Template code and JSON reports are optional downloads in Advanced tools. Enable that
-            area in Settings, then inspect the checkpoint by its ID.
-          </p>
-          <p>
-            For available formats, see{" "}
+            LaTeX source and JSON reports are available through Advanced tools. See{" "}
             <GuideLink slug="file-formats">File formats and limits</GuideLink>.
           </p>
           <p>
-            To download a previous export, open its checkpoint from <strong>History</strong>. Use
-            the retained download links.
+            To download an earlier export, open its saved version in <strong>History</strong> and
+            use the retained download links.
           </p>
         </>
       ),
@@ -120,8 +107,9 @@ export const exportGuide = {
       body: (
         <>
           <p>
-            To get advisory ATS feedback, follow{" "}
-            <GuideLink slug="scoring">Score a résumé</GuideLink>.
+            Scoring is optional and is not required for export. Follow{" "}
+            <GuideLink slug="scoring">Score a résumé</GuideLink> to review the complete inputs and
+            request advisory feedback.
           </p>
         </>
       ),

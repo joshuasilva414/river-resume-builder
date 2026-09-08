@@ -1,5 +1,7 @@
 import {
   AnswerClarificationRequest,
+  ArchiveSourceRequest,
+  BulkAddSourceEvidenceRequest,
   ClarificationList,
   RetrySourceAiRequest,
   ReviewSourceCandidateRequest,
@@ -13,6 +15,7 @@ import { Effect, Schema } from "effect";
 import { bindings } from "./env";
 import { Actor, attempt, dispatchPending, execute, Store } from "./services";
 import {
+  addSourceEvidence,
   inspectSourceAi,
   listSourceAi,
   previewSourceAi,
@@ -20,6 +23,16 @@ import {
   reviewSourceCandidate,
   startSourceAi,
 } from "./source-ai";
+import { archiveSource } from "./sources";
+
+export const addExtractedEvidence = createServerFn({ method: "POST" })
+  .validator(Schema.decodeUnknownSync(BulkAddSourceEvidenceRequest))
+  .handler(({ data }) => execute(bindings(), getRequestHeaders(), addSourceEvidence(data)));
+export const trashSource = createServerFn({ method: "POST" })
+  .validator(Schema.decodeUnknownSync(ArchiveSourceRequest))
+  .handler(({ data }) =>
+    execute(bindings(), getRequestHeaders(), archiveSource(data), "source:write"),
+  );
 
 export const getSourceAiTasks = createServerFn({ method: "GET" })
   .validator(Schema.decodeUnknownSync(SourceAiList))

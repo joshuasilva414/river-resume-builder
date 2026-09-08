@@ -6,6 +6,8 @@ import { CUSTOM_RENDERER_VERSION, RENDERER_VERSION } from "@river/templates";
 import { Effect, Schema } from "effect";
 import { storeCompiledArtifacts } from "./compiled-artifacts";
 import type { Env } from "./env";
+import { dispatchPending } from "./services";
+import { queueProcessedSourceEvidence } from "./source-ai";
 
 export class DocumentWorkflow extends WorkflowEntrypoint<Env, { operationId: string }> {
   async run(event: WorkflowEvent<{ operationId: string }>, step: WorkflowStep) {
@@ -71,6 +73,30 @@ export class DocumentWorkflow extends WorkflowEntrypoint<Env, { operationId: str
             });
           },
         );
+        try {
+          await step.do("queue-evidence-extraction", async () => {
+            const operation = await repository.getOperation(id);
+            if (operation?.state !== "Succeeded") return;
+            await queueProcessedSourceEvidence(
+              this.env,
+              repository,
+              operation.ownerId,
+              input.sourceId,
+              input.processingId,
+            );
+            await dispatchPending(this.env);
+          });
+        } catch {
+          await step.do("record-evidence-start-failure", async () => {
+            const operation = await repository.getOperation(id);
+            if (operation)
+              await repository.recordSourceEvidenceFailure(
+                operation.ownerId,
+                input.sourceId,
+                "Your source is ready, but evidence extraction could not start. Choose a model and select Extract evidence to retry.",
+              );
+          });
+        }
         return;
       }
 

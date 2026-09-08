@@ -1,10 +1,24 @@
-import type { CreateSourceRequest, ExtractionResult, RetrySourceRequest } from "@river/contracts";
-import { ApplicationError, canonicalJson, fingerprint, newId, type Principal } from "@river/domain";
+import type {
+  ArchiveSourceRequest,
+  CreateSourceRequest,
+  ExtractionResult,
+  RetrySourceRequest,
+} from "@river/contracts";
+import {
+  type AiSelection,
+  ApplicationError,
+  canonicalJson,
+  fingerprint,
+  newId,
+  type Principal,
+} from "@river/domain";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { conditionGuard, createCommands } from "./commands";
 import type { Database } from "./index";
 import * as schema from "./schema";
 
 export function createSourceRepository(db: Database) {
+  const commands = createCommands(db);
   const getSource = async (ownerId: string, id: string) =>
     (
       await db
@@ -36,6 +50,57 @@ export function createSourceRepository(db: Database) {
   };
   return {
     getSource,
+    async replaySourceCreation(
+      actorId: string,
+      input: Omit<CreateSourceRequest, "contentBase64"> & { digest: string; byteLength: number },
+    ) {
+      return receipt(
+        actorId,
+        "create-source",
+        input.idempotencyKey,
+        await fingerprint(canonicalJson(input)),
+      );
+    },
+    async recordSourceEvidenceFailure(ownerId: string, id: string, failure: string) {
+      await db
+        .update(schema.sources)
+        .set({ failure, updatedAt: Date.now() })
+        .where(
+          and(
+            eq(schema.sources.id, id),
+            eq(schema.sources.ownerId, ownerId),
+            eq(schema.sources.state, "Ready"),
+          ),
+        );
+    },
+    async archiveSource(actor: Principal, input: ArchiveSourceRequest) {
+      return commands.commit(actor, "archive-source", input.idempotencyKey, input, async () => {
+        const previous = await getSource(actor.ownerId, input.id);
+        if (!previous)
+          throw new ApplicationError({ code: "NotFound", message: "Source not found." });
+        const next = {
+          archivedAt: input.archived ? Date.now() : null,
+          revision: previous.revision + 1,
+          updatedAt: Date.now(),
+        };
+        return {
+          result: {
+            id: input.id,
+            revision: next.revision,
+            revisionId: previous.currentProcessingId,
+          },
+          guards: [
+            conditionGuard(
+              db,
+              sql`EXISTS (SELECT 1 FROM sources WHERE id=${input.id} AND owner_id=${actor.ownerId} AND revision=${input.revision})`,
+              "This source changed. Refresh before deleting or restoring it.",
+            ),
+          ],
+          writes: [db.update(schema.sources).set(next).where(eq(schema.sources.id, input.id))],
+          history: [{ entityId: input.id, before: previous, after: { ...previous, ...next } }],
+        };
+      });
+    },
     async listSources(ownerId: string) {
       return db
         .select()
@@ -91,6 +156,7 @@ export function createSourceRepository(db: Database) {
     async beginSource(
       actor: Principal,
       input: Omit<CreateSourceRequest, "contentBase64"> & { digest: string; byteLength: number },
+      extractionAi?: AiSelection,
     ) {
       const command = "create-source";
       const digest = await fingerprint(canonicalJson(input));
@@ -108,6 +174,7 @@ export function createSourceRepository(db: Database) {
         kind: input.kind,
         provenanceUrl: input.provenanceUrl,
         note: input.note,
+        extractionAi: extractionAi ?? input.ai ?? null,
         digest: input.digest,
         byteLength: input.byteLength,
         objectKey: `retained/sources/${actor.ownerId}/${id}/${input.digest}/original`,

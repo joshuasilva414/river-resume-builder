@@ -2,12 +2,11 @@ import type { CreateCredentialRequest } from "@river/contracts";
 import { type AgentScope, agentScopes, canonicalJson, fingerprint, newId } from "@river/domain";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Check, KeyRound, Monitor, ShieldCheck } from "lucide-react";
 import { useRef, useState } from "react";
 import { AiSettings } from "~/components/ai-settings";
-import { Appearance } from "~/components/appearance";
-import { BackupSettings } from "~/components/backup-settings";
+import { ScoringAllowance } from "~/components/scoring/allowance";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -60,9 +59,8 @@ const labels: Record<AgentScope, string> = {
   "source:write": "Add sources",
   "evidence:read": "Read evidence",
   "evidence:write": "Add and update evidence",
-  "evidence:verify": "Verify evidence",
   "evidence:merge": "Merge evidence",
-  "evidence:archive": "Archive and restore evidence",
+  "evidence:archive": "Delete and restore evidence",
   "jobs:read": "Read job targets",
   "jobs:write": "Add and update job targets",
 };
@@ -155,9 +153,7 @@ function Settings() {
             <TabsTrigger value="ai">AI connections</TabsTrigger>
             <TabsTrigger value="agents">Agent access</TabsTrigger>
             <TabsTrigger value="account">Account & sessions</TabsTrigger>
-            <TabsTrigger value="appearance">Appearance</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
-            {user.isAdmin && <TabsTrigger value="backups">Backups</TabsTrigger>}
           </TabsList>
         </div>
         {settings.error && (
@@ -359,32 +355,27 @@ function Settings() {
         </TabsContent>
         <TabsContent value="account" className="p-6 md:p-8">
           <Account user={user} />
+          <div className="mt-8 max-w-xl">
+            <ScoringAllowance />
+          </div>
+          {user.isAdmin && (
+            <Link to="/admin" className="mt-5 inline-flex text-sm text-primary underline">
+              Open administration and backups
+            </Link>
+          )}
           {settings.data?.usage && (
             <section className="mt-8 flex flex-col gap-2 border-t pt-6">
               <h2 className="text-xl">Processing usage</h2>
               <p>
-                {settings.data.usage.today} of {settings.data.usage.dailyLimit} tasks today ·{" "}
-                {settings.data.usage.active} of {settings.data.usage.activeLimit} active
+                {settings.data.usage.today} tasks today · {settings.data.usage.active} of{" "}
+                {settings.data.usage.activeLimit} active
               </p>
               <p className="text-sm text-muted-foreground">
-                AI requests, document processing, previews and scoring share this allowance. Daily
-                usage resets at midnight UTC. Failed and cancelled tasks count toward the daily
-                allowance.
+                AI requests using your provider keys have no daily task quota. Concurrent task and
+                processing time limits still apply.
               </p>
             </section>
           )}
-        </TabsContent>
-        {user.isAdmin && (
-          <TabsContent value="backups">
-            <BackupSettings />
-          </TabsContent>
-        )}
-        <TabsContent value="appearance" className="flex flex-col items-start gap-5 p-6 md:p-8">
-          <h2 className="text-2xl">Appearance</h2>
-          <p className="text-muted-foreground">
-            Choose the light or dark palette for this browser.
-          </p>
-          <Appearance />
         </TabsContent>
         <TabsContent value="activity" className="flex flex-col gap-5 p-6 md:p-8">
           <h2 className="text-2xl">Activity history</h2>

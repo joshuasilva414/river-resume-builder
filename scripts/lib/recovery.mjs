@@ -96,7 +96,16 @@ export async function restoreDatabase(snapshot, destination, environment) {
       )
       .get()?.sql;
     if (admission) db.exec("DROP TRIGGER operations_usage_limits");
+    // Migration 0037 seeds configuration, but the complete snapshot owns its value and revision.
+    // Clear only this local seed before replay; FKs, FTS, and usage settlement triggers stay active.
+    const hasScoringPolicy = snapshot.tables.includes("scoring_policy");
+    if (hasScoringPolicy) db.exec("DELETE FROM scoring_policy");
     db.exec(snapshot.data);
+    if (hasScoringPolicy)
+      assert.ok(
+        db.prepare("SELECT 1 FROM scoring_policy WHERE id='default'").get(),
+        "A v1.2 snapshot must retain the default scoring policy.",
+      );
     if (admission) db.exec(admission);
     db.exec("COMMIT;");
     assert.equal(db.prepare("PRAGMA integrity_check").get().integrity_check, "ok");
@@ -193,10 +202,19 @@ export function retainedObjects(db) {
 export async function downloadObject(key, directory, environment) {
   const resources = resourcesFor(environment);
   const path = resolve(directory, `${sha256(key)}.object`);
-  await wrangler(
-    ["r2", "object", "get", `${resources.bucket}/${key}`, "--remote", "--file", path],
-    environment,
-  );
+  // Object reads are idempotent; bounded retries tolerate transient API/CLI failures.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await wrangler(
+        ["r2", "object", "get", `${resources.bucket}/${key}`, "--remote", "--file", path],
+        environment,
+      );
+      break;
+    } catch (error) {
+      if (attempt === 2) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+    }
+  }
   await chmod(path, 0o600);
   return readFile(path);
 }

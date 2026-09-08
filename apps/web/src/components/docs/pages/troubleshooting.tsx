@@ -3,7 +3,8 @@ import { type Guide, GuideLink } from "../shared";
 export const troubleshooting = {
   slug: "troubleshooting",
   title: "Resolve common problems",
-  description: "Recover access, interrupted processing, conflicting edits, and blocked exports.",
+  description:
+    "Recover imports, review changed inputs, fix document errors, and restore deleted items.",
   group: "How-to guides",
   sections: [
     {
@@ -11,16 +12,15 @@ export const troubleshooting = {
       title: "Recover account access",
       body: (
         <>
-          <p>If you cannot sign in, check account access first.</p>
-          <ol>
-            <li>Confirm that you used the invited email address.</li>
-            <li>Open the verification email if you have not verified the account.</li>
-            <li>
-              If you forgot the password, follow{" "}
-              <GuideLink slug="account">Access your workspace</GuideLink>.
-            </li>
-            <li>If access remains blocked, contact the person who shared River with you.</li>
-          </ol>
+          <p>
+            Use the email address enabled for your account. If account creation is unavailable,
+            confirm the address with the person who gave you access.
+          </p>
+          <p>
+            For a forgotten password, use <strong>Forgot password?</strong> and follow the reset
+            email. Check spam if it does not arrive. See{" "}
+            <GuideLink slug="account">Access your workspace</GuideLink>.
+          </p>
         </>
       ),
     },
@@ -29,26 +29,41 @@ export const troubleshooting = {
       title: "Recover a failed source import",
       body: (
         <>
-          <p>Inspect the source's status before retrying.</p>
-          <ul>
-            <li>
-              If the upload is incomplete, use its resume-upload action with the exact original file
-              or text.
-            </li>
-            <li>
-              If extraction failed, inspect the error and retry extraction from the source
-              inspector.
-            </li>
-            <li>
-              If the file is unsupported or too large, supply a supported file within the{" "}
-              <GuideLink slug="file-formats">File formats and limits</GuideLink>.
-            </li>
-            <li>If the document is a scan, supply a text version.</li>
-            <li>
-              If extracted text is incomplete, add a separate corrected text source with a note
-              explaining its origin.
-            </li>
-          </ul>
+          <p>
+            Check the file type, size, and PDF page limit in{" "}
+            <GuideLink slug="file-formats">File formats and limits</GuideLink>. An image-only scan
+            needs selectable text from another source; River does not perform OCR.
+          </p>
+          <p>
+            If upload is incomplete, use the resume action with the exact original file or text. For
+            a processing failure, use the displayed retry action.
+          </p>
+          <p>
+            If evidence extraction fails, the source remains saved. Choose a working model and
+            extract again, or add evidence manually. Cancelled extraction cannot add late results.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "job-import",
+      title: "Continue a blocked job import",
+      body: (
+        <>
+          <p>
+            If the public page cannot be retrieved, copy the full description and choose{" "}
+            <strong>Paste text</strong> in <strong>Import job</strong>. A page that requires sign-in
+            or blocks retrieval needs this fallback.
+          </p>
+          <p>
+            If text was retrieved but analysis failed, review the retained text. Retry or enter job
+            details manually and save. If you edit the description after analysis, reanalyze it or
+            explicitly confirm the requirements before saving.
+          </p>
+          <p>
+            A cancelled or superseded import cannot save a late result. See{" "}
+            <GuideLink slug="jobs">Tailor to a job posting</GuideLink>.
+          </p>
         </>
       ),
     },
@@ -58,16 +73,14 @@ export const troubleshooting = {
       body: (
         <>
           <p>
-            Reloading a saved version can discard local edits. Preserve the local text before
-            reloading.
+            If River reports that another save changed the record, keep a copy of your unsaved text.
+            Reload the current version and compare it before applying your changes again.
           </p>
-          <ol>
-            <li>Read the comparison between local and saved content.</li>
-            <li>Copy any local wording you need to retain.</li>
-            <li>If the draft offers duplication and you want a separate draft, use that option.</li>
-            <li>Otherwise, reload the saved version after preserving your text.</li>
-            <li>Reapply the intended change.</li>
-          </ol>
+          <p>
+            For a selected/all action, a stale target prevents the entire batch from applying.
+            Refresh the result set, inspect your selection, and try again. Retrying the same
+            successful command does not duplicate it.
+          </p>
         </>
       ),
     },
@@ -76,17 +89,15 @@ export const troubleshooting = {
       title: "Refresh an old preview",
       body: (
         <>
-          <p>If the preview does not show your latest changes, inspect the save status first.</p>
-          <ol>
-            <li>Resolve any failed save or conflict.</li>
-            <li>
-              Wait for <strong>All changes saved</strong>.
-            </li>
-            <li>Check the document status.</li>
-            <li>If compilation is active, wait for it to finish.</li>
-            <li>If compilation failed, inspect the error before retrying.</li>
-            <li>If the preview expired, request a fresh preview.</li>
-          </ol>
+          <p>
+            Check whether saving or rendering is still in progress. The previous successful PDF
+            remains visible while a newer preview is pending or failed.
+          </p>
+          <p>
+            Correct any reported content or template error. Wait for the preview for the latest edit
+            before confirming insertion or exporting. An old rendering response cannot replace a
+            newer result.
+          </p>
         </>
       ),
     },
@@ -95,21 +106,19 @@ export const troubleshooting = {
       title: "Complete a blocked export",
       body: (
         <>
-          <p>Open the checkpoint and inspect the document checks and evidence review.</p>
-          <ul>
-            <li>If compilation or text integrity failed, correct the document before exporting.</li>
-            <li>
-              If evidence issues remain, inspect each issue and save the acknowledgments you choose
-              to make.
-            </li>
-            <li>
-              If evidence changed during review, inspect the refreshed report before acknowledging
-              new issues.
-            </li>
-            <li>If your correction changes the draft, capture and review a new checkpoint.</li>
-          </ul>
           <p>
-            For the complete procedure, follow <GuideLink slug="export">Export a résumé</GuideLink>.
+            Open the document checks. Correct compilation failures, unsafe template source, missing
+            required content, or unexpected missing or duplicated text. Capture a corrected version
+            and inspect its PDF and extracted text.
+          </p>
+          <p>
+            Reading-order findings are diagnostic. Review them when arranging columns or changing a
+            layout. Source links and historical evidence verification states do not block a new
+            export, and changed or trashed references require no acknowledgment.
+          </p>
+          <p>
+            If a required layout or schema reference is missing, incompatible, private, or circular,
+            correct that reference in the template before saving.
           </p>
         </>
       ),
@@ -119,28 +128,26 @@ export const troubleshooting = {
       title: "Resume AI or scoring work",
       body: (
         <>
-          <p>Use the reported failure to choose the next action.</p>
-          <ul>
-            <li>
-              If the provider is unavailable, continue manually or contact the person running River.
-            </li>
-            <li>
-              If inputs changed, follow <GuideLink slug="ai">Review AI suggestions</GuideLink> to
-              request an updated proposal.
-            </li>
-            <li>
-              If active tasks fill your allowance, wait for a task to finish or cancel a task you no
-              longer need.
-            </li>
-            <li>If the daily allowance is exhausted, wait for the reset at midnight UTC.</li>
-            <li>
-              If scoring input is too long, inspect the preflight counts. Shorten the résumé only if
-              the shorter wording remains accurate, then capture a new checkpoint.
-            </li>
-          </ul>
           <p>
-            If the saved posting exceeds the scoring limit, continue without scoring. Do not replace
-            the full posting with an excerpt just to obtain a score.
+            Check that the selected AI connection is active, its key works, and the model supports
+            the task. Retry within the displayed limit or start a new task with another model. River
+            does not silently switch providers.
+          </p>
+          <p>
+            If <strong>Inputs changed</strong> appears, review fresh results based on the current
+            material. It applies to relevant changes made after analysis, not an unchanged initial
+            paste or a result’s own successful save.
+          </p>
+          <p>
+            If capacity is busy, wait for active work to finish. Personal AI has no daily River
+            quota. A scoring allowance message instead refers to successful scoring results: the
+            normal default is 25 per UTC day. Failed work and reused saved results do not consume
+            it.
+          </p>
+          <p>
+            Saved results remain readable when a service is unavailable. See{" "}
+            <GuideLink slug="ai-connections">AI connections</GuideLink> and{" "}
+            <GuideLink slug="scoring">Scoring</GuideLink>.
           </p>
         </>
       ),
@@ -150,24 +157,19 @@ export const troubleshooting = {
       title: "Find a missing item or update",
       body: (
         <>
-          <p>Check the collection and version you are viewing.</p>
-          <ul>
-            <li>
-              For an imported document, open <strong>Sources</strong>.
-            </li>
-            <li>
-              For a factual statement, open <strong>Evidence bank</strong>.
-            </li>
-            <li>
-              For reusable wording, open <strong>Content library</strong>.
-            </li>
-            <li>For a résumé draft, open its job target.</li>
-            <li>If an item is absent from an active list, include archived items in the filter.</li>
-            <li>
-              If a draft shows older library content, inspect its reuse comparison before applying
-              an update.
-            </li>
-          </ul>
+          <p>
+            Check your search and filters, then look in <strong>Trash</strong>. Use{" "}
+            <strong>Restore</strong> to make a deleted item available in active lists again.
+          </p>
+          <p>
+            A saved résumé retains the content it originally used. If you expected a library change
+            to appear, inspect and apply the available update explicitly.
+          </p>
+          <p>
+            If a layout switch hides a field, its value remains saved. Choose a compatible layout
+            that displays it. For a missing skill option, confirm that the evidence is active and
+            has type <strong>Skill</strong>.
+          </p>
         </>
       ),
     },

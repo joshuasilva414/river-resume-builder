@@ -58,10 +58,10 @@ function CheckpointPage() {
       <Failure error={result.error} />
       {result.isPending && (
         <p className="p-8" role="status">
-          Loading checkpoint…
+          Loading saved version…
         </p>
       )}
-      {result.error && <Button onClick={() => void result.refetch()}>Retry checkpoint</Button>}
+      {result.error && <Button onClick={() => void result.refetch()}>Retry saved version</Button>}
       {result.data && <Review key={checkpointId} detail={result.data} />}
     </WorkspaceShell>
   );
@@ -122,9 +122,7 @@ function Review({ detail }: { detail: Detail }) {
     queryFn: async () => {
       const response = await fetch(`/api/artifacts/${operation?.id}/report`);
       if (!response.ok)
-        throw new Error(
-          "The validation report is unavailable. Retry without recapturing this checkpoint.",
-        );
+        throw new Error("The document checks are unavailable. Retry from this saved version.");
       return Schema.decodeUnknownSync(ValidationReport)(await response.json());
     },
   });
@@ -153,9 +151,7 @@ function Review({ detail }: { detail: Detail }) {
   return (
     <>
       <header className="shrink-0 space-y-3 border-b px-5 py-7 md:px-8">
-        <p className="eyebrow">
-          {detail.posting?.details.role} / Review & export · Checkpoint {checkpoint.id.slice(-8)}
-        </p>
+        <p className="eyebrow">{detail.posting?.details.role} / Review & export · Saved version</p>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="page-heading">Review your résumé before export.</h1>
           <Link
@@ -163,7 +159,7 @@ function Review({ detail }: { detail: Detail }) {
             to="/resumes/$resumeId"
             params={{ resumeId: checkpoint.draftId }}
           >
-            Back to draft
+            Back to current résumé
           </Link>
           <Button variant="outline" onClick={() => setHistory(true)}>
             History
@@ -187,8 +183,7 @@ function Review({ detail }: { detail: Detail }) {
         </div>
         <p className="text-sm text-muted-foreground">
           {checkpoint.label ? `${checkpoint.label} · ` : ""}
-          {checkpoint.data.name} · Captured from draft revision {checkpoint.draftRevision} ·{" "}
-          {new Date(checkpoint.createdAt).toLocaleString()}
+          {checkpoint.data.name} · Saved {new Date(checkpoint.createdAt).toLocaleString()}
         </p>
       </header>
       <div className="grid min-h-0 flex-1 xl:grid-cols-[1.05fr_1fr]">
@@ -197,7 +192,7 @@ function Review({ detail }: { detail: Detail }) {
             Check the document before exporting.
           </h2>
           <p className="text-sm text-muted-foreground">
-            The PDF and text below belong to this checkpoint. Newer draft edits do not change these
+            The PDF and text below belong to this saved version. Later edits do not change these
             files.
           </p>
           <div className="divide-y">
@@ -214,8 +209,12 @@ function Review({ detail }: { detail: Detail }) {
               status={validation ? (validation.passed ? "Passed" : "Blocked") : "Pending"}
             />
             <Check
-              label="Evidence review"
-              status={`${acknowledged} of ${report.issues.length} acknowledged`}
+              label="Saved review"
+              status={
+                report.issues.length === 0
+                  ? "No additional review needed"
+                  : `${acknowledged} of ${report.issues.length} reviewed`
+              }
             />
           </div>
           <Failure error={action.error} />
@@ -231,7 +230,7 @@ function Review({ detail }: { detail: Detail }) {
                   action.reset();
                 }}
               >
-                Review refreshed state
+                Review current status
               </Button>
             </div>
           )}
@@ -239,8 +238,8 @@ function Review({ detail }: { detail: Detail }) {
             <div className="space-y-3 border-l-2 border-warning bg-warning/10 p-4" role="status">
               <h3 className="font-semibold">Evidence changed during review</h3>
               <p className="text-sm">
-                Review the current issue set before exporting. Previous acknowledgments do not
-                authorize this report.
+                Review the updated items before exporting. Your previous review remains in the
+                history.
               </p>
               <details>
                 <summary className="cursor-pointer text-sm text-primary">
@@ -283,7 +282,7 @@ function Review({ detail }: { detail: Detail }) {
                   disabled={action.isPending || !!request}
                   onClick={() => action.mutate("cancel")}
                 >
-                  Cancel document job
+                  Cancel document preparation
                 </Button>
               )}
               {!detail.source &&
@@ -296,7 +295,7 @@ function Review({ detail }: { detail: Detail }) {
                     disabled={action.isPending || !!request || state.attempts >= 3}
                     onClick={() => action.mutate("retry")}
                   >
-                    Retry document job
+                    Retry document preparation
                   </Button>
                 )}
             </div>
@@ -314,19 +313,20 @@ function Review({ detail }: { detail: Detail }) {
                   disabled={action.isPending || !!request}
                   onClick={() => action.mutate("review")}
                 >
-                  Refresh evidence review
+                  Refresh review
                 </Button>
                 <Button
                   disabled={!ready || action.isPending || !!request}
                   onClick={() => action.mutate("export")}
                 >
-                  {action.isPending ? "Saving review…" : "Export checkpoint files"}
+                  {action.isPending ? "Saving review…" : "Export résumé files"}
                 </Button>
               </div>
               {!ready && (
                 <p className="text-xs text-muted-foreground">
-                  Export requires complete document validation and a saved acknowledgment for each
-                  applicable issue.
+                  {acknowledged < report.issues.length
+                    ? "Complete the document checks and review the saved items before exporting."
+                    : "Export becomes available when the document checks pass."}
                 </p>
               )}
             </div>
@@ -335,8 +335,8 @@ function Review({ detail }: { detail: Detail }) {
             <div className="space-y-4 border-t pt-5">
               <h3 className="font-editorial text-2xl font-medium">Export complete</h3>
               <p className="text-sm">
-                {new Date(exported.createdAt).toLocaleString()} · The original report and
-                acknowledgments are retained.
+                {new Date(exported.createdAt).toLocaleString()} · Your saved version and its review
+                remain available.
               </p>
               <a
                 className="inline-flex rounded-sm bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"
@@ -379,9 +379,7 @@ function Review({ detail }: { detail: Detail }) {
           )}
         </section>
         <aside className="min-w-0 space-y-4 bg-muted/40 p-5 md:p-7 xl:overflow-y-auto">
-          <p className="eyebrow">
-            Checkpoint {checkpoint.id.slice(-8)} · Draft revision {checkpoint.draftRevision}
-          </p>
+          <p className="eyebrow">{checkpoint.label ?? "Saved version"} · Document preview</p>
           {operation?.artifacts ? (
             <Tabs defaultValue="pdf">
               <TabsList>
@@ -466,8 +464,8 @@ function Review({ detail }: { detail: Detail }) {
           ) : (
             <p className="py-12 text-center text-sm text-muted-foreground">
               {active
-                ? "The checkpoint’s document job is running. Files will appear when the complete set is retained."
-                : "This checkpoint has no completed artifact set. Your captured draft is preserved."}
+                ? "Your document is being prepared. Its files will appear here when ready."
+                : "Document preparation has not completed. Your saved résumé is preserved."}
             </p>
           )}
         </aside>
@@ -562,8 +560,8 @@ function Acknowledgments({ detail: current, onClose }: { detail: Detail; onClose
   });
   return (
     <EvidenceDialog
-      title="Review evidence for this checkpoint"
-      description="Each acknowledgment applies to this saved résumé and the issues shown below. It does not verify the evidence."
+      title="Review saved evidence items"
+      description="Confirm that you have reviewed the items shown below for this saved résumé."
       onClose={onClose}
       dirty={selected.some((id) => !detail.acknowledgments.some((ack) => ack.issueId === id))}
       pending={save.isPending}
@@ -586,7 +584,7 @@ function Acknowledgments({ detail: current, onClose }: { detail: Detail; onClose
                 <input
                   className="size-5 shrink-0 accent-primary"
                   type="checkbox"
-                  aria-label={`Acknowledge ${issue.kind} for ${issue.wording}`}
+                  aria-label={`Confirm review of ${issue.kind} for ${issue.wording}`}
                   checked={selected.includes(issue.id)}
                   disabled={saved || !!request || save.isPending}
                   onChange={(event) =>
@@ -597,7 +595,7 @@ function Acknowledgments({ detail: current, onClose }: { detail: Detail; onClose
                     )
                   }
                 />
-                I acknowledge this {issue.kind.toLowerCase()} issue.{saved ? " Saved." : ""}
+                I have reviewed this {issue.kind.toLowerCase()} issue.{saved ? " Saved." : ""}
               </label>
               {captured && (
                 <details>
@@ -617,18 +615,14 @@ function Acknowledgments({ detail: current, onClose }: { detail: Detail; onClose
       <Failure error={save.error} />
       <div className="sticky bottom-0 mt-5 flex flex-wrap items-center justify-between gap-4 border-t bg-background py-4">
         <p role="status" className="text-sm">
-          {selected.length} of {detail.report.issues.length} issues acknowledged
+          {selected.length} of {detail.report.issues.length} items reviewed
         </p>
         <Button disabled={save.isPending || selected.length === 0} onClick={() => save.mutate()}>
-          {save.isPending
-            ? "Saving acknowledgments…"
-            : save.error
-              ? "Retry acknowledgments"
-              : "Save acknowledgments"}
+          {save.isPending ? "Saving review…" : save.error ? "Retry saving review" : "Save review"}
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        These choices do not change verification decisions or override document-integrity failures.
+        Your review is saved with this version. Document checks must still pass before export.
       </p>
     </EvidenceDialog>
   );

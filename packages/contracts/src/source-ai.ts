@@ -1,4 +1,11 @@
-import { ContextReference, RecordId, Revision, SourceAiInput } from "@river/domain";
+import {
+  ContextReference,
+  EvidenceMaterialInput,
+  EvidenceMetadata,
+  RecordId,
+  Revision,
+  SourceAiInput,
+} from "@river/domain";
 import { Schema } from "effect";
 import { AiSelectionFields } from "./ai";
 import { CommandKey } from "./evidence";
@@ -25,6 +32,22 @@ export const ReviewSourceCandidateRequest = Schema.Struct({
   idempotencyKey: CommandKey,
 });
 export type ReviewSourceCandidateRequest = typeof ReviewSourceCandidateRequest.Type;
+/** The displayed complete set is supplied for Add all; every item is checked before any write. */
+export const BulkAddSourceEvidenceRequest = Schema.Struct({
+  idempotencyKey: CommandKey,
+  taskId: RecordId,
+  mode: Schema.Literals(["selected", "all"]),
+  items: Schema.Array(
+    Schema.Struct({
+      id: RecordId,
+      revision: Revision,
+      digest: ReviewSourceCandidateRequest.fields.digest,
+      assertion: EvidenceMaterialInput.fields.assertion,
+      metadata: EvidenceMetadata,
+    }),
+  ).check(Schema.isMinLength(1), Schema.isMaxLength(1000)),
+});
+export type BulkAddSourceEvidenceRequest = typeof BulkAddSourceEvidenceRequest.Type;
 export const RetrySourceAiRequest = Schema.Struct({
   id: RecordId,
   revision: Revision,

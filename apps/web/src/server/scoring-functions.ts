@@ -23,8 +23,19 @@ import {
   scoringContext,
   startCheckpointScoring,
 } from "./scoring";
-import { dispatchPending, execute } from "./services";
+import { Actor, attempt, dispatchPending, execute, Store } from "./services";
 
+export const getScoringAllowance = createServerFn({ method: "GET" }).handler(() =>
+  execute(
+    bindings(),
+    getRequestHeaders(),
+    Effect.gen(function* () {
+      const actor = yield* Actor,
+        store = yield* Store;
+      return yield* attempt(() => store.readScoringAllowance(actor));
+    }),
+  ),
+);
 export const getScoringSettings = createServerFn({ method: "GET" }).handler(() => {
   const env = bindings();
   return execute(env, getRequestHeaders(), Effect.succeed({ configured: scoringConfigured(env) }));

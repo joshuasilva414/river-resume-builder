@@ -26,20 +26,20 @@ export function WordingEditor({
     value = contentValue(original, graph);
   const [wording, setWording] = useState(value.wording),
     [evidence, setEvidence] = useState(value.evidence),
-    [reason, setReason] = useState(content.override?.reason ?? ""),
+    [reason] = useState(content.override?.reason ?? "Edited wording"),
     [compare, setCompare] = useState(false);
   if (base.kind !== "content") return null;
   return (
     <EvidenceDialog
       title="Edit wording in this résumé"
-      description="The reusable item and other placements keep their original revision."
+      description="Changes apply to this résumé. Reusable content and other résumés keep their saved wording."
       onClose={onClose}
       dirty={
         canonicalJson({ wording, evidence, reason }) !==
         canonicalJson({
           wording: value.wording,
           evidence: value.evidence,
-          reason: original.override?.reason ?? "",
+          reason: original.override?.reason ?? "Edited wording",
         })
       }
       wide
@@ -62,14 +62,6 @@ export function WordingEditor({
           />
         </FormField>
         <EvidenceLinks value={evidence} onChange={setEvidence} />
-        <FormField label="Reason for this local wording">
-          <Textarea
-            required
-            maxLength={4000}
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-          />
-        </FormField>
         <Button type="button" variant="outline" onClick={() => setCompare(!compare)}>
           {compare ? "Hide base wording" : "Compare base wording"}
         </Button>
@@ -96,7 +88,7 @@ export function WordingEditor({
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button disabled={!wording.trim() || !reason.trim()}>Apply local wording</Button>
+          <Button disabled={!wording.trim()}>Apply local wording</Button>
         </div>
       </form>
     </EvidenceDialog>

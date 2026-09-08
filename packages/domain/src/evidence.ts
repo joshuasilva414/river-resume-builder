@@ -5,6 +5,15 @@ export const RecordId = Schema.String.check(Schema.isUUID(7));
 const shortText = Schema.String.check(Schema.isMaxLength(200));
 export const ReviewState = Schema.Literals(["Draft", "Needs clarification", "Verified"]);
 export type ReviewState = typeof ReviewState.Type;
+export const EvidenceType = Schema.Literals([
+  "Skill",
+  "Achievement",
+  "Experience",
+  "Education",
+  "Credential",
+  "Other",
+]);
+export type EvidenceType = typeof EvidenceType.Type;
 export const ContextKind = Schema.Literals([
   "Owner Profile",
   "Employment",
@@ -55,6 +64,7 @@ export const EvidenceCitation = Schema.Struct({
 export type EvidenceCitation = typeof EvidenceCitation.Type;
 export const EvidenceMaterialInput = Schema.Struct({
   assertion: Schema.NonEmptyString.check(Schema.isMaxLength(4000)),
+  sourceIds: Schema.optional(Schema.Array(RecordId).check(Schema.isMaxLength(20))),
   citations: Schema.Array(CitationInput).check(Schema.isMaxLength(20)),
   contexts: Schema.Array(ContextReference).check(Schema.isMaxLength(10)),
 });
@@ -65,6 +75,8 @@ export const EvidenceMaterial = Schema.Struct({
 });
 export type EvidenceMaterial = typeof EvidenceMaterial.Type;
 export const EvidenceMetadata = Schema.Struct({
+  // Optional only for retained records and existing API clients; current writes normalize to Other.
+  type: Schema.optional(EvidenceType),
   label: shortText,
   tags: Schema.Array(Schema.NonEmptyString.check(Schema.isMaxLength(60))).check(
     Schema.isMaxLength(20),

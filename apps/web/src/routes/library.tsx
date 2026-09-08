@@ -1,7 +1,7 @@
 import { blockDefinitions, type ContentType, contentTypes, type LibraryKind } from "@river/domain";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { Archive, ArrowLeft, Plus, RotateCcw } from "lucide-react";
+import { ArrowLeft, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 import { Failure, FormField, selectClass, unwrap } from "~/components/evidence/shared";
 import { LibraryEditor } from "~/components/library/editor";
@@ -132,7 +132,7 @@ function LibraryPage() {
                 }}
               >
                 <option value="active">Active</option>
-                <option value="archived">Archived</option>
+                <option value="archived">In Trash</option>
               </select>
             </FormField>
           </div>
@@ -154,14 +154,14 @@ function LibraryPage() {
               )}
             >
               <p className="font-semibold">{entry.item.label}</p>
-              {entry.item.archivedAt !== null && <Badge variant="outline">Archived</Badge>}
+              {entry.item.archivedAt !== null && <Badge variant="outline">In Trash</Badge>}
               {entry.revision.data.kind === "content" && (
                 <p className="line-clamp-3 whitespace-pre-wrap text-[15px] leading-6">
                   {entry.revision.data.wording}
                 </p>
               )}
               <p className="eyebrow">
-                {blockDefinitions[entry.item.type].label} · Revision {entry.item.revision}
+                {blockDefinitions[entry.item.type].label}
                 {entry.revision.data.kind === "content" &&
                   ` · ${entry.revision.data.evidence.length} evidence links`}
               </p>
@@ -171,14 +171,14 @@ function LibraryPage() {
             <div className="space-y-3 py-10">
               <h2 className="font-editorial text-2xl">
                 {archived
-                  ? "No archived items found"
+                  ? "No library items in Trash"
                   : query
                     ? "No matching library items"
                     : `Create your first ${kindLabels[kind].toLowerCase()}.`}
               </h2>
               <p className="text-sm text-muted-foreground">
                 {archived
-                  ? "Archived items remain available here to inspect or restore."
+                  ? "Deleted items remain available here and in Trash to inspect or restore."
                   : "Choose a starter above to add your details, or create a section of your own."}
               </p>
               {!archived && (
@@ -241,7 +241,7 @@ function LibraryPage() {
                 </p>
                 {detail.data.item.archivedAt !== null && (
                   <div className="space-y-2 border-l-2 pl-3">
-                    <Badge variant="outline">Archived</Badge>
+                    <Badge variant="outline">In Trash</Badge>
                     <p className="text-sm text-muted-foreground">
                       Existing résumés and checkpoints keep their saved content. Restore this item
                       to edit or reuse it.
@@ -270,8 +270,8 @@ function LibraryPage() {
                     </Button>
                   )}
                   <Button variant="outline" onClick={() => setLifecycleItem(detail.data.item)}>
-                    {detail.data.item.archivedAt === null ? <Archive /> : <RotateCcw />}
-                    {detail.data.item.archivedAt === null ? "Archive" : "Restore"}
+                    {detail.data.item.archivedAt === null ? <Trash2 /> : <RotateCcw />}
+                    {detail.data.item.archivedAt === null ? "Delete" : "Restore"}
                   </Button>
                 </div>
               </div>
@@ -309,14 +309,12 @@ function LibraryPage() {
               </details>
               {detail.data.lifecycle.length > 0 && (
                 <details className="border-t pt-5">
-                  <summary className="cursor-pointer text-sm font-semibold">
-                    Archive history
-                  </summary>
+                  <summary className="cursor-pointer text-sm font-semibold">Trash history</summary>
                   <div className="mt-4 space-y-4">
                     {detail.data.lifecycle.map((event) => (
                       <article key={event.id} className="space-y-2 border-b pb-4">
                         <p className="text-sm font-medium">
-                          {event.command === "archive-library" ? "Archived" : "Restored"}
+                          {event.command === "archive-library" ? "Moved to Trash" : "Restored"}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {new Date(event.createdAt).toLocaleString()}

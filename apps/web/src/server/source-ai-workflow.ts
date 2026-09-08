@@ -12,50 +12,66 @@ export class SourceAiWorkflow extends WorkflowEntrypoint<Env, { operationId: str
     const id = event.payload.operationId;
     try {
       // Generated output is never a Workflow step result. Rejection can remove its sole durable payload from D1.
-      await runAiWorkflowStep(step, async () => {
-        const operation = await repository.getOperation(id);
-        if (
-          !operation ||
-          !("type" in operation.input) ||
-          operation.input.type !== "source-ai" ||
-          !["Pending", "Running"].includes(operation.state)
-        )
-          return;
-        const detail = await repository.inspectSourceAi(operation.ownerId, operation.input.taskId);
-        if (detail.task.latestOperationId !== id || detail.task.completedAt !== null) return;
-        const profile = detail.task.profile;
-        const apiKey = await loadAiCredential(
-          this.env,
-          repository,
-          operation.ownerId,
-          profile.connection,
-        );
-        await repository.updateOperation(id, {
-          state: "Running",
-          stage: "Generating reviewed proposal",
-        });
-        const result = await generateSourceCandidates(
-          apiKey,
-          detail.task.input,
-          profile,
-          fetch,
-          (metadata) => repository.recordAiExecution(operation.ownerId, id, metadata),
-        );
-        await repository.updateOperation(id, {
-          state: "Running",
-          stage: "Validating and saving proposal",
-        });
-        await repository.publishSourceAi(operation.ownerId, detail.task.id, id, result);
-      });
+      await runAiWorkflowStep(
+        step,
+        async () => {
+          const operation = await repository.getOperation(id);
+          if (
+            !operation ||
+            !("type" in operation.input) ||
+            operation.input.type !== "source-ai" ||
+            !["Pending", "Running"].includes(operation.state)
+          )
+            return;
+          const detail = await repository.inspectSourceAi(
+            operation.ownerId,
+            operation.input.taskId,
+          );
+          if (detail.task.latestOperationId !== id || detail.task.completedAt !== null) return;
+          const profile = detail.task.profile;
+          const apiKey = await loadAiCredential(
+            this.env,
+            repository,
+            operation.ownerId,
+            profile.connection,
+          );
+          await repository.updateOperation(id, {
+            state: "Running",
+            stage: "Extracting evidence",
+          });
+          const result = await generateSourceCandidates(
+            apiKey,
+            detail.task.input,
+            profile,
+            fetch,
+            (metadata) => repository.recordAiExecution(operation.ownerId, id, metadata),
+            async (index, total) => {
+              const current = await repository.getOperation(id);
+              if (!current || !["Pending", "Running"].includes(current.state)) return false;
+              await repository.updateOperation(id, {
+                state: "Running",
+                stage: `Extracting evidence · part ${index + 1} of ${total}`,
+              });
+              return true;
+            },
+          );
+          await repository.updateOperation(id, {
+            state: "Running",
+            stage: "Preparing evidence for review",
+          });
+          await repository.publishSourceAi(operation.ownerId, detail.task.id, id, result);
+        },
+        "10 minutes",
+      );
     } catch (error) {
       await step.do("record-safe-failure", () =>
         repository.updateOperation(id, {
           state: "Failed",
-          stage: "Source analysis failed",
+          stage: "Evidence extraction failed",
           failure:
             error instanceof ApplicationError && error.code === "Unavailable"
               ? error.message
-              : "River could not validate the proposed claims against the source passages. Your original document is safe. Retry the analysis or create a claim from a cited passage.",
+              : "River could not finish extracting supported evidence. Your original is preserved. Retry extraction or add evidence manually.",
         }),
       );
       throw new Error(`AI operation ${id} failed`);

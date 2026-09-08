@@ -29,13 +29,30 @@ import {
   useLibraryCommand,
   useLibraryDetail,
 } from "./shared";
+import { StructuredLibraryEditor } from "./structured-editor";
 
 function emptyData(kind: LibraryKind, type: ContentType): LibraryData {
   if (kind === "content") return { kind, type, wording: "", evidence: [] };
   if (kind === "block") return { kind, type, fields: [] };
   return { kind, type, heading: blockDefinitions[type].heading, blocks: [] };
 }
-export function LibraryEditor({
+export function LibraryEditor(props: Parameters<typeof LegacyLibraryEditor>[0]) {
+  if (props.kind !== "content")
+    return (
+      <StructuredLibraryEditor
+        kind={props.kind}
+        type={
+          props.detail?.revision.data.type ?? props.seed?.type ?? props.initialType ?? "summary"
+        }
+        detail={props.detail}
+        seed={props.seed}
+        onClose={props.onClose}
+        onSaved={props.onSaved}
+      />
+    );
+  return <LegacyLibraryEditor {...props} />;
+}
+function LegacyLibraryEditor({
   kind,
   initialType = "summary",
   detail,

@@ -141,7 +141,12 @@ it("preserves verification through metadata edits, invalidates material changes,
     rationale: "Fixture passage checked explicitly.",
     idempotencyKey: "verify-once",
   };
-  const reviews = await Promise.all([run(review), run(review), run(review)]);
+  // Historical records remain readable; the legacy writer is used only to seed retained data.
+  const reviews = await Promise.all([
+    repository.reviewEvidence(actor, review),
+    repository.reviewEvidence(actor, review),
+    repository.reviewEvidence(actor, review),
+  ]);
   expect(reviews.every((result) => result.revision === 1)).toBe(true);
   const labeled = await run({
     type: "metadata",
@@ -168,8 +173,10 @@ it("preserves verification through metadata edits, invalidates material changes,
     { revisionId: created.revisionId, state: "Verified" },
   ]);
   expect(await run(request)).toEqual(created);
-  expect(await run(review)).toEqual(reviews[0]);
-  await expect(run({ ...review, rationale: "Different content" })).rejects.toMatchObject({
+  expect(await repository.reviewEvidence(actor, review)).toEqual(reviews[0]);
+  await expect(
+    repository.reviewEvidence(actor, { ...review, rationale: "Different content" }),
+  ).rejects.toMatchObject({
     code: "Conflict",
   });
 });
@@ -295,7 +302,7 @@ it("reviews duplicates, merges atomically, and restores the original without rew
   expect((await repository.searchEvidence(actor.id, search)).items).toHaveLength(2);
 });
 
-it("pins context history and requires a cited revision plus rationale for verification", async () => {
+it("pins context history and returns a migration error for retired verification calls", async () => {
   const { run, repository, actor, material } = await fixture();
   const data = {
     kind: "Project" as const,
@@ -359,15 +366,17 @@ it("pins context history and requires a cited revision plus rationale for verifi
       idempotencyKey: "verify",
     }),
   ).rejects.toMatchObject({ code: "InvalidInput" });
-  await run({
-    type: "review",
-    id: created.id,
-    revision: 0,
-    revisionId: created.revisionId,
-    state: "Needs clarification",
-    rationale: "Please attach a source passage.",
-    idempotencyKey: "clarify",
-  });
+  await expect(
+    run({
+      type: "review",
+      id: created.id,
+      revision: 0,
+      revisionId: created.revisionId,
+      state: "Needs clarification",
+      rationale: "Legacy call",
+      idempotencyKey: "clarify",
+    }),
+  ).rejects.toMatchObject({ code: "InvalidInput", message: expect.stringContaining("retired") });
   const stranger = await fixture();
   expect(
     await repository.getEvidenceRevision(stranger.actor.id, created.revisionId),
@@ -386,4 +395,48 @@ it("reconciles duplicate suggestions after simultaneous independent creates", as
   expect(
     (await repository.searchEvidence(actor.id, { ...search, archived: null })).items,
   ).toHaveLength(2);
+});
+
+it("saves typed evidence without a source, edits text and keywords once, and restores trash without a reason", async () => {
+  const { run, repository, actor } = await fixture();
+  const created = await run({
+    type: "create",
+    idempotencyKey: "direct-skill",
+    material: { assertion: "TypeScript", citations: [], contexts: [] },
+    metadata: { type: "Skill", label: "", tags: ["Web"], notes: "" },
+  });
+  expect((await repository.getClaim(actor.id, created.id))?.metadata.type).toBe("Skill");
+  expect(
+    (
+      await repository.searchEvidence(actor.id, { ...search, type: "Skill", status: "Verified" })
+    ).items.map((item) => item.id),
+  ).toContain(created.id);
+  const edited = await run({
+    type: "edit",
+    id: created.id,
+    revision: 0,
+    idempotencyKey: "edit-once",
+    material: { assertion: "TypeScript and JavaScript", citations: [], contexts: [] },
+    metadata: { type: "Skill", label: "", tags: ["Frontend"], notes: "" },
+  });
+  expect((await repository.getClaim(actor.id, created.id))?.metadata.tags).toEqual(["Frontend"]);
+  const deleted = await run({
+    type: "archive",
+    id: created.id,
+    revision: edited.revision,
+    archived: true,
+    idempotencyKey: "trash",
+  });
+  expect((await repository.searchEvidence(actor.id, search)).items).toHaveLength(0);
+  await run({
+    type: "archive",
+    id: created.id,
+    revision: deleted.revision,
+    archived: false,
+    idempotencyKey: "restore",
+  });
+  expect((await repository.searchEvidence(actor.id, search)).total).toBe(1);
+  expect(
+    (await repository.getEvidenceRevision(actor.id, created.revisionId ?? ""))?.material.assertion,
+  ).toBe("TypeScript");
 });

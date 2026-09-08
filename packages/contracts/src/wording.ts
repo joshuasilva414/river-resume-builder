@@ -22,6 +22,7 @@ export const ReviewWordingRequest = Schema.Struct({
   digest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
   idempotencyKey: CommandKey,
   decision: Schema.Literals(["Accepted", "Rejected"]),
+  wording: Schema.optionalKey(Schema.NonEmptyString.check(Schema.isMaxLength(10000))),
 });
 export type ReviewWordingRequest = typeof ReviewWordingRequest.Type;
 export const RetryWordingRequest = Schema.Struct({
@@ -30,3 +31,18 @@ export const RetryWordingRequest = Schema.Struct({
   idempotencyKey: CommandKey,
 });
 export type RetryWordingRequest = typeof RetryWordingRequest.Type;
+
+export const ReviewWordingBatchRequest = Schema.Struct({
+  idempotencyKey: CommandKey,
+  draftId: RecordId,
+  revision: Revision,
+  items: Schema.Array(
+    Schema.Struct({
+      id: RecordId,
+      revision: Revision,
+      digest: ReviewWordingRequest.fields.digest,
+      wording: Schema.NonEmptyString.check(Schema.isMaxLength(10000)),
+    }),
+  ).check(Schema.isMinLength(1), Schema.isMaxLength(300)),
+});
+export type ReviewWordingBatchRequest = typeof ReviewWordingBatchRequest.Type;

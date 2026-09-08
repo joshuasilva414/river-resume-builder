@@ -31,8 +31,8 @@ export function JobEditor({
         : mode === "snapshot"
           ? "Add posting snapshot"
           : archived
-            ? "Restore job target"
-            : "Archive job target";
+            ? "Restore job"
+            : "Delete job";
   const form = useForm({
     defaultValues: {
       details: detail?.job.details ?? { role: "", company: "", location: "" },
@@ -69,7 +69,7 @@ export function JobEditor({
               ...base,
               type: "archive",
               archived: !archived,
-              rationale: value.rationale,
+              rationale: "",
             })
             .catch(() => {});
       }
@@ -156,20 +156,7 @@ export function JobEditor({
                 </p>
               </>
             )}
-            {mode === "archive" && (
-              <form.Field name="rationale">
-                {(field) => (
-                  <FormField label="Reason">
-                    <Textarea
-                      required
-                      maxLength={4000}
-                      value={field.state.value}
-                      onChange={(event) => field.handleChange(event.target.value)}
-                    />
-                  </FormField>
-                )}
-              </form.Field>
-            )}
+
             <JobConflict
               error={mutation.error}
               id={detail?.job.id ?? ""}
@@ -196,8 +183,7 @@ export function JobEditor({
                   mutation.isPending ||
                   ((mode === "create" || mode === "details") &&
                     (!values.details.role.trim() || !values.details.company.trim())) ||
-                  ((mode === "create" || mode === "snapshot") && !values.text.trim()) ||
-                  (mode === "archive" && !values.rationale.trim())
+                  ((mode === "create" || mode === "snapshot") && !values.text.trim())
                 }
               >
                 {mutation.isPending ? "Saving…" : mode === "create" ? "Create job target" : title}

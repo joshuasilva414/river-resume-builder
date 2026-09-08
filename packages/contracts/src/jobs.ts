@@ -1,11 +1,14 @@
 import {
   EvidenceSelection,
   JobDetails,
+  JobImportAnalysis,
+  JobImportInput,
   PostingInput,
   RecordId,
   RequirementFields,
 } from "@river/domain";
 import { Schema } from "effect";
+import { AiSelectionFields } from "./ai";
 import { CommandKey, ObservedRecord } from "./evidence";
 
 const JobBase = ObservedRecord.fields;
@@ -17,13 +20,24 @@ export const JobCommand = Schema.Union([
     details: JobDetails,
     posting: PostingInput,
   }),
+  Schema.Struct({
+    type: Schema.Literal("import"),
+    idempotencyKey: CommandKey,
+    importId: Schema.NullOr(RecordId),
+    target: Schema.NullOr(
+      Schema.Struct({ id: RecordId, revision: ObservedRecord.fields.revision }),
+    ),
+    details: JobDetails,
+    posting: PostingInput,
+    requirements: JobImportAnalysis.fields.requirements,
+  }),
   Schema.Struct({ type: Schema.Literal("details"), ...JobBase, details: JobDetails }),
   Schema.Struct({ type: Schema.Literal("snapshot"), ...JobBase, posting: PostingInput }),
   Schema.Struct({
     type: Schema.Literal("archive"),
     ...JobBase,
     archived: Schema.Boolean,
-    rationale: Schema.NonEmptyString.check(Schema.isMaxLength(4000)),
+    rationale: Schema.optionalKey(Schema.String.check(Schema.isMaxLength(4000))),
   }),
   Schema.Struct({
     type: Schema.Literal("requirement"),
@@ -35,6 +49,15 @@ export const JobCommand = Schema.Union([
     type: Schema.Literal("remove-requirement"),
     ...WorkspaceBase,
     requirementId: RecordId,
+  }),
+  Schema.Struct({
+    type: Schema.Literal("selections"),
+    ...WorkspaceBase,
+    selections: Schema.Array(EvidenceSelection).check(
+      Schema.isMinLength(1),
+      Schema.isMaxLength(300),
+    ),
+    selected: Schema.Boolean,
   }),
   Schema.Struct({
     type: Schema.Literal("selection"),
@@ -56,3 +79,17 @@ export const InspectJobRequest = Schema.Struct({
   workspaceRevisionId: Schema.optional(RecordId),
 });
 export type InspectJobRequest = typeof InspectJobRequest.Type;
+
+export const StartJobImportRequest = Schema.Struct({
+  ...AiSelectionFields,
+  idempotencyKey: CommandKey,
+  input: JobImportInput,
+});
+export type StartJobImportRequest = typeof StartJobImportRequest.Type;
+export const JobImportIdentity = Schema.Struct({ id: RecordId });
+export const RetryJobImportRequest = Schema.Struct({
+  id: RecordId,
+  revision: ObservedRecord.fields.revision,
+  idempotencyKey: CommandKey,
+});
+export type RetryJobImportRequest = typeof RetryJobImportRequest.Type;

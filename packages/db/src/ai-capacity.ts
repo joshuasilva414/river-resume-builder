@@ -6,10 +6,11 @@ import type * as s from "./schema";
 
 type AiOperation = Extract<
   (typeof s.operations.$inferSelect)["input"],
-  { type: `${string}-ai` | "source-refinement" }
+  { type: `${string}-ai` | "source-refinement" | "job-import" }
 >;
 const types = {
   "job-ai": true,
+  "job-import": true,
   "wording-ai": true,
   "source-ai": true,
   "duplicate-ai": true,

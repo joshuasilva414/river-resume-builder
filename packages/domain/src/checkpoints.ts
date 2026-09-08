@@ -1,4 +1,5 @@
 import { type Composition, contentValue, type LibraryGraphNode } from "./composition";
+import { contentRecordText } from "./content-schema";
 import type { ContextData, EvidenceMaterial, ReviewState } from "./evidence";
 
 export interface CapturedEvidence {
@@ -27,8 +28,8 @@ export interface ExportIssue {
   readonly contextId: string | null;
   readonly rationale: string;
 }
-export const EXPORT_POLICY_VERSION = "river-evidence-export-v1";
-/** Every applicable issue occurrence survives, including simultaneous Draft and Archived warnings. */
+export const EXPORT_POLICY_VERSION = "river-evidence-export-v2";
+/** New exports report changed references as information. Saved reports retain their original policy. */
 export function exportIssues(
   data: Composition,
   graph: readonly LibraryGraphNode[],
@@ -36,77 +37,85 @@ export function exportIssues(
   statuses: readonly EvidenceStatus[],
 ): readonly ExportIssue[] {
   const issues: ExportIssue[] = [];
-  for (const section of data.sections)
-    for (const block of section.blocks)
-      for (const field of block.fields)
-        for (const content of field.contents) {
-          const value = contentValue(content, graph),
-            locator = `${section.id}/${block.id}/${field.key}/${content.id}`;
-          const issue = (
-            kind: ExportIssue["kind"],
-            claimId: string | null,
-            revisionId: string | null,
-            rationale: string,
-            contextId: string | null = null,
-          ) =>
-            issues.push({
-              id: `${locator}/${claimId ?? "wording"}/${revisionId ?? "local"}/${kind}/${contextId ?? "claim"}`,
-              kind,
-              locator,
-              wording: value.wording,
-              claimId,
-              revisionId,
-              contextId,
-              rationale,
-            });
-          if (!value.evidence.length)
-            issue("Unsupported", null, null, "This wording has no supporting evidence.");
-          for (const reference of value.evidence) {
-            const snapshot = evidence.find(
-              (row) => row.claimId === reference.claimId && row.revisionId === reference.revisionId,
-            );
-            const status = statuses.find(
-              (row) => row.claimId === reference.claimId && row.revisionId === reference.revisionId,
-            );
-            if (!snapshot || !status) throw new Error("Checkpoint evidence is incomplete.");
-            if (status.state === "Draft" || status.state === "Needs clarification")
-              issue(
-                status.state,
-                reference.claimId,
-                reference.revisionId,
-                status.rationale || "This exact Evidence Revision has not been verified.",
-              );
-            if (status.archived)
-              issue(
-                "Archived",
-                reference.claimId,
-                reference.revisionId,
-                "This evidence is archived and retains its original provenance.",
-              );
-            if (status.currentRevisionId !== reference.revisionId)
-              issue(
-                "Stale",
-                reference.claimId,
-                reference.revisionId,
-                `A newer Evidence Revision exists: ${status.currentRevisionId}`,
-              );
-            if (!snapshot.material.citations.length)
-              issue(
-                "Unsupported",
-                reference.claimId,
-                reference.revisionId,
-                "The linked Evidence Revision has no source citation.",
-              );
-            for (const context of status.contexts)
-              if (context.currentRevisionId !== context.revisionId)
-                issue(
-                  "Stale",
-                  reference.claimId,
-                  reference.revisionId,
-                  `The pinned context ${context.revisionId} differs from ${context.currentRevisionId}.`,
-                  context.id,
-                );
-          }
-        }
+  const values = data.sections.flatMap((section) => [
+    ...(section.structured
+      ? [
+          {
+            locator: section.id,
+            wording: contentRecordText(section.structured, section.structured.record).join("\n"),
+            evidence: section.structured.evidence,
+          },
+        ]
+      : []),
+    ...section.blocks.flatMap((block) => [
+      ...(block.structured
+        ? [
+            {
+              locator: `${section.id}/${block.id}`,
+              wording: contentRecordText(block.structured, block.structured.record).join("\n"),
+              evidence: block.structured.evidence,
+            },
+          ]
+        : []),
+      ...block.fields.flatMap((field) =>
+        field.contents.map((content) => ({
+          ...contentValue(content, graph),
+          locator: `${section.id}/${block.id}/${field.key}/${content.id}`,
+        })),
+      ),
+    ]),
+  ]);
+  for (const value of values) {
+    const locator = value.locator;
+    const issue = (
+      kind: ExportIssue["kind"],
+      claimId: string | null,
+      revisionId: string | null,
+      rationale: string,
+      contextId: string | null = null,
+    ) =>
+      issues.push({
+        id: `${locator}/${claimId ?? "wording"}/${revisionId ?? "local"}/${kind}/${contextId ?? "claim"}`,
+        kind,
+        locator,
+        wording: value.wording,
+        claimId,
+        revisionId,
+        contextId,
+        rationale,
+      });
+    for (const reference of value.evidence) {
+      const snapshot = evidence.find(
+        (row) => row.claimId === reference.claimId && row.revisionId === reference.revisionId,
+      );
+      const status = statuses.find(
+        (row) => row.claimId === reference.claimId && row.revisionId === reference.revisionId,
+      );
+      if (!snapshot || !status) throw new Error("Checkpoint evidence is incomplete.");
+      if (status.archived)
+        issue(
+          "Archived",
+          reference.claimId,
+          reference.revisionId,
+          "This evidence is in Trash. The saved résumé retains its content.",
+        );
+      if (status.currentRevisionId !== reference.revisionId)
+        issue(
+          "Stale",
+          reference.claimId,
+          reference.revisionId,
+          "This evidence has changed since it was added to the résumé.",
+        );
+      for (const context of status.contexts)
+        if (context.currentRevisionId !== context.revisionId)
+          issue(
+            "Stale",
+            reference.claimId,
+            reference.revisionId,
+            `The pinned context ${context.revisionId} differs from ${context.currentRevisionId}.`,
+            context.id,
+          );
+    }
+  }
   return issues.sort((a, b) => a.id.localeCompare(b.id));
 }

@@ -4,7 +4,7 @@ River is the product name. Resume Builder remains the descriptive project name. 
 
 ## Product goal
 
-Build a web app with independent private accounts that turns a job description and verified personal evidence into a reviewed, tailored resume within 15 minutes.
+Build a web app with independent private accounts that turns a job description and personal evidence into a reviewed, tailored resume within 15 minutes.
 
 V1 includes all three delivery phases. Phase 1 is the first usable MVP. The hosted application is internet-reachable, but each workspace is available only to its verified account; external agents authenticate through separate scoped credentials.
 
@@ -31,7 +31,17 @@ Normal production review emphasizes PDFs, actual wording, relevant evidence exce
 
 The underlying immutable evidence, revision, checkpoint, and acknowledgment contracts remain intact. Current implementation and production release acceptance are tracked in [v1.1](docs/implementation/v1.1.md) and its [release evidence](docs/implementation/v1.1-production.md).
 
-## Core information model
+## v1.2 release contract
+
+The [approved v1.2 plan](docs/implementation/v1.2-plan.md) supersedes conflicting historical policies below. Evidence contains text, keywords, optional sources, and a type. Saving makes it usable; extracted items receive one editable import review. Verification and missing-source export gates are removed for new exports. Historical reviews and saved documents remain unchanged.
+
+Sections accept direct fields and inline nested records under composable, versioned schemas. Experience contains Experience Entry records; Summary contains text. Compatible layouts share schemas. Values retain stable field identities and survive layout/schema changes. Template chat edits an undoable working copy with synthetic previews and one Save action. Unsafe LaTeX and missing or duplicated required content remain errors; reading order is a diagnostic.
+
+Import job retrieves public URLs, uses bounded browser rendering when needed, preserves paste fallback, and saves reviewed descriptions and requirements together. Qualifications are matched to evidence; eligibility is informational. Sources, evidence, jobs, reusable content, and custom templates have recoverable trash. Ordinary accounts receive 25 successful scoring results per UTC day; administrators are exempt. Failed attempts and retained-result reuse do not consume allowance. BYOK processing has concurrency and execution bounds without daily quotas.
+
+See ADRs [0014](docs/adr/0014-use-simple-immediately-usable-evidence.md) and [0015](docs/adr/0015-compose-content-schemas-independently-of-layouts.md). The remaining V1/V1.1 sections describe historical contracts where explicitly superseded here; implementation and acceptance are tracked separately in [v1.2 status](docs/implementation/v1.2.md).
+
+## Historical core information model
 
 The content hierarchy is:
 

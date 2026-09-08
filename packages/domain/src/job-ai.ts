@@ -3,6 +3,7 @@ import { AiExecutionFields, AiModel } from "./ai";
 import { ApplicationError, newId, Revision } from "./core";
 import { ContextData, EvidenceMaterial, RecordId, ReviewState } from "./evidence";
 import {
+  isQualification,
   JobDetails,
   JobRequirement,
   JobWorkspace,
@@ -20,6 +21,7 @@ export const AiProfile = Schema.Struct({
     "river-job-analysis-v1",
     "river-job-analysis-v2",
     "river-job-analysis-v3",
+    "river-job-analysis-v4",
   ]),
   maxInputCharacters: Schema.Literal(160000),
   maxOutputTokens: Schema.Literal(12000),
@@ -78,7 +80,7 @@ export const RequirementProposalOutput = Schema.Struct({
       existingId: Schema.NullOr(RecordId),
       ...RequirementFields.fields,
     }),
-  ).check(Schema.isMaxLength(30)),
+  ).check(Schema.isMaxLength(100)),
   explanation: Schema.NonEmptyString.check(Schema.isMaxLength(4000)),
 });
 const { passages: _passages, ...requirementAttributes } = RequirementFields.fields;
@@ -92,7 +94,7 @@ export const AnchoredRequirementProposalOutput = Schema.Struct({
         Schema.isMaxLength(5),
       ),
     }),
-  ).check(Schema.isMaxLength(30)),
+  ).check(Schema.isMaxLength(100)),
   explanation: RequirementProposalOutput.fields.explanation,
 });
 export const RankingProposalOutput = Schema.Struct({
@@ -116,7 +118,7 @@ export const RankingProposalOutput = Schema.Struct({
 export const JobAiProposal = Schema.Union([
   Schema.Struct({
     type: Schema.Literal("requirements"),
-    requirements: Schema.Array(JobRequirement).check(Schema.isMaxLength(30)),
+    requirements: Schema.Array(JobRequirement).check(Schema.isMaxLength(100)),
     explanation: RequirementProposalOutput.fields.explanation,
   }),
   Schema.Struct({ type: Schema.Literal("ranking"), ...RankingProposalOutput.fields }),
@@ -154,7 +156,11 @@ export function validateJobProposal(input: JobAiInput, output: unknown): JobAiPr
   const invalid = (message: string): never => {
     throw new ApplicationError({ code: "InvalidInput", message });
   };
-  const ids = new Set(input.workspace.requirements.map((item) => item.id));
+  const ids = new Set(
+    input.workspace.requirements
+      .filter((item) => input.task === "extract-requirements" || isQualification(item))
+      .map((item) => item.id),
+  );
   if (input.task === "extract-requirements") {
     const decoded = decodeRequirementProposal(input, output);
     const retained = new Set<string>();
@@ -211,7 +217,7 @@ export function validateJobProposal(input: JobAiInput, output: unknown): JobAiPr
       )
         invalid("Every partial match must explain the remaining requirement gap.");
   for (const requirement of input.workspace.requirements.filter(
-    (item) => !input.requirementId || item.id === input.requirementId,
+    (item) => isQualification(item) && (!input.requirementId || item.id === input.requirementId),
   ))
     if (
       !decoded.results.some((result) => result.requirementId === requirement.id) &&

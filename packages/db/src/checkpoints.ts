@@ -540,6 +540,7 @@ export function createCheckpointRepository(db: Database) {
           .from(s.checkpointAcknowledgments)
           .where(eq(s.checkpointAcknowledgments.reportId, row.current.id));
         if (
+          row.current.policyVersion.endsWith("-v1") &&
           row.current.issues.some(
             (issue) => !acknowledgments.some((ack) => ack.issueId === issue.id),
           )

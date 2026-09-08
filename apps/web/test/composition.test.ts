@@ -318,3 +318,22 @@ it("refreshes expired or differently pinned previews without replacing the retai
   );
   expect(fresh.id).not.toBe(changed.id);
 });
+
+it("previews hypothetical insertion without saving or replacing the draft preview", async () => {
+  const { repository, actor, data, draft } = await compositionFixture();
+  const before = await repository.inspectResume(actor.ownerId, draft.id);
+  const request = {
+    id: draft.id,
+    revision: 0,
+    idempotencyKey: "insertion-preview",
+    data: { ...data, name: "Hypothetical insertion" },
+  };
+  const preview = await repository.previewResume(actor, request);
+  expect(await repository.previewResume(actor, request)).toEqual(preview);
+  const operation = await repository.getOperation(preview.id);
+  expect(operation?.input).not.toHaveProperty("preview");
+  const after = await repository.inspectResume(actor.ownerId, draft.id);
+  expect(after.draft).toEqual(before.draft);
+  await repository.cancelOperation(actor.id, preview.id, "cancel-insertion");
+  expect((await repository.getOperation(preview.id))?.state).toBe("Cancelled");
+});

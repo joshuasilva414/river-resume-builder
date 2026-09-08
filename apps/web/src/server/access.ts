@@ -9,6 +9,7 @@ export const getAccessSettings = Effect.gen(function* () {
     usage: await repository.readUsage(actor.ownerId),
     credentials: (await repository.listCredentials(actor.ownerId)).map((item) => ({
       ...item,
+      scopes: item.scopes.filter((scope) => scope !== "evidence:verify"),
       createdAt: new Date(item.createdAt).toISOString(),
       expiresAt: item.expiresAt === null ? null : new Date(item.expiresAt).toISOString(),
       revokedAt: item.revokedAt === null ? null : new Date(item.revokedAt).toISOString(),

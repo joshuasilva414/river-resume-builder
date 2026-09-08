@@ -1,9 +1,11 @@
 import {
+  type BulkAddSourceEvidenceRequest,
   ExtractionResult,
   type RetrySourceAiRequest,
   type ReviewSourceCandidateRequest,
   type StartSourceAiRequest,
 } from "@river/contracts";
+import type { Repository } from "@river/db";
 import { ApplicationError, canonicalJson, fingerprint } from "@river/domain";
 import { Effect, Schema } from "effect";
 import {
@@ -11,10 +13,61 @@ import {
   aiConnectionsAvailable,
   aiTaskConfigured,
   loadAiCredential,
+  resolveAiModel,
 } from "./ai-settings";
 import type { Env } from "./env";
 import { Actor, attempt, Store } from "./services";
 import { sourceAiProfile } from "./source-ai-provider";
+
+/** The selected model is saved with the source, so extraction continues after the page closes. */
+export async function queueProcessedSourceEvidence(
+  env: Env,
+  store: Repository,
+  ownerId: string,
+  sourceId: string,
+  processingId: string,
+) {
+  const source = await store.getSource(ownerId, sourceId);
+  if (
+    !source?.extractionAi ||
+    source.archivedAt !== null ||
+    source.state !== "Ready" ||
+    source.currentProcessingId !== processingId
+  )
+    return;
+  const request: StartSourceAiRequest = {
+    idempotencyKey: `automatic-source-evidence:${processingId}`,
+    sourceId,
+    processingId,
+    revision: source.revision,
+    focus: "",
+    contexts: [],
+    ai: source.extractionAi,
+  };
+  const replay = await store.replayCommand(
+    ownerId,
+    "start-source-ai",
+    request.idempotencyKey,
+    request,
+  );
+  if (replay) return replay;
+  const profile = env.SOURCE_AI_WORKFLOW
+    ? sourceAiProfile(await resolveAiModel(env, store, ownerId, source.extractionAi))
+    : null;
+  if (!profile)
+    throw new ApplicationError({
+      code: "Unavailable",
+      message: "Choose an active personal AI connection to extract evidence.",
+    });
+  const processing = await store.getProcessingResult(ownerId, sourceId, processingId);
+  const object = processing ? await env.ARTIFACTS.get(processing.objectKey) : null;
+  if (!processing || !object) throw new Error("Extracted source unavailable.");
+  const serialized = await object.text();
+  if ((await fingerprint(serialized)) !== processing.digest)
+    throw new Error("Extraction integrity check failed.");
+  const extraction = Schema.decodeUnknownSync(ExtractionResult)(JSON.parse(serialized));
+  return store.startSourceAi({ kind: "owner", id: ownerId, ownerId }, request, profile, extraction);
+}
 
 const loadExtraction = (env: Env, input: StartSourceAiRequest) =>
   Effect.gen(function* () {
@@ -48,18 +101,18 @@ export const startSourceAi = (env: Env, input: StartSourceAiRequest) =>
   Effect.gen(function* () {
     const actor = yield* Actor,
       store = yield* Store;
-    const configuration = yield* aiConfiguration(env, input.ai);
     const replay = yield* attempt(() =>
       store.replayCommand(actor.id, "start-source-ai", input.idempotencyKey, input),
     );
     if (replay) return replay;
+    const configuration = yield* aiConfiguration(env, input.ai);
     const profile = env.SOURCE_AI_WORKFLOW ? sourceAiProfile(configuration) : null;
     if (!profile)
       return yield* Effect.fail(
         new ApplicationError({
           code: "Unavailable",
           message:
-            "Source claim assistance is unavailable. Create claims manually from exact passages.",
+            "Evidence extraction is unavailable. Add evidence manually or choose an active personal AI connection.",
         }),
       );
     const extraction = yield* loadExtraction(env, input);
@@ -69,6 +122,10 @@ export const retrySourceAi = (env: Env, input: RetrySourceAiRequest) =>
   Effect.gen(function* () {
     const actor = yield* Actor,
       store = yield* Store;
+    const replay = yield* attempt(() =>
+      store.replayCommand(actor.id, "retry-source-ai", input.idempotencyKey, input),
+    );
+    if (replay) return replay;
     const captured = yield* attempt(() => store.inspectSourceAi(actor.ownerId, input.id));
     yield* attempt(() =>
       loadAiCredential(env, store, actor.ownerId, captured.task.profile.connection),
@@ -83,6 +140,12 @@ export const reviewSourceCandidate = (input: ReviewSourceCandidateRequest) =>
     const actor = yield* Actor,
       store = yield* Store;
     return yield* attempt(() => store.reviewSourceCandidate(actor, input));
+  });
+export const addSourceEvidence = (input: BulkAddSourceEvidenceRequest) =>
+  Effect.gen(function* () {
+    const actor = yield* Actor,
+      store = yield* Store;
+    return yield* attempt(() => store.addSourceEvidence(actor, input));
   });
 export const inspectSourceAi = (env: Env, id: string) =>
   Effect.gen(function* () {

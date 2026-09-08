@@ -143,7 +143,7 @@ export const createCheckpointReview = async (
   const issues = sourceFields
     ? sourceExportIssues(sourceFields, evidence, statuses)
     : exportIssues(data, graph, evidence, statuses);
-  const policyVersion = sourceFields ? "river-source-evidence-export-v1" : EXPORT_POLICY_VERSION;
+  const policyVersion = sourceFields ? "river-source-evidence-export-v2" : EXPORT_POLICY_VERSION;
   if (issues.length > 5000)
     throw new ApplicationError({
       code: "InvalidInput",

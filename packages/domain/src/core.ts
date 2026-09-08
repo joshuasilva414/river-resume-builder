@@ -1,4 +1,5 @@
 import { Data, Schema } from "effect";
+import { StructuredContent } from "./content-schema";
 
 export const OperationId = Schema.String.pipe(Schema.brand("OperationId"));
 export type OperationId = typeof OperationId.Type;
@@ -19,6 +20,7 @@ export const ContentType = Schema.Literals(contentTypes);
 export type ContentType = typeof ContentType.Type;
 
 export const ResumeBlock = Schema.Struct({
+  structured: Schema.optional(StructuredContent),
   type: Schema.optional(ContentType),
   locator: Schema.optional(Schema.String),
   heading: Schema.String,
@@ -27,6 +29,7 @@ export const ResumeBlock = Schema.Struct({
   bullets: Schema.Array(Schema.String),
 });
 export const ResumeSection = Schema.Struct({
+  structured: Schema.optional(StructuredContent),
   type: Schema.optional(ContentType),
   locator: Schema.optional(Schema.String),
   heading: Schema.NonEmptyString,
@@ -35,6 +38,7 @@ export const ResumeSection = Schema.Struct({
 
 /** Fully resolved render input. Historical rendering never reads mutable records. */
 export const ResumeDocument = Schema.Struct({
+  structuredContact: Schema.optional(StructuredContent),
   textLocators: Schema.optional(
     Schema.Array(Schema.Struct({ locator: Schema.String, text: Schema.String })),
   ),
@@ -58,7 +62,6 @@ export const agentScopes = [
   "source:write",
   "evidence:read",
   "evidence:write",
-  "evidence:verify",
   "evidence:merge",
   "evidence:archive",
   "jobs:read",
@@ -66,6 +69,10 @@ export const agentScopes = [
 ] as const;
 export const AgentScope = Schema.Literals(agentScopes);
 export type AgentScope = typeof AgentScope.Type;
+// Decode retained credentials without advertising retired permissions for new credentials.
+export const legacyAgentScopes = [...agentScopes, "evidence:verify"] as const;
+export const LegacyAgentScope = Schema.Literals(legacyAgentScopes);
+export type LegacyAgentScope = typeof LegacyAgentScope.Type;
 export type Principal =
   | {
       readonly kind: "owner";
@@ -77,7 +84,7 @@ export type Principal =
       readonly kind: "agent";
       readonly id: string;
       readonly ownerId: string;
-      readonly scopes: readonly AgentScope[];
+      readonly scopes: readonly LegacyAgentScope[];
     };
 
 export class ApplicationError extends Data.TaggedError("ApplicationError")<{

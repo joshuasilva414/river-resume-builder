@@ -49,6 +49,8 @@ try {
     "none",
     "--memory",
     "512m",
+    "--tmpfs",
+    "/tmp:rw,nosuid,nodev,size=128m",
     "--cpus",
     "1",
     "river-documents:fixtures",

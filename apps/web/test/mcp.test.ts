@@ -2,6 +2,7 @@ import { applyD1Migrations } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { createRepository, schema } from "@river/db";
 import { type AgentScope, fingerprint, newId } from "@river/domain";
+import { eq } from "drizzle-orm";
 import { Schema } from "effect";
 import { beforeAll, expect, it } from "vitest";
 import { handleMcp } from "../src/server/mcp";
@@ -187,4 +188,26 @@ it("exposes scoped job tools and shares immutable posting command outcomes", asy
       (await readOnly.call("tools/list")).json,
     ).result.tools.map((tool) => tool.name),
   ).toEqual(["list_jobs", "get_job"]);
+});
+
+it("keeps legacy credentials readable but omits verification and explains retired calls", async () => {
+  const { repository, call, credentialId } = await fixture(["evidence:write"]);
+  await repository.db
+    .update(schema.credentials)
+    .set({ scopes: ["evidence:write", "evidence:verify"] })
+    .where(eq(schema.credentials.id, credentialId));
+  const listing = Schema.decodeUnknownSync(ToolsResponse)((await call("tools/list")).json);
+  const command = listing.result.tools.find((tool) => tool.name === "evidence_command");
+  expect(command).toBeDefined();
+  expect(JSON.stringify(command?.inputSchema)).not.toContain('"review"');
+  const retired = Schema.decodeUnknownSync(CallResponse)(
+    (
+      await call("tools/call", {
+        name: "evidence_command",
+        arguments: { command: { type: "review" } },
+      })
+    ).json,
+  );
+  expect(retired.result.isError).toBe(true);
+  expect(retired.result.content[0]?.text).toContain("retired in River v1.2");
 });

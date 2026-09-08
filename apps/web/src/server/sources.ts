@@ -1,4 +1,5 @@
 import {
+  type ArchiveSourceRequest,
   type CreateSourceRequest,
   ExtractionResult,
   type ResumeSourceRequest,
@@ -6,6 +7,7 @@ import {
 } from "@river/contracts";
 import { ApplicationError, fingerprint } from "@river/domain";
 import { Effect, Schema } from "effect";
+import { aiConfiguration } from "./ai-settings";
 import type { Env } from "./env";
 import { Actor, attempt, Store } from "./services";
 
@@ -57,9 +59,24 @@ export const createSource = (env: Env, input: CreateSourceRequest) =>
     const bytes = yield* attempt(async () => decodeSource(input));
     const { contentBase64: _content, ...metadata } = input;
     const digest = yield* attempt(() => fingerprint(bytes));
-    const id = yield* attempt(() =>
-      store.beginSource(actor, { ...metadata, digest, byteLength: bytes.length }),
-    );
+    const sourceInput = { ...metadata, digest, byteLength: bytes.length };
+    const replay = yield* attempt(() => store.replaySourceCreation(actor.id, sourceInput));
+    const id =
+      replay ??
+      (yield* Effect.gen(function* () {
+        const configuration = actor.kind === "owner" ? yield* aiConfiguration(env, input.ai) : null;
+        if (input.ai && !configuration)
+          return yield* Effect.fail(
+            new ApplicationError({
+              code: "Unavailable",
+              message: "Choose an active personal AI connection before extracting evidence.",
+            }),
+          );
+        const selectedAi = configuration?.connection
+          ? { connectionId: configuration.connection.id, model: configuration.model }
+          : undefined;
+        return yield* attempt(() => store.beginSource(actor, sourceInput, selectedAi));
+      }));
     const source = yield* attempt(() => store.getSource(actor.ownerId, id));
     if (!source)
       return yield* Effect.fail(
@@ -77,6 +94,13 @@ export const createSource = (env: Env, input: CreateSourceRequest) =>
       });
     }
     return { id };
+  });
+
+export const archiveSource = (input: ArchiveSourceRequest) =>
+  Effect.gen(function* () {
+    const actor = yield* Actor,
+      store = yield* Store;
+    return yield* attempt(() => store.archiveSource(actor, input));
   });
 
 export const listSources = Effect.gen(function* () {

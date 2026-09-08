@@ -1,5 +1,6 @@
 import type {
   RetryWordingRequest,
+  ReviewWordingBatchRequest,
   ReviewWordingRequest,
   StartWordingRequest,
 } from "@river/contracts";
@@ -64,4 +65,24 @@ export const listWording = (env: Env, draftId: string, offset: number) =>
       ...result,
       configured: Boolean(env.WORDING_WORKFLOW && connected),
     };
+  });
+
+export const reviewWordingBatch = (input: ReviewWordingBatchRequest) =>
+  Effect.gen(function* () {
+    const actor = yield* Actor,
+      store = yield* Store;
+    return yield* attempt(() => store.reviewWordingBatch(actor, input));
+  });
+
+export const pendingWording = (draftId: string) =>
+  Effect.gen(function* () {
+    const actor = yield* Actor,
+      store = yield* Store;
+    const rows = yield* attempt(() => store.listPendingWording(actor.ownerId, draftId));
+    return rows.map(({ input, ...row }) => ({
+      ...row,
+      original: input.target.content.wording,
+      path: input.target.path,
+      field: input.target.field,
+    }));
   });

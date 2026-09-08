@@ -37,7 +37,9 @@ export const aiConnections = {
           </ol>
           <p>
             River encrypts your key on the server and shows only its last four characters. Provider
-            usage is billed to your provider account. River’s own usage limits still apply.
+            usage is billed to your provider account. River has no daily quota for requests using
+            your own AI connection. Provider rate limits and River’s limits on simultaneous work,
+            request size, time, and retries still apply.
           </p>
         </>
       ),
@@ -96,8 +98,8 @@ export const aiConnections = {
             review, or export a PDF.
           </p>
           <p>
-            Full original documents remain in Sources. Normal review screens show relevant citations
-            and wording changes.
+            Full original documents remain in Sources. Normal review screens show the editable
+            results and wording changes needed for the current task.
           </p>
         </>
       ),
@@ -108,7 +110,8 @@ export const aiConnections = {
       body: (
         <p>
           ATS scoring uses River’s separate scoring service. It does not use your connected API key.
-          See <GuideLink slug="scoring">Score a checkpoint</GuideLink> for its workflow and limits.
+          See <GuideLink slug="scoring">Score a résumé</GuideLink> for its workflow and
+          successful-result allowance.
         </p>
       ),
     },

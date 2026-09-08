@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { contentRecordText, StructuredContent, validateStructuredContent } from "./content-schema";
 import { ApplicationError, canonicalJson, newId, type ResumeDocument, Theme } from "./core";
 import { RecordId } from "./evidence";
 import {
@@ -24,6 +25,7 @@ export const ContentPlacement = Schema.Struct({
 });
 export type ContentPlacement = typeof ContentPlacement.Type;
 export const BlockPlacement = Schema.Struct({
+  structured: Schema.optional(StructuredContent),
   id: RecordId,
   reference: LibraryReference,
   type: ContentType,
@@ -37,6 +39,7 @@ export const BlockPlacement = Schema.Struct({
 });
 export type BlockPlacement = typeof BlockPlacement.Type;
 export const SectionPlacement = Schema.Struct({
+  structured: Schema.optional(StructuredContent),
   id: RecordId,
   reference: LibraryReference,
   type: ContentType,
@@ -85,6 +88,7 @@ export function placeBlock(
     reference,
     type: data.type,
     reason: null,
+    ...(data.structured ? { structured: data.structured } : {}),
     fields: data.fields.map((field) => ({
       key: field.key,
       contents: field.contents.map((ref) =>
@@ -107,6 +111,7 @@ export function placeSection(
     type: data.type,
     reason: null,
     heading: data.heading,
+    ...(data.structured ? { structured: data.structured } : {}),
     blocks: data.blocks.map((ref) =>
       placeBlock({ itemId: ref.itemId, revisionId: ref.revisionId }, graph, createId),
     ),
@@ -175,6 +180,19 @@ export function validateComposition(data: Composition, graph: readonly LibraryGr
       fail("Section type and base revision must agree.");
     if (section.type === "contact" && (++contact > 1 || data.sections[0]?.id !== section.id))
       fail("Use one contact/header Section, first in reading order.");
+    if (section.structured) {
+      try {
+        validateStructuredContent(section.structured);
+      } catch (error) {
+        fail(error instanceof Error ? error.message : "Check the section fields.");
+      }
+      if (!base.structured && !section.reason)
+        fail("Save a local change before converting this section.");
+      if (section.blocks.length) fail("Structured sections contain their entries directly.");
+      if (!section.reason && canonicalJson(section.structured) !== canonicalJson(base.structured))
+        fail("Save a local change before updating this section.");
+      continue;
+    }
     validateLibraryData({
       kind: "section",
       type: section.type,
@@ -195,6 +213,17 @@ export function validateComposition(data: Composition, graph: readonly LibraryGr
       const original = resolveLibrary(block.reference, graph);
       if (original.kind !== "block" || original.type !== block.type || block.type !== section.type)
         fail("Choose a Block compatible with this Section.");
+      if (block.structured) {
+        try {
+          validateStructuredContent(block.structured);
+        } catch (error) {
+          fail(error instanceof Error ? error.message : "Check the entry fields.");
+        }
+        if (block.fields.length) fail("Structured entries contain their fields directly.");
+        if (!block.reason && canonicalJson(block.structured) !== canonicalJson(original.structured))
+          fail("Save a local change before updating this entry.");
+        continue;
+      }
       validateLibraryData({
         kind: "block",
         type: block.type,
@@ -239,15 +268,24 @@ export function renderComposition(
   graph: readonly LibraryGraphNode[],
 ): ResumeDocument {
   validateComposition(data, graph);
-  const contact = data.sections.find((section) => section.type === "contact")?.blocks[0];
-  if (!contact) fail("Add your name in a contact section before previewing.");
+  const contactSection = data.sections.find((section) => section.type === "contact");
+  const contact = contactSection?.blocks[0];
+  if (!contact && !contactSection?.structured)
+    fail("Add your name in a contact section before previewing.");
   const words = (block: BlockPlacement, key: string) =>
     (block.fields.find((field) => field.key === key)?.contents ?? []).map(
       (content) => contentValue(content, graph).wording,
     );
-  const name = words(contact, "name")[0];
+  const structuredName = contactSection?.structured?.record.values.name;
+  const name =
+    typeof structuredName === "string"
+      ? structuredName
+      : contact
+        ? words(contact, "name")[0]
+        : undefined;
   if (!name) fail("Add a name to the contact/header Block.");
   const document: ResumeDocument = {
+    ...(contactSection?.structured ? { structuredContact: contactSection.structured } : {}),
     textLocators: data.sections.flatMap((section) => [
       ...(section.type !== "contact" && section.blocks.length
         ? [{ locator: `${section.id}/heading`, text: section.heading }]
@@ -263,37 +301,74 @@ export function renderComposition(
       ),
     ]),
     name,
-    contact: words(contact, "lines"),
+    contact: contactSection?.structured
+      ? contentRecordText(contactSection.structured, contactSection.structured.record).slice(1)
+      : contact
+        ? words(contact, "lines")
+        : [],
     sections: data.sections
-      .filter((section) => section.type !== "contact" && section.blocks.length > 0)
+      .filter(
+        (section) =>
+          section.type !== "contact" && (section.structured || section.blocks.length > 0),
+      )
       .map((section) => ({
         type: section.type,
         locator: section.id,
-        heading: section.heading,
-        blocks: section.blocks.map((block) => ({
-          type: block.type,
-          locator: block.id,
-          heading: words(block, "title").join(""),
-          detail: [...words(block, "detail"), ...words(block, "dates")].join(" · "),
-          paragraphs: [
-            ...words(block, "paragraphs"),
-            ...words(block, "lines"),
-            ...(words(block, "items").length ? [words(block, "items").join(" · ")] : []),
-          ],
-          bullets: words(block, "bullets"),
-        })),
+        ...(section.structured ? { structured: section.structured } : {}),
+        heading:
+          section.structured && typeof section.structured.record.values.heading === "string"
+            ? section.structured.record.values.heading
+            : section.heading,
+        blocks: section.structured
+          ? [
+              {
+                heading: "",
+                detail: "",
+                paragraphs: contentRecordText(section.structured, section.structured.record, [
+                  "heading",
+                ]),
+                bullets: [],
+              },
+            ]
+          : section.blocks.map((block) => ({
+              type: block.type,
+              locator: block.id,
+              ...(block.structured ? { structured: block.structured } : {}),
+              heading: words(block, "title").join(""),
+              detail: [...words(block, "detail"), ...words(block, "dates")].join(" · "),
+              paragraphs: [
+                ...(block.structured
+                  ? contentRecordText(block.structured, block.structured.record)
+                  : []),
+                ...words(block, "paragraphs"),
+                ...words(block, "lines"),
+                ...(words(block, "items").length ? [words(block, "items").join(" · ")] : []),
+              ],
+              bullets: words(block, "bullets"),
+            })),
       })),
   };
   if (canonicalJson(document).length > 100000)
     fail("The resolved document exceeds 100,000 characters.");
+  if (
+    data.sections.some(
+      (section) => section.structured || section.blocks.some((block) => block.structured),
+    )
+  ) {
+    // Mixed-version documents derive a fresh complete locator list from their resolved values.
+    const { textLocators: _legacyLocators, ...resolved } = document;
+    return resolved;
+  }
   return document;
 }
 export function compositionEvidence(data: Composition, graph: readonly LibraryGraphNode[]) {
-  return data.sections.flatMap((section) =>
-    section.blocks.flatMap((block) =>
-      block.fields.flatMap((field) =>
+  return data.sections.flatMap((section) => [
+    ...(section.structured?.evidence ?? []),
+    ...section.blocks.flatMap((block) => [
+      ...(block.structured?.evidence ?? []),
+      ...block.fields.flatMap((field) =>
         field.contents.flatMap((content) => contentValue(content, graph).evidence),
       ),
-    ),
-  );
+    ]),
+  ]);
 }

@@ -4,136 +4,162 @@ export const jobs = {
   slug: "jobs",
   title: "Tailor to a job posting",
   description:
-    "Capture a posting, identify its requirements, and choose supporting experience for a résumé.",
+    "Import a public URL or pasted posting, review its requirements, and select relevant evidence.",
   group: "How-to guides",
   sections: [
     {
       id: "capture",
-      title: "Capture the posting",
+      title: "Import and review the posting",
       body: (
         <>
-          <p>
-            Copy the full job description before you start. River stores a posting URL but does not
-            fetch its page.
-          </p>
           <ol>
             <li>
-              Open <strong>Job targets → Add job target</strong>.
+              Open <strong>Jobs</strong> and select <strong>Import job</strong>.
             </li>
             <li>
-              Enter the <strong>Role title</strong> and <strong>Company</strong>.
-            </li>
-            <li>If useful, enter the location.</li>
-            <li>
-              Paste the job description into <strong>Complete posting text</strong>.
+              Choose <strong>Public URL</strong> or <strong>Paste text</strong>. Enter the full
+              posting URL or description.
             </li>
             <li>
-              If available, enter the <strong>Posting URL</strong>.
+              Check <strong>AI for this action</strong>, then start the import.
             </li>
             <li>
-              Select <strong>Create job target</strong>.
+              Review the retrieved description, role title, company, and proposed requirements. Edit
+              any incorrect values.
+            </li>
+            <li>
+              Choose the requirements to keep. Save the job and selected requirements together.
             </li>
           </ol>
+          <p>
+            River first retrieves the public page directly. If it needs JavaScript, River tries
+            browser rendering. The job is saved only after your review.
+          </p>
+          <p>
+            You can use <strong>Enter details manually</strong> with pasted text when you do not
+            want AI analysis.
+          </p>
         </>
       ),
     },
     {
       id: "requirements",
-      title: "Record the requirements",
+      title: "Separate qualifications from eligibility",
       body: (
         <>
-          <p>To record requirements manually, use the requirement editor in the job target.</p>
-          <ol>
-            <li>Add a requirement.</li>
-            <li>
-              Enter the <strong>Requirement text</strong>.
-            </li>
-            <li>Choose the category that matches the requirement.</li>
-            <li>
-              Set <strong>Priority</strong> to <strong>Required</strong>, <strong>Preferred</strong>
-              , or <strong>Unspecified</strong>, based on the posting.
-            </li>
-            <li>Add a supporting passage from the posting.</li>
-            <li>If the passage repeats, choose the intended occurrence.</li>
-            <li>Save the requirement.</li>
-          </ol>
           <p>
-            If you use AI requirement extraction, follow{" "}
-            <GuideLink slug="ai">Review AI suggestions</GuideLink> before accepting the proposed
-            map.
+            Qualifications describe the skills, experience, education, or credentials the role asks
+            for. Use them to guide evidence matching and résumé wording.
+          </p>
+          <p>
+            Eligibility covers items such as work authorization, location, travel, or schedule.
+            Review these against your circumstances. River does not infer your answers, match
+            evidence to them, or use them to block résumé creation.
+          </p>
+          <p>
+            Edit a requirement’s type, wording, category, priority, and keywords.{" "}
+            <strong>Use selected</strong> keeps the selected results; <strong>Use all</strong> uses
+            the complete result set. Counts include results on other pages.
           </p>
         </>
       ),
     },
     {
       id: "select-evidence",
-      title: "Choose evidence for each requirement",
+      title: "Choose evidence for qualifications",
       body: (
         <>
-          <p>
-            Use <strong>By requirement</strong> to select evidence for a specific requirement.
-          </p>
           <ol>
-            <li>Select a requirement.</li>
-            <li>Find a relevant claim.</li>
-            <li>Inspect the claim's assertion, citations, and review state.</li>
-            <li>If the claim supports the requirement, add the evidence association.</li>
+            <li>Open a qualification and inspect its selected evidence.</li>
             <li>
-              Review your choices in <strong>Selected</strong>.
+              Choose evidence yourself, or use <strong>Find evidence matches</strong> with a
+              connected model.
             </li>
+            <li>
+              Review the matches and choose <strong>Use selected</strong> or{" "}
+              <strong>Use all</strong>.
+            </li>
+            <li>Check that each selected fact supports the qualification.</li>
           </ol>
-          <p>If no claim supports a requirement, leave the requirement as a gap.</p>
           <p>
-            To choose additional context for the job, use <strong>All evidence</strong>. For the
-            difference between general selections and requirement associations, see{" "}
-            <GuideLink slug="evidence-model">Sources, claims, and résumé wording</GuideLink>.
+            Selection helps you tailor the application. It does not invent a qualification or
+            automatically add wording to the résumé.
           </p>
         </>
       ),
     },
     {
       id: "drafts-and-updates",
-      title: "Create the résumé draft",
+      title: "Create and tailor the résumé",
       body: (
         <>
-          <p>After you review the job, create a draft for that posting.</p>
-          <ol>
-            <li>
-              In <strong>Résumé drafts</strong>, select <strong>Create résumé draft</strong>.
-            </li>
-            <li>
-              Enter a <strong>Draft name</strong>.
-            </li>
-            <li>Choose a built-in template or an Approved saved template revision.</li>
-            <li>
-              Select <strong>Create draft</strong>.
-            </li>
-            <li>
-              Follow <GuideLink slug="editing">Edit a résumé</GuideLink> to add and tailor the
-              content.
-            </li>
-          </ol>
+          <p>
+            Create a résumé from the job and choose an available template. Add sections, enter
+            details directly, or use <strong>Fill from evidence</strong> within an entry.
+          </p>
+          <p>
+            For assisted wording, edit the choices before applying them.{" "}
+            <strong>Apply selected</strong> and <strong>Apply all</strong> use the displayed
+            complete-set counts. Choose one alternative for each target entry. See{" "}
+            <GuideLink slug="editing">Edit a résumé</GuideLink>.
+          </p>
         </>
       ),
     },
     {
       id: "changed-posting",
-      title: "Capture a changed posting",
+      title: "Refresh a saved posting",
       body: (
         <>
-          <p>A new posting snapshot starts with an empty requirement map and evidence selection.</p>
           <ol>
-            <li>Open the job's saved posting.</li>
             <li>
-              Select <strong>Add posting snapshot</strong>.
+              Open the job and select <strong>Refresh posting</strong>.
             </li>
-            <li>Enter the updated posting text and details.</li>
-            <li>Save the snapshot.</li>
-            <li>Review the new requirements and select evidence again.</li>
+            <li>Retrieve the URL again or paste the updated posting.</li>
+            <li>Review the new description, details, and requirements.</li>
+            <li>Save the reviewed refresh.</li>
           </ol>
           <p>
-            To inspect earlier work, open <strong>Posting history</strong>. For version behavior,
-            see <GuideLink slug="saved-versions">Saved versions and local changes</GuideLink>.
+            A refresh creates a new saved capture. It keeps earlier posting captures and saved
+            résumé history. River does not silently refresh jobs in the background.
+          </p>
+          <p>
+            If you edit the description after analysis, reanalyze it or explicitly confirm the
+            reviewed requirements before saving.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "recovery",
+      title: "Continue after an import fails",
+      body: (
+        <>
+          <p>
+            If a page is blocked, requires sign-in, or cannot be read, copy the posting yourself and
+            use <strong>Paste text</strong>. River does not bypass access restrictions.
+          </p>
+          <p>
+            If retrieval succeeds but analysis fails, the retrieved text remains editable. Retry,
+            select a different model for a new import, or enter the details manually.{" "}
+            <strong>Cancel</strong> discards pending results; a late response cannot save the job.
+          </p>
+          <p>
+            An <strong>Inputs changed</strong> message means relevant material changed after the
+            result was created. Refresh the analysis and review it again before applying the batch.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "trash",
+      title: "Delete or restore a job",
+      body: (
+        <>
+          <p>
+            Move a job to <strong>Trash</strong> when you no longer want it in active lists. No
+            reason is required. Restore it from Trash when needed. Earlier posting captures and
+            saved résumés remain available.
           </p>
         </>
       ),

@@ -1,5 +1,6 @@
 import {
   RetryWordingRequest,
+  ReviewWordingBatchRequest,
   ReviewWordingRequest,
   StartWordingRequest,
   WordingIdentity,
@@ -10,7 +11,15 @@ import { getRequestHeaders } from "@tanstack/react-start/server";
 import { Schema } from "effect";
 import { bindings } from "./env";
 import { dispatchPending, execute } from "./services";
-import { inspectWording, listWording, retryWording, reviewWording, startWording } from "./wording";
+import {
+  inspectWording,
+  listWording,
+  pendingWording,
+  retryWording,
+  reviewWording,
+  reviewWordingBatch,
+  startWording,
+} from "./wording";
 
 export const getWordingTasks = createServerFn({ method: "GET" })
   .validator(Schema.decodeUnknownSync(WordingList))
@@ -41,3 +50,11 @@ export const retryWordingTask = createServerFn({ method: "POST" })
 export const decideWording = createServerFn({ method: "POST" })
   .validator(Schema.decodeUnknownSync(ReviewWordingRequest))
   .handler(({ data }) => execute(bindings(), getRequestHeaders(), reviewWording(data)));
+
+export const applyWordingBatch = createServerFn({ method: "POST" })
+  .validator(Schema.decodeUnknownSync(ReviewWordingBatchRequest))
+  .handler(({ data }) => execute(bindings(), getRequestHeaders(), reviewWordingBatch(data)));
+
+export const getPendingWording = createServerFn({ method: "GET" })
+  .validator(Schema.decodeUnknownSync(WordingList))
+  .handler(({ data }) => execute(bindings(), getRequestHeaders(), pendingWording(data.draftId)));

@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { FileText, Plus } from "lucide-react";
+import { FileText, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { SourceAiPanel } from "~/components/evidence/source-ai";
 import { SourceIntake } from "~/components/source-intake";
+import { TrashAction } from "~/components/trash/actions";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -19,7 +20,13 @@ import { Label } from "~/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { WorkspaceShell } from "~/components/workspace-shell";
 import { cn } from "~/lib/utils";
-import { getSession, getSource, getSources, reprocessSource } from "~/server/functions";
+import {
+  cancelDocumentOperation,
+  getSession,
+  getSource,
+  getSources,
+  reprocessSource,
+} from "~/server/functions";
 
 export const Route = createFileRoute("/sources")({
   beforeLoad: async () => {
@@ -39,6 +46,7 @@ function Sources() {
   const [processingId, setProcessingId] = useState<string | undefined>(undefined);
   const [inspectorTab, setInspectorTab] = useState("text");
   const [search, setSearch] = useState("");
+  const [showTrash, setShowTrash] = useState(false);
   const sources = useQuery({
     queryKey: ["sources"],
     queryFn: async () => {
@@ -72,11 +80,26 @@ function Sources() {
     },
     onSettled: () => client.invalidateQueries({ queryKey: ["sources"] }),
   });
+  const cancel = useMutation({
+    mutationFn: async () => {
+      if (!selected) return;
+      const result = await cancelDocumentOperation({
+        data: {
+          operationId: selected.operationId,
+          idempotencyKey: `cancel:${selected.operationId}`,
+        },
+      });
+      if (!result.ok) throw Error(result.error.title);
+    },
+    onSuccess: () => client.invalidateQueries({ queryKey: ["sources"] }),
+  });
   const visible =
-    sources.data?.filter((source) =>
-      `${source.title} ${source.filename} ${source.note}`
-        .toLowerCase()
-        .includes(search.toLowerCase()),
+    sources.data?.filter(
+      (source) =>
+        Boolean(source.archivedAt) === showTrash &&
+        `${source.title} ${source.filename} ${source.note}`
+          .toLowerCase()
+          .includes(search.toLowerCase()),
     ) ?? [];
   return (
     <WorkspaceShell user={user} environment={environment}>
@@ -84,9 +107,9 @@ function Sources() {
         <p className="eyebrow">Workspace / Sources</p>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="page-heading">A record of your work.</h1>
+            <h1 className="page-heading">Sources</h1>
             <p className="mt-2 text-muted-foreground">
-              Original documents and the source history behind your evidence.
+              Add a document or paste text to extract editable evidence.
             </p>
           </div>
           <Button
@@ -114,12 +137,23 @@ function Sources() {
           </Label>
           <Input
             id="source-search"
-            placeholder="Search titles, filenames, or provenance"
+            placeholder="Search titles or filenames"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
+          <Button
+            variant={showTrash ? "secondary" : "outline"}
+            className="mt-3"
+            aria-pressed={showTrash}
+            onClick={() => {
+              setShowTrash(!showTrash);
+              setSelectedId(null);
+            }}
+          >
+            <Trash2 /> Trash
+          </Button>
           <p className="mt-5 border-b border-foreground pb-3 text-[13px] font-semibold">
-            Sources · {visible.length}
+            {showTrash ? "Trash" : "Sources"} · {visible.length}
           </p>
           {sources.isPending && (
             <p role="status" className="py-6">
@@ -138,7 +172,7 @@ function Sources() {
                 <EmptyDescription>
                   {search
                     ? "Try another title or filename."
-                    : "Add project notes, transcripts, résumés, or an Owner attestation. Originals stay available after extraction."}
+                    : "Add project notes, transcripts, or résumés. Originals stay available after extraction."}
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
@@ -183,14 +217,14 @@ function Sources() {
               <EmptyHeader>
                 <EmptyTitle>Select a source</EmptyTitle>
                 <EmptyDescription>
-                  Inspect the original, extracted text, and exact parser result.
+                  Read its text, extract evidence, or download the original.
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
             <div className="flex flex-col gap-5">
               <div>
-                <p className="eyebrow">Source / Revision {selected.revision}</p>
+                <p className="eyebrow">Source{selected.archivedAt ? " / Trash" : ""}</p>
                 <h2 className="mt-3 break-words text-[28px] leading-tight">{selected.title}</h2>
                 <p className="mt-2 text-xs text-muted-foreground">
                   Added {new Date(selected.createdAt).toLocaleString()}
@@ -204,7 +238,7 @@ function Sources() {
                 <Button variant="outline" size="sm" asChild>
                   <a href={`/api/v1/sources/${selected.id}?download`}>Download original</a>
                 </Button>
-                {["Ready", "Failed"].includes(selected.state) && (
+                {!selected.archivedAt && ["Ready", "Failed"].includes(selected.state) && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -215,10 +249,23 @@ function Sources() {
                   </Button>
                 )}
               </div>
-              {(selected.failure || retry.error || inspection.error) && (
+              <TrashAction
+                item={{
+                  id: selected.id,
+                  kind: "source",
+                  label: selected.title,
+                  revision: selected.revision,
+                  archivedAt: selected.archivedAt,
+                }}
+                onChanged={() => setSelectedId(null)}
+              />
+              {(selected.failure || retry.error || inspection.error || cancel.error) && (
                 <Alert variant="destructive">
                   <AlertDescription>
-                    {retry.error?.message ?? inspection.error?.message ?? selected.failure}
+                    {cancel.error?.message ??
+                      retry.error?.message ??
+                      inspection.error?.message ??
+                      selected.failure}
                   </AlertDescription>
                 </Alert>
               )}
@@ -231,9 +278,18 @@ function Sources() {
                 </Alert>
               )}
               {selected.state === "Processing" && (
-                <p role="status" className="text-muted-foreground">
-                  Extracting text. The original is safely stored.
-                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <p role="status" className="flex items-center gap-3 text-muted-foreground">
+                    <LoaderCircle className="size-4 animate-spin" /> Processing source…
+                  </p>
+                  <Button
+                    variant="outline"
+                    disabled={cancel.isPending}
+                    onClick={() => cancel.mutate()}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               )}
               {selected.state === "Uploading" && (
                 <Button
@@ -264,7 +320,7 @@ function Sources() {
               ) && (
                 <Alert>
                   <AlertDescription>
-                    This source has the same bytes as another original. Both provenance records are
+                    This source has the same bytes as another original. Both originals are
                     preserved.
                   </AlertDescription>
                 </Alert>
@@ -281,7 +337,7 @@ function Sources() {
               <Tabs value={inspectorTab} onValueChange={setInspectorTab}>
                 <TabsList variant="line">
                   <TabsTrigger value="text">Extracted text</TabsTrigger>
-                  <TabsTrigger value="provenance">Provenance</TabsTrigger>
+                  <TabsTrigger value="provenance">Saved text versions</TabsTrigger>
                 </TabsList>
                 <TabsContent value="text">
                   {processingId && processingId !== selected.currentProcessingId && (
@@ -312,18 +368,8 @@ function Sources() {
                   )}
                 </TabsContent>
                 <TabsContent value="provenance" className="flex flex-col gap-5 pt-4">
-                  <dl className="grid gap-2 text-xs">
-                    <dt className="text-muted-foreground">Original SHA-256</dt>
-                    <dd className="break-all font-mono">{selected.digest}</dd>
-                    <dt className="text-muted-foreground">Source identity</dt>
-                    <dd className="break-all font-mono">{selected.id}</dd>
-                  </dl>
                   {inspection.data?.history.map((result) => (
                     <article key={result.id} className="border-t pt-4 text-xs">
-                      <p className="font-medium">
-                        {result.parser} {result.parserVersion}
-                      </p>
-                      <p className="mt-2 break-all font-mono">{result.id}</p>
                       <p className="mt-2 text-muted-foreground">
                         {result.characterCount.toLocaleString()} characters ·{" "}
                         {new Date(result.createdAt).toLocaleString()}

@@ -12,6 +12,7 @@ import {
   type WordingProposal,
 } from "@river/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LoaderCircle } from "lucide-react";
 import { type ReactNode, type RefObject, useEffect, useId, useRef, useState } from "react";
 import { AiSelector } from "~/components/ai-selection";
 import {
@@ -34,6 +35,7 @@ import {
   retryWordingTask,
 } from "~/server/wording-functions";
 import type { ResumeDetail } from "./use-draft";
+import { WordingBulk } from "./wording-bulk";
 
 type Detail = Extract<Awaited<ReturnType<typeof getWordingTask>>, { ok: true }>["value"];
 type Action =
@@ -95,6 +97,7 @@ export function useWordingAssistance(
   busy: boolean,
   onManual: (path: WordingPath) => void,
   onApply: ApplyWording,
+  onApplyBatch: (perform: () => Promise<string>) => Promise<string>,
 ) {
   const queueTrigger = useRef<HTMLButtonElement>(null);
   const [offset, setOffset] = useState(0),
@@ -134,6 +137,10 @@ export function useWordingAssistance(
     configured: Boolean(list.data?.configured),
     launch: (path: WordingPath) => setView({ type: "launch", path }),
     path: view && "path" in view ? view.path : undefined,
+    contentId:
+      view && "path" in view && view.path && "contentId" in view.path
+        ? view.path.contentId
+        : undefined,
     panel: view?.type === "task" && view.path ? taskReview : null,
     inlineFor: (path: WordingPath) =>
       view?.type === "launch" && canonicalJson(view.path) === canonicalJson(path) ? (
@@ -151,7 +158,7 @@ export function useWordingAssistance(
       <>
         {Boolean(list.data?.items.length || offset) && (
           <Button ref={queueTrigger} variant="outline" onClick={() => setView({ type: "queue" })}>
-            Wording proposals
+            Wording choices
           </Button>
         )}
         {list.error && (
@@ -165,12 +172,19 @@ export function useWordingAssistance(
       <>
         {view?.type === "queue" && (
           <EvidenceDialog
-            title="Wording proposals"
-            description="Review is separate from generation. Saved proposals remain available when AI is unavailable."
+            title="Wording choices"
+            description="Edit the suggestions and apply one choice per field."
             onClose={close}
             returnFocusRef={queueTrigger}
           >
             <div className="space-y-4">
+              <WordingBulk
+                draftId={detail.draft.id}
+                revision={detail.draft.revision}
+                busy={busy}
+                onApply={onApplyBatch}
+                onReview={(id) => setView({ type: "task", id })}
+              />
               <Failure error={list.error} />
               {list.data?.items.map((item) => (
                 <article
@@ -187,12 +201,12 @@ export function useWordingAssistance(
                       {item.operationState === "Pending" ? "Queued" : item.operationState}
                     </Badge>
                     <Badge variant="outline">
-                      {item.reviewState ? `Review ${item.reviewState}` : "No proposal saved"}
+                      {item.reviewState ? `Review ${item.reviewState}` : "No suggestion saved"}
                     </Badge>
                   </div>
                   <p className="text-sm">{item.stage}</p>
                   <Button variant="outline" onClick={() => setView({ type: "task", id: item.id })}>
-                    Open {item.reviewState === "Pending" ? "proposal" : "record"}
+                    Open {item.reviewState === "Pending" ? "choice" : "record"}
                   </Button>
                 </article>
               ))}
@@ -206,14 +220,14 @@ export function useWordingAssistance(
                     disabled={!offset}
                     onClick={() => setOffset(Math.max(0, offset - 50))}
                   >
-                    Previous proposals
+                    Previous choices
                   </Button>
                   <Button
                     variant="outline"
                     disabled={!list.data?.hasMore}
                     onClick={() => setOffset(offset + 50)}
                   >
-                    Next proposals
+                    Next choices
                   </Button>
                 </div>
               )}
@@ -299,8 +313,8 @@ function Launch({
   return (
     <WordingSurface
       inline={inline}
-      title="Suggest wording for this placement"
-      description="One Content placement · exact job snapshot · selected support"
+      title="Suggest wording"
+      description="Review a change to this wording using the saved posting and selected evidence."
       onClose={onClose}
       pending={action.isPending}
     >
@@ -325,26 +339,24 @@ function Launch({
           />
         </FormField>
         <p className="eyebrow">
-          {target.sectionType} / {target.field} · saved draft revision {detail.draft.revision}
+          {target.sectionType} / {target.field}
         </p>
         <p className="whitespace-pre-wrap break-words text-base leading-6">
           {target.content.wording}
         </p>
         <p className="text-sm text-muted-foreground">
           The model receives this wording, its {target.content.evidence.length} selected evidence
-          links and their pinned context, and the complete posting snapshot. Other placements and
-          the Requirement Map are excluded.
+          items and the job description. Other entry values are excluded.
         </p>
         <EvidenceLinks value={target.content.evidence} />
 
         <p className="text-sm">
-          Generation does not change this draft. Review the full wording, meaning, and support
-          before accepting a local override.
+          Review the wording, meaning, and supporting evidence before applying the suggestion.
         </p>
         <Failure error={action.error} />
         {busy && (
           <p role="status" className="text-sm text-warning">
-            Finish saving or recovering the draft before continuing.
+            Finish saving or recovering this résumé before continuing.
           </p>
         )}
         <div className="flex flex-wrap justify-end gap-3">
@@ -352,7 +364,7 @@ function Launch({
             Cancel
           </Button>
           <Button disabled={busy || action.isPending || !goal.trim()}>
-            {action.isPending ? "Starting…" : "Generate proposal"}
+            {action.isPending ? "Starting…" : "Generate wording"}
           </Button>
         </div>
       </form>
@@ -370,9 +382,7 @@ function CapturedSupport({
     <section className="space-y-5">
       <h3 className="font-editorial text-2xl">Evidence and meaning</h3>
       {!input.evidence.length && (
-        <p className="text-sm">
-          No supporting evidence was supplied. Wording assistance cannot verify this content.
-        </p>
+        <p className="text-sm">No supporting evidence was selected for this wording.</p>
       )}
       {input.evidence.map((item) => (
         <article
@@ -380,17 +390,16 @@ function CapturedSupport({
           className="space-y-3 rounded-sm border p-5"
         >
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">{item.reviewState} at generation</Badge>
             <Badge variant="outline">
               {proposed.some(
                 (ref) => ref.claimId === item.claimId && ref.revisionId === item.evidenceRevisionId,
               )
-                ? "Retained support"
-                : "Removed support"}
+                ? "Used by suggestion"
+                : "Not used by suggestion"}
             </Badge>
-            {item.archived && <Badge variant="outline">Archived</Badge>}
+            {item.archived && <Badge variant="outline">In Trash</Badge>}
             {item.currentRevisionId !== item.evidenceRevisionId && (
-              <Badge variant="outline">Older pinned revision</Badge>
+              <Badge variant="outline">Older saved version</Badge>
             )}
           </div>
           <MaterialSummary
@@ -406,7 +415,7 @@ function CapturedSupport({
                 Captured {context.data.kind} · {context.data.label}
               </summary>
               <dl className="space-y-2 text-sm">
-                <dt className="text-muted-foreground">Pinned context snapshot</dt>
+                <dt className="text-muted-foreground">Context at generation</dt>
                 <dd>
                   {[
                     context.data.organization,
@@ -430,23 +439,15 @@ function CapturedSupport({
                       .join("\n")}
                   </dd>
                 )}
-                <dd className="font-mono text-[11px] break-all">{context.pinnedRevisionId}</dd>
               </dl>
             </details>
           ))}
-          <p className="text-sm whitespace-pre-wrap break-words">
-            Review rationale: {item.rationale || "No decision recorded."}
-          </p>
-          <p className="font-mono text-[11px] break-all">
-            Claim {item.claimId} · Evidence Revision {item.evidenceRevisionId} · decision{" "}
-            {item.decisionId ?? "None"}
-          </p>
         </article>
       ))}
       {input.evidence.length > 0 && (
         <details>
           <summary className="min-h-11 cursor-pointer py-3 text-sm text-primary">
-            Inspect current evidence and source provenance
+            View evidence and sources
           </summary>
           <EvidenceLinks
             value={input.evidence.map((item) => ({
@@ -491,41 +492,43 @@ function Review({
     proposal = detail?.proposal,
     input = detail?.task.input,
     payload = proposal?.payload;
+  const [edited, setEdited] = useState<string | null>(null);
   const action = useAction(undefined, async (perform) => {
     if (!input || !payload) throw new Error("The exact proposal is no longer available.");
-    return onApply(input, payload, perform);
+    return onApply(input, { ...payload, wording: edited ?? payload.wording }, perform);
   });
-  const targetPresent =
-    input &&
-    current.draft.data.sections
-      .find((section) => section.id === input.target.path.sectionId)
-      ?.blocks.find((block) => block.id === input.target.path.blockId)
-      ?.fields.some((field) =>
-        field.contents.some((content) => content.id === input.target.path.contentId),
-      );
   let currentTarget: ReturnType<typeof captureWordingTarget> | null = null;
-  if (input && targetPresent)
-    currentTarget = captureWordingTarget(current.draft.data, current.graph, input.target.path);
+  if (input) {
+    try {
+      currentTarget = captureWordingTarget(current.draft.data, current.graph, input.target.path);
+    } catch {
+      // Removed or incompatible fields cannot receive an old suggestion.
+    }
+  }
+  const targetPresent = currentTarget !== null;
   const targetChanged = Boolean(
-    input && (!currentTarget || canonicalJson(currentTarget) !== canonicalJson(input.target)),
+    proposal?.state !== "Accepted" &&
+      proposal?.state !== "Rejected" &&
+      input &&
+      (!currentTarget || canonicalJson(currentTarget) !== canonicalJson(input.target)),
   );
   return (
     <WordingSurface
       inline={inline}
       title="Review suggested wording"
-      description="Compare complete wording and support. Acceptance creates a local override for this placement."
+      description="Review and edit the suggestion before applying it to this résumé."
       onClose={onClose}
       pending={action.isPending}
       returnFocusRef={returnFocusRef}
     >
       <div className="space-y-5">
         <Button className="self-start" variant="ghost" disabled={action.isPending} onClick={onBack}>
-          All wording proposals
+          All wording choices
         </Button>
         <Failure error={result.error} />
         <Failure error={action.error} />
-        {result.isPending && <p role="status">Loading proposal…</p>}
-        {result.error && <Button onClick={() => void result.refetch()}>Retry proposal</Button>}
+        {result.isPending && <p role="status">Loading choice…</p>}
+        {result.error && <Button onClick={() => void result.refetch()}>Retry choice</Button>}
         {detail && input && (
           <>
             <div className="flex flex-wrap gap-2">
@@ -534,14 +537,17 @@ function Review({
                 {detail.operation?.state === "Pending" ? "Queued" : detail.operation?.state}
               </Badge>
               <Badge variant="outline">
-                {proposal ? `Review ${proposal.state}` : "No proposal saved"}
+                {proposal ? `Review ${proposal.state}` : "No suggestion saved"}
               </Badge>
             </div>
-            <p className="text-sm" role="status">
+            <p className="flex items-center gap-2 text-sm" role="status">
+              {active(detail.operation?.state) && (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              )}
               {detail.operation?.stage} · attempt {detail.task.attempts} of 3
             </p>
             <p className="eyebrow">
-              {input.target.sectionType} / {input.target.field} · one Content placement
+              {input.target.sectionType} / {input.target.field}
             </p>
             <p className="text-sm whitespace-pre-wrap break-words">Goal: {input.goal}</p>
             {active(detail.operation?.state) && (
@@ -567,9 +573,7 @@ function Review({
             {(detail.staleReasons.length > 0 || targetChanged) && (
               <div className="space-y-2 rounded-sm border border-warning bg-warning/5 p-4 text-sm">
                 <p className="font-semibold">
-                  {proposal?.state === "Pending"
-                    ? "Proposal inputs changed"
-                    : "Inputs differ from the current draft"}
+                  {proposal?.state === "Pending" ? "Wording inputs changed" : "Inputs changed"}
                 </p>
                 {targetChanged && (
                   <details>
@@ -581,7 +585,7 @@ function Review({
                         At generation: {input.target.content.wording}
                       </p>
                       <p className="whitespace-pre-wrap break-words">
-                        Current: {currentTarget?.content.wording ?? "Placement removed"}
+                        Current: {currentTarget?.content.wording ?? "Wording removed"}
                       </p>
                     </div>
                   </details>
@@ -591,7 +595,7 @@ function Review({
                 ))}
                 <p>
                   {proposal?.state === "Pending"
-                    ? "Nothing will be applied. Review a new proposal from current inputs or edit manually."
+                    ? "Generate wording from the current inputs or edit manually before applying."
                     : "This historical record retains its original inputs and decision."}
                 </p>
               </div>
@@ -601,16 +605,25 @@ function Review({
                 <div className="grid items-start gap-4 md:grid-cols-2">
                   {[
                     { label: "Original wording", text: input.target.content.wording },
-                    { label: "Proposed wording", text: payload.wording },
+                    { label: "Suggested wording", text: payload.wording },
                   ].map((item) => (
                     <section
                       key={item.label}
                       className="min-w-0 space-y-5 rounded-lg border bg-card p-6"
                     >
                       <h3 className="eyebrow">{item.label}</h3>
-                      <p className="text-base leading-6 whitespace-pre-wrap break-words">
-                        {item.text}
-                      </p>
+                      {item.label === "Suggested wording" && proposal?.state === "Pending" ? (
+                        <Textarea
+                          aria-label="Edit suggested wording"
+                          maxLength={10000}
+                          value={edited ?? item.text}
+                          onChange={(event) => setEdited(event.target.value)}
+                        />
+                      ) : (
+                        <p className="text-base leading-6 whitespace-pre-wrap break-words">
+                          {item.text}
+                        </p>
+                      )}
                     </section>
                   ))}
                 </div>
@@ -620,12 +633,10 @@ function Review({
                   <p className="whitespace-pre-wrap break-words text-sm">
                     {payload.meaning.explanation}
                   </p>
-                  <p className="whitespace-pre-wrap break-words text-sm">
-                    Proposed rationale: {payload.reason}
-                  </p>
+                  <p className="whitespace-pre-wrap break-words text-sm">{payload.reason}</p>
                   <p className="text-sm text-muted-foreground">
                     This assessment is a suggestion. Confirm that the complete wording stays within
-                    the supporting evidence. Accepting wording does not verify a claim.
+                    the supporting evidence.
                   </p>
                 </section>
                 <CapturedSupport input={input} proposed={payload.evidence} />
@@ -644,20 +655,17 @@ function Review({
             )}
             {proposal?.state === "Rejected" && (
               <p className="rounded-sm border p-4 text-sm">
-                Rejected. The generated payload was removed from live storage. This record retains
-                task and decision metadata.
+                Choice dismissed. Your résumé is unchanged.
               </p>
             )}
             {proposal?.state === "Accepted" && (
               <p className="rounded-sm border border-primary p-4 text-sm" role="status">
-                Accepted into saved draft revision {proposal.appliedRevision}. Only this placement
-                received a local wording override. The library and historical outputs retain their
-                original values.
+                Wording applied to this résumé.
               </p>
             )}
             {busy && (
               <p role="status" className="text-sm">
-                Finish saving or recovering this tab's draft before applying wording.
+                Finish saving or recovering this résumé before applying wording.
               </p>
             )}
             <div className="flex flex-wrap justify-end gap-3">
@@ -696,7 +704,7 @@ function Review({
                     })
                   }
                 >
-                  Reject proposal
+                  Dismiss choice
                 </Button>
               )}
               <div className="hidden flex-wrap gap-3 lg:flex">
@@ -720,11 +728,12 @@ function Review({
                           revision: proposal.revision,
                           digest: proposal.digest,
                           decision: "Accepted",
+                          wording: edited ?? payload?.wording,
                         },
                       })
                     }
                   >
-                    {inline ? "Apply to this placement" : "Accept for this placement"}
+                    {inline ? "Apply wording" : "Apply wording"}
                   </Button>
                 )}
                 {detail.configured && (detail.staleReasons.length > 0 || targetChanged) && (
@@ -739,7 +748,7 @@ function Review({
               </div>
             </div>
             <p className="text-sm text-muted-foreground lg:hidden">
-              Apply or edit wording on a larger screen. You can review the complete proposal here.
+              Apply or edit wording on a larger screen. You can review the complete choice here.
             </p>
           </>
         )}

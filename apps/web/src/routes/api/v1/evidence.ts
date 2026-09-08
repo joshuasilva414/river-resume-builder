@@ -17,6 +17,7 @@ export const Route = createFileRoute("/api/v1/evidence")({
           input = Schema.decodeUnknownSync(EvidenceSearch)({
             query: params.get("query") ?? "",
             status: params.get("status") ?? "All",
+            ...(params.get("type") ? { type: params.get("type") } : {}),
             archived: params.get("archived") === "all" ? null : params.get("archived") === "true",
             contextId: params.get("contextId"),
             offset: Number(params.get("offset") ?? 0),

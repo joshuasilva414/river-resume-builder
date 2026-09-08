@@ -1,7 +1,12 @@
 import type { ValidationReport } from "./validation-report";
 
 export * from "./ats-qualification";
+export * from "./composable";
 export * from "./graph";
+export * from "./schema-fixtures";
+
+import { COMPOSABLE_RENDERER_VERSION, renderStructuredContent } from "./composable";
+
 export * from "./refinement";
 export { ValidationReport } from "./validation-report";
 
@@ -146,7 +151,8 @@ function validateRequiredText(
   const multiplicity =
     required.size === actual.size &&
     [...required].every(([word, total]) => actual.get(word) === total);
-  const passed = left === right;
+  const readingOrder = left === right;
+  const passed = completeness && multiplicity;
   let firstDifference: ValidationReport["firstDifference"] = null;
   if (!passed) {
     let difference = 0;
@@ -182,13 +188,14 @@ function validateRequiredText(
     expectedText: expected,
     extractedText,
     normalization: NORMALIZATION_VERSION,
-    checks: { completeness, multiplicity, readingOrder: passed },
+    checks: { completeness, multiplicity, readingOrder },
     locations,
     firstDifference,
-    errors: passed
-      ? []
-      : ["Extracted text differs from the document's required text or reading order."],
-    warnings: [],
+    errors: passed ? [] : ["Extracted text is missing or duplicates required document content."],
+    warnings:
+      passed && !readingOrder
+        ? ["The PDF reading order differs from the editor. Review extracted text before exporting."]
+        : [],
   };
 }
 
@@ -286,6 +293,9 @@ function composeWithPack(
     documentStyles,
     custom,
   );
+  const resolvedHeader = document.structuredContact
+    ? new Fragment(renderStructuredContent(document.structuredContact), header.template)
+    : header;
   const sections = document.sections.map((section) => {
     // Older Phase 0 resolved inputs did not carry a type. Their generic shape remains renderable.
     const type = section.type ?? "summary";
@@ -293,9 +303,16 @@ function composeWithPack(
       template.manifest.contentTypes.includes(type),
     );
     if (!template) throw new Error("Unsupported Section type.");
+    if (section.structured)
+      return new Fragment(
+        `${section.structured.record.values.heading === undefined ? `\\section*{${escapeTex(section.heading)}}\n` : ""}${renderStructuredContent(section.structured)}`,
+        template,
+      );
     const sectionStyles = effectiveStyles(documentStyles, template.manifest);
     const blocks = section.blocks.map((block) => {
       if (block.type && block.type !== type) throw new Error("Section and Block types must agree.");
+      if (block.structured)
+        return new Fragment(renderStructuredContent(block.structured), blockTemplate(type));
       return render(
         blockTemplate(type),
         {
@@ -310,7 +327,7 @@ function composeWithPack(
     });
     return render(template, { heading: section.heading, blocks }, documentStyles, custom);
   });
-  const output = render(pack.document, { header: [header], sections }, pack.tokens, custom);
+  const output = render(pack.document, { header: [resolvedHeader], sections }, pack.tokens, custom);
   return {
     tex: custom
       ? output.tex.replace(
@@ -318,7 +335,17 @@ function composeWithPack(
           `\\begin{document}\n\\fontsize{${documentStyles.bodySize}pt}{${(documentStyles.bodySize * 1.2).toFixed(1)}pt}\\selectfont`,
         )
       : output.tex,
-    identity: canonicalJson({ document, pack, rendererVersion }),
+    identity: canonicalJson({
+      document,
+      pack,
+      rendererVersion:
+        document.structuredContact ||
+        document.sections.some(
+          (section) => section.structured || section.blocks.some((block) => block.structured),
+        )
+          ? COMPOSABLE_RENDERER_VERSION
+          : rendererVersion,
+    }),
   };
 }
 

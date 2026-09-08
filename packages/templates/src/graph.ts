@@ -1,11 +1,13 @@
-import { canonicalJson, contentTypes, Theme } from "@river/domain";
+import { canonicalJson, contentTypes, SchemaBundle, Theme } from "@river/domain";
 import { Schema } from "effect";
+import { validateComposableLayouts } from "./composable";
 import { fixedPack, StyleTokens, TemplateRevision, validateTemplate } from "./manifests";
 
 export const CUSTOM_RENDERER_VERSION = "river-tectonic-0.3.0";
 export const GRAPH_VALIDATOR_VERSION = "river-template-graph-v1";
 export const MAX_GRAPH_CHARACTERS = 60000;
 export const TemplateGraph = Schema.Struct({
+  composition: Schema.optional(SchemaBundle),
   theme: Theme,
   revision: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)),
   tokens: StyleTokens,
@@ -23,6 +25,7 @@ export const graphTemplates = (graph: TemplateGraph) => [
 /** Check the entire declared graph, including every required renderer binding, before compilation. */
 export function validateGraph(value: unknown): TemplateGraph {
   const graph = Schema.decodeUnknownSync(TemplateGraph)(value);
+  if (graph.composition) validateComposableLayouts(graph.composition);
   if (canonicalJson(graph).length > MAX_GRAPH_CHARACTERS)
     throw new Error(`Template graph exceeds ${MAX_GRAPH_CHARACTERS.toLocaleString()} characters.`);
   const identities = new Set<string>();
@@ -123,6 +126,9 @@ export function graphInventory(value: TemplateGraph) {
     renderer: CUSTOM_RENDERER_VERSION,
     validator: GRAPH_VALIDATOR_VERSION,
     revision: graph.revision,
+    ...(graph.composition
+      ? { composition: graph.composition, compositionRenderer: "river-composable-v2" }
+      : {}),
     tokens: graph.tokens,
     templates: graphTemplates(graph).map((item) => ({
       id: item.manifest.id,

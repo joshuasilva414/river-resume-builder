@@ -17,7 +17,10 @@ export const PostingPassage = Schema.Struct({
   start: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
   end: Schema.Int.check(Schema.isGreaterThan(0)),
 });
+export const RequirementKind = Schema.Literals(["Qualification", "Eligibility"]);
 export const RequirementFields = Schema.Struct({
+  // Retained v1 records omitted this field and remain qualifications.
+  kind: Schema.optionalKey(RequirementKind),
   text: Schema.NonEmptyString.check(Schema.isMaxLength(2000)),
   category: Schema.NonEmptyString.check(Schema.isMaxLength(60)),
   priority: Schema.Literals(["Required", "Preferred", "Unspecified"]),
@@ -44,3 +47,27 @@ export type JobWorkspace = typeof JobWorkspace.Type;
 export const selectionIdentity = (
   selection: Pick<EvidenceSelection, "claimId" | "requirementId">,
 ) => `${selection.claimId}:${selection.requirementId ?? "general"}`;
+
+/** Eligibility describes the posting only and never participates in evidence matching. */
+export const isQualification = (requirement: { readonly kind?: "Qualification" | "Eligibility" }) =>
+  requirement.kind !== "Eligibility";
+
+export const JobImportAnalysis = Schema.Struct({
+  details: JobDetails,
+  requirements: Schema.Array(
+    Schema.Struct({
+      kind: RequirementKind,
+      text: RequirementFields.fields.text,
+      category: RequirementFields.fields.category,
+      priority: RequirementFields.fields.priority,
+      keywords: RequirementFields.fields.keywords,
+      quote: Schema.String.check(Schema.isMaxLength(4000)),
+    }),
+  ).check(Schema.isMaxLength(100)),
+});
+export type JobImportAnalysis = typeof JobImportAnalysis.Type;
+export const JobImportInput = Schema.Struct({
+  url: PostingInput.fields.url,
+  text: Schema.String.check(Schema.isMaxLength(120000)),
+});
+export type JobImportInput = typeof JobImportInput.Type;

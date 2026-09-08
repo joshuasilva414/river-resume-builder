@@ -2,83 +2,99 @@ import { type Guide, GuideLink } from "../shared";
 
 export const templates = {
   slug: "templates",
-  title: "Create and approve a template",
+  title: "Create and customize templates",
   description:
-    "Save a custom layout, validate its sample documents, and approve the revision for use.",
+    "Edit content fields and layouts, inspect sample previews, and save the completed template.",
   group: "How-to guides",
   sections: [
     {
       id: "choose",
-      title: "Choose a layout for a résumé",
+      title: "Choose a compatible layout",
       body: (
         <>
           <p>
-            If you want an existing layout, choose a built-in template or an Approved saved revision
-            when you create the draft.
+            Choose a built-in template or one of your saved templates when creating a résumé. A
+            content schema defines the available fields. A layout controls how those fields appear.
           </p>
           <p>
-            To adjust that draft's layout, use its available template controls. Inspect the PDF
-            after each adjustment.
+            A Summary can use a direct text field. An Experience section can use a list of
+            Experience Entries. Templates can reuse those schemas and select compatible layouts for
+            nested entries.
           </p>
         </>
       ),
     },
     {
       id: "customize",
-      title: "Save a custom template",
+      title: "Edit a template working copy",
       body: (
         <>
-          <p>
-            Use the style controls to adjust the template. To create a template, follow these steps.
-          </p>
           <ol>
             <li>
-              Open <strong>Templates</strong>.
+              Open <strong>Templates</strong> and create or open a template.
+            </li>
+            <li>Inspect the starting sample preview.</li>
+            <li>
+              Edit the fields or layout yourself, or choose a connected model and describe the
+              change in chat.
+            </li>
+            <li>Inspect the updated working copy and sample preview after each response.</li>
+            <li>
+              Use <strong>Undo</strong> to remove a change you do not want. Continue editing until
+              the sample is ready.
             </li>
             <li>
-              Select <strong>Create template</strong>.
-            </li>
-            <li>Choose a base.</li>
-            <li>Open the template editor and adjust its Appearance settings.</li>
-            <li>
-              Select <strong>Save draft version</strong>.
+              Select <strong>Save</strong> to validate and save the complete template.
             </li>
           </ol>
           <p>
-            If you use AI template assistance, describe the layout and constraints you want. Follow{" "}
-            <GuideLink slug="ai">Review AI suggestions</GuideLink> before accepting the proposal.
+            The chat can change content fields, referenced schemas, and layout together. You do not
+            need to accept a separate proposal after each response.
           </p>
           <p>
-            In the proposal, inspect the <strong>PDF</strong>, <strong>Extracted text</strong>, and{" "}
-            <strong>Checks</strong> tabs. Select <strong>Review current preview</strong> if a newer
-            preview has finished, then <strong>Accept as Draft</strong> when it is ready.
+            Use the field controls for ordinary editing. Template code and saved technical details
+            are available in Advanced tools.
           </p>
         </>
       ),
     },
     {
       id: "approve",
-      title: "Validate and approve the revision",
+      title: "Resolve validation before saving",
       body: (
         <>
-          <p>Code editing is optional and lives in Settings → Advanced tools.</p>
-          <p>Run validation on the exact saved revision you want to approve.</p>
-          <ol>
-            <li>Open the saved template version.</li>
-            <li>
-              Select <strong>Test with sample résumés</strong>.
-            </li>
-            <li>Wait for the sample documents to finish.</li>
-            <li>Inspect every sample PDF, including each page of longer samples.</li>
-            <li>If validation fails, correct the template and save a new Draft revision.</li>
-            <li>After validation passes, review the sample PDFs and any layout warnings.</li>
-            <li>
-              Select <strong>Approve this template revision</strong>.
-            </li>
-          </ol>
           <p>
-            For template states, see{" "}
-            <GuideLink slug="review-states">Review states and export checks</GuideLink>.
+            Save checks the template and the schemas and layouts it references. Missing references,
+            references to another account’s private content, incompatible layouts, and circular
+            nesting must be corrected before the template can be saved.
+          </p>
+          <p>
+            Inspect sample PDFs and their extracted text. Compilation errors, unsafe source, and
+            missing or unexpectedly repeated text block the affected document. Reading-order
+            findings are diagnostic: inspect how a reader will encounter the content, especially in
+            multiple columns.
+          </p>
+          <p>
+            Older template versions and validation records remain readable. The current editing flow
+            uses one Save for the completed working copy. Optional{" "}
+            <GuideLink slug="scoring">scoring</GuideLink> is separate from document validation.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "reuse",
+      title: "Reuse fields and restore templates",
+      body: (
+        <>
+          <p>
+            When switching between compatible layouts, River retains the saved field values. A
+            layout can leave a value unprinted without deleting it.
+          </p>
+          <p>
+            Use <strong>Delete</strong> to move a template to Trash and <strong>Restore</strong> to
+            make it available again. Existing saved résumés keep the template version they used. No
+            deletion reason is required.
           </p>
         </>
       ),

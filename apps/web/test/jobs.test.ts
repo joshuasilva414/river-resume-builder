@@ -236,7 +236,7 @@ it("pins evidence wording and review state while reporting later staleness and a
     rationale: null,
     evidenceRevisionId: evidence.revisionId,
   });
-  expect(saved?.issues).toEqual(["Draft", "Archived", "Stale", "Unsupported"]);
+  expect(saved?.issues).toEqual(["Archived", "Stale"]);
 });
 it("rejects concurrent aggregate writes before dependent rows and keeps old snapshot work", async () => {
   const { run, created, current, inspect, fields, repository, actor, requirement, selection } =

@@ -3,21 +3,21 @@ import { type Guide, GuideLink } from "../shared";
 export const editing = {
   slug: "editing",
   title: "Edit a résumé",
-  description: "Add sections, adjust the order, and tailor wording in a saved draft.",
+  description: "Arrange sections, tailor wording, and inspect the current document as you work.",
   group: "How-to guides",
   sections: [
     {
       id: "open",
-      title: "Open the draft",
+      title: "Open the résumé",
       body: (
         <>
           <p>
-            To continue a saved résumé, open its job target. In <strong>Résumé drafts</strong>,
-            select <strong>Open draft</strong>.
+            Open the résumé from its job or the résumé list. Check that saving has completed before
+            capturing a version or applying an external update.
           </p>
           <p>
-            If you need a new draft, follow{" "}
-            <GuideLink slug="jobs">Tailor to a job posting</GuideLink>.
+            Your working résumé can change. Captured versions and exported files retain the document
+            you reviewed at that time.
           </p>
         </>
       ),
@@ -27,78 +27,56 @@ export const editing = {
       title: "Add and arrange sections",
       body: (
         <>
-          <p>
-            Start with a contact section that contains your name. The PDF preview requires that
-            name.
-          </p>
           <ol>
-            <li>
-              Select <strong>Choose library section</strong>.
-            </li>
-            <li>Select the contact section you want to use.</li>
-            <li>Repeat the selection for each section you want in the résumé.</li>
-            <li>
-              If you need new content, select <strong>Create section</strong> and follow{" "}
-              <GuideLink slug="library">Build reusable sections</GuideLink>.
-            </li>
-            <li>Use the move controls to reorder sections and entries.</li>
-            <li>
-              Adjust each <strong>Printed section heading</strong> as needed.
-            </li>
-            <li>
-              To remove an entire section from this draft, select <strong>Remove section</strong>.
-            </li>
+            <li>Choose a saved section or create one with the fields you need.</li>
+            <li>Fill direct fields and add nested entries within the same editor.</li>
+            <li>Inspect the insertion preview in the actual résumé at the intended position.</li>
+            <li>Add the section, then arrange sections and entries in reading order.</li>
           </ol>
+          <p>
+            Use a compatible layout to change appearance without re-entering values. Review content
+            that becomes hidden or visible after the switch.
+          </p>
         </>
       ),
     },
     {
       id: "tailor",
-      title: "Tailor an item's wording",
+      title: "Tailor wording",
       body: (
         <>
-          <p>To change wording for this résumé, create a local wording change.</p>
-          <ol>
-            <li>
-              Next to the text you want to change, select <strong>Edit wording</strong>.
-            </li>
-            <li>
-              Edit <strong>Complete local wording</strong>.
-            </li>
-            <li>Inspect the supporting evidence.</li>
-            <li>If the new wording needs different support, update its evidence links.</li>
-            <li>
-              Enter a <strong>Reason for this local wording</strong>.
-            </li>
-            <li>
-              Select <strong>Apply local wording</strong>.
-            </li>
-            <li>Wait for the draft to save.</li>
-          </ol>
           <p>
-            For the effect on reusable content, see{" "}
-            <GuideLink slug="saved-versions">Saved versions and local changes</GuideLink>.
+            Edit wording for the current résumé where you need a different emphasis. Keep factual
+            meaning supported by your evidence.
+          </p>
+          <p>
+            For AI help, choose the provider and model before starting. Review the choices and edit
+            a choice’s wording before applying it. Use <strong>Apply selected</strong> for chosen
+            changes or <strong>Apply all</strong> for all available changes across pages. Choose one
+            alternative per target entry.
+          </p>
+          <p>
+            A bulk action validates all its targets before saving. If one target changed, refresh
+            the results and review again. Applying a successful batch again does not duplicate its
+            changes. Use Undo to undo the applied edit.
           </p>
         </>
       ),
     },
     {
       id: "reuse",
-      title: "Apply a library update",
+      title: "Use a saved library update",
       body: (
         <>
-          <p>Before applying an update, inspect any local changes on the placement.</p>
-          <ol>
-            <li>Open the placement's reuse controls.</li>
-            <li>Compare the placed content with the proposed library revision.</li>
-            <li>
-              If you want that revision, select <strong>Apply this exact revision</strong>.
-            </li>
-            <li>Review the resulting wording and evidence in the draft.</li>
-          </ol>
           <p>
-            To make a local change reusable, use the promotion or fork controls instead. Review the
-            saved library result before applying it to a placement.
+            A library edit does not automatically replace wording already placed in a résumé.
+            Inspect the available update and compare its values with any local edits before applying
+            it.
+          </p>
+          <p>
+            To reuse a local improvement, save it through the available library controls. Keep
+            changes specific to one employer local to that résumé. See{" "}
+            <GuideLink slug="library">Build reusable sections</GuideLink>.
           </p>
         </>
       ),
@@ -109,26 +87,17 @@ export const editing = {
       body: (
         <>
           <p>
-            Before you rely on the preview, wait for your changes to save and the PDF to update.
-          </p>
-          <ol>
-            <li>
-              Confirm that the editor reports <strong>Saved</strong> with the current revision.
-            </li>
-            <li>Wait until the preview no longer reports a pending or stale state.</li>
-            <li>Inspect the name, contact details, dates, line breaks, and page breaks.</li>
-            <li>If the layout needs adjustment, change the available template layout controls.</li>
-            <li>Inspect the new PDF when it is ready.</li>
-          </ol>
-          <p>
-            During an update, River keeps the last successful PDF visible. If the new PDF fails,
-            check recent text changes or choose another template. Correct the draft and wait for its
-            new preview before exporting.
+            The PDF refreshes after edits settle. During rendering, the previous successful preview
+            stays visible. Check its status before assuming it includes the latest changes.
           </p>
           <p>
-            To preserve the version, follow{" "}
-            <GuideLink slug="history">Compare and restore versions</GuideLink>. To download the
-            résumé, follow <GuideLink slug="export">Export a résumé</GuideLink>.
+            If rendering fails, correct the reported content or template error. An older response
+            cannot replace the preview for newer edits. Before export, wait for saving and the
+            current preview to finish.
+          </p>
+          <p>
+            Read the extracted text as well as the PDF. See{" "}
+            <GuideLink slug="export">Export a résumé</GuideLink> for the final checks and downloads.
           </p>
         </>
       ),

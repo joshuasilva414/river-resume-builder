@@ -1,4 +1,11 @@
-import type { AiEvidenceCandidate, JobAiInput, JobAiProposal, JobRequirement } from "@river/domain";
+import {
+  type AiEvidenceCandidate,
+  isQualification,
+  type JobAiInput,
+  type JobAiProposal,
+  type JobRequirement,
+  selectionIdentity,
+} from "@river/domain";
 import { useState } from "react";
 import { FormField, MaterialSummary, selectClass } from "~/components/evidence/shared";
 import { Badge } from "~/components/ui/badge";
@@ -25,23 +32,6 @@ export function RequirementCard({
         {requirement.text}
       </h4>
       <p className="text-sm">Keywords: {requirement.keywords.join(", ") || "None"}</p>
-      <p className="text-xs text-muted-foreground">
-        Interpretation confidence:{" "}
-        {requirement.confidence === null
-          ? "Unspecified"
-          : `${Math.round(requirement.confidence * 100)}%`}
-      </p>
-
-      {requirement.passages.map((passage) => (
-        <div key={`${passage.start}:${passage.end}`} className="space-y-2">
-          <blockquote className="border-l-2 border-primary bg-muted p-3 text-base leading-[23px] whitespace-pre-wrap break-words">
-            {passage.quote}
-          </blockquote>
-        </div>
-      ))}
-      {!requirement.passages.length && (
-        <p className="text-sm text-muted-foreground">No supporting passages.</p>
-      )}
     </article>
   );
 }
@@ -49,7 +39,11 @@ export function RequirementCard({
 export function RequirementComparison({
   input,
   proposal,
+  selected,
+  onSelection,
 }: {
+  selected?: ReadonlySet<string>;
+  onSelection?: (id: string, checked: boolean) => void;
   input: JobAiInput;
   proposal: Extract<JobAiProposal, { type: "requirements" }>;
 }) {
@@ -78,12 +72,23 @@ export function RequirementComparison({
           Proposed requirements · {proposal.requirements.length}
         </h3>
         {proposal.requirements.map((requirement) => (
-          <RequirementCard
-            key={requirement.id}
-            requirement={requirement}
-            posting={input.posting}
-            label={original.has(requirement.id) ? "Updated requirement" : "Added requirement"}
-          />
+          <div key={requirement.id} className="space-y-2">
+            {onSelection && (
+              <label className="flex min-h-11 items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={selected?.has(requirement.id) ?? false}
+                  onChange={(event) => onSelection(requirement.id, event.target.checked)}
+                />
+                Use requirement
+              </label>
+            )}
+            <RequirementCard
+              requirement={requirement}
+              posting={input.posting}
+              label={`${requirement.kind ?? "Qualification"} · ${original.has(requirement.id) ? "Updated" : "Added"}`}
+            />
+          </div>
         ))}
         {!proposed.size && (
           <p className="text-sm text-muted-foreground">The proposal removes every requirement.</p>
@@ -126,7 +131,6 @@ function RankingResult({
     <article className="space-y-3 border-b py-5">
       <div className="flex flex-wrap gap-2">
         <Badge variant="outline">{result.support}</Badge>
-        <Badge variant="outline">{candidate.reviewState} at generation</Badge>
       </div>
       <p className="text-base whitespace-pre-wrap break-words">{candidate.material.assertion}</p>
       <p className="text-sm whitespace-pre-wrap break-words">{result.explanation}</p>
@@ -145,9 +149,6 @@ function RankingResult({
             data: item.data,
           }))}
         />
-        <p className="mt-3 text-sm">
-          Review: {candidate.reviewState} · {candidate.rationale || "No decision rationale"}
-        </p>
       </details>
       {
         <>
@@ -164,7 +165,7 @@ function RankingResult({
                   Original requirement is no longer current
                 </option>
               )}
-              {detail.workspace.data.requirements.map((item) => (
+              {detail.workspace.data.requirements.filter(isQualification).map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.text}
                 </option>
@@ -219,7 +220,11 @@ export function RankingReview({
   readOnly,
   busy,
   onChoose,
+  selected,
+  onSelection,
 }: {
+  selected?: ReadonlySet<string>;
+  onSelection?: (id: string, checked: boolean) => void;
   input: JobAiInput;
   proposal: Extract<JobAiProposal, { type: "ranking" }>;
   detail: JobDetail;
@@ -230,12 +235,12 @@ export function RankingReview({
   return (
     <section className="space-y-4">
       <p className="text-sm">
-        Suggestions cover {input.candidates.length} matching claims. Search the evidence bank for
-        experience that may be missing.
+        Suggestions cover {input.candidates.length} matching evidence items. Search the evidence
+        bank for experience that may be missing.
       </p>
       {
         <p className="rounded-sm border bg-accent p-4 text-sm">
-          Inspect the current evidence and choose what to use. Suggestions do not verify claims.
+          Choose relevant evidence to use for this job.
         </p>
       }
       {proposal.results.map((result) => {
@@ -245,10 +250,19 @@ export function RankingReview({
             item.evidenceRevisionId === result.evidenceRevisionId,
         );
         return candidate ? (
-          <RankingResult
-            key={`${result.claimId}:${result.requirementId}`}
-            {...{ candidate, result, input, detail, readOnly, busy, onChoose }}
-          />
+          <div key={selectionIdentity(result)}>
+            {onSelection && (
+              <label className="flex min-h-11 items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={selected?.has(selectionIdentity(result)) ?? false}
+                  onChange={(event) => onSelection(selectionIdentity(result), event.target.checked)}
+                />
+                Use match
+              </label>
+            )}
+            <RankingResult {...{ candidate, result, input, detail, readOnly, busy, onChoose }} />
+          </div>
         ) : null;
       })}
       {proposal.gaps.map((gap) => (

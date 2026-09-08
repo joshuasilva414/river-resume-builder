@@ -1,10 +1,10 @@
-import type { Guide } from "../shared";
+import { type Guide, GuideLink } from "../shared";
 
 export const workspaceReference = {
   slug: "workspace-reference",
   title: "Workspace access and limits",
   description:
-    "Account access, workspace collections, agent permissions, and processing allowances.",
+    "Account isolation, collection behavior, processing limits, and administrator controls.",
   group: "Reference",
   sections: [
     {
@@ -13,16 +13,14 @@ export const workspaceReference = {
       body: (
         <>
           <p>
-            River admits accounts by email address. The service administrator enables each address.
-            GitHub authentication follows the same admission policy.
+            River is a private application. An administrator must enable your email address before
+            you can create an account. Each account has its own sources, evidence, jobs, content,
+            templates, résumés, and files.
           </p>
           <p>
-            Each account owns a private workspace. River does not provide teams, shared documents,
-            or collaborative editing. A document link does not grant another account access.
-          </p>
-          <p>
-            The public documentation requires no account. Sources, evidence, drafts, checkpoints,
-            and private downloads require authorized access.
+            There are no shared workspaces or collaboration controls. Administrator status does not
+            provide access to another account’s private content. Public documentation does not
+            expose workspace records or downloads.
           </p>
         </>
       ),
@@ -33,78 +31,85 @@ export const workspaceReference = {
       body: (
         <>
           <dl>
-            <dt>Job targets</dt>
-            <dd>
-              Job details, saved posting snapshots, requirements, selected evidence, and résumé
-              drafts.
-            </dd>
-            <dt>Evidence bank</dt>
-            <dd>
-              Claims, citations, context records, review decisions, and duplicate comparisons.
-            </dd>
-            <dt>Content library</dt>
-            <dd>Reusable Content items, Blocks, and Sections.</dd>
-            <dt>Templates</dt>
-            <dd>Built-in layouts, saved template revisions, validation, and approval.</dd>
             <dt>Sources</dt>
-            <dd>Original material, its provenance, and extracted text.</dd>
-            <dt>Settings</dt>
-            <dd>
-              Account information, sessions, task usage, and Agent Credentials. Backup controls are
-              restricted to the administrator.
-            </dd>
+            <dd>Original documents or text and their extraction results.</dd>
+            <dt>Evidence</dt>
+            <dd>Typed facts and skills with keywords and optional sources.</dd>
+            <dt>Jobs</dt>
+            <dd>Posting captures, qualifications, eligibility items, and selected evidence.</dd>
+            <dt>Library</dt>
+            <dd>Reusable sections and entries with directly editable fields.</dd>
+            <dt>Templates</dt>
+            <dd>Content schemas and compatible layouts for rendering them.</dd>
+            <dt>Résumés and history</dt>
+            <dd>Working compositions, saved versions, and retained exports.</dd>
           </dl>
+          <p>
+            Sources, evidence, templates, reusable content, sections, and jobs support Delete and
+            Restore through Trash. Use Undo in the notification to reverse the action. Existing
+            saved references remain readable.
+          </p>
         </>
       ),
     },
     {
       id: "contexts",
-      title: "Evidence context records",
+      title: "Earlier evidence context records",
       body: (
         <>
           <p>
-            A context record describes the background for related claims. Claims reference an exact
-            saved context revision.
+            Older evidence can include employment, project, education, certification, or other
+            context records. Those records remain readable alongside their saved references.
           </p>
-          <dl>
-            <dt>Owner profile</dt>
-            <dd>The account owner's identity and contact information.</dd>
-            <dt>Employment</dt>
-            <dd>A period of work for an employer or organization.</dd>
-            <dt>Project</dt>
-            <dd>A body of work the account owner created or contributed to.</dd>
-            <dt>Education</dt>
-            <dd>A program of study, including its institution, qualification, and dates.</dd>
-            <dt>Credential</dt>
-            <dd>A qualification, certification, award, or license from an issuing organization.</dd>
-          </dl>
+          <p>
+            New evidence does not require a context record, source, or verification decision. Use
+            its text, type, keywords, and optional sources.
+          </p>
         </>
       ),
     },
     {
       id: "usage",
-      title: "Processing allowances",
+      title: "AI, processing, and scoring limits",
       body: (
         <>
-          <p>The account usage display reports active tasks, daily usage, and the next reset.</p>
-          <dl>
-            <dt>Active tasks</dt>
-            <dd>Up to four pending or running tasks per account.</dd>
-            <dt>Daily tasks</dt>
-            <dd>Up to 100 new tasks per account. The daily allowance resets at midnight UTC.</dd>
-            <dt>Shared allowance</dt>
-            <dd>
-              Service-wide limits also apply. A request can reach a shared limit before its account
-              allowance is exhausted.
-            </dd>
-          </dl>
           <p>
-            AI requests, document extraction, rendering, validation, and scoring share these
-            allowances. Failed and cancelled tasks still count toward daily usage.
+            Personal AI connections have no daily River quota. Provider billing and provider rate
+            limits still apply. River bounds simultaneous work; if capacity is busy, wait for a task
+            to finish or cancel work you no longer need.
           </p>
           <p>
-            An ended task releases its active slot. Replaying the same accepted request does not
-            consume another task. A newly requested attempt counts again.
+            Scoring has a separate default allowance of 25 successful results per UTC day for normal
+            accounts. Each successful template sample counts. Failed or cancelled work releases its
+            reserved capacity, and reusing a saved result does not charge again. Administrators are
+            exempt from the daily cap.
+          </p>
+          <p>
+            Input, file, time, and retry limits still apply. See{" "}
+            <GuideLink slug="file-formats">File formats and limits</GuideLink>,{" "}
+            <GuideLink slug="ai-connections">Connect your AI provider</GuideLink>, and{" "}
+            <GuideLink slug="scoring">Score a résumé</GuideLink>.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "admin",
+      title: "Administrator dashboard and backups",
+      body: (
+        <>
+          <p>
+            Administrators use the admin area to inspect aggregate usage and per-account identities
+            and counts. The dashboard covers users, active users, jobs and imports, evidence,
+            templates, exports, processing, and scoring.
+          </p>
+          <p>
+            These views provide counts and account identifiers, not private source text, evidence,
+            job descriptions, résumé wording, or document downloads.
+          </p>
+          <p>
+            Backup controls and scoring allowance configuration or reset are available in the admin
+            area. Normal accounts do not receive backup or administrator controls.
           </p>
         </>
       ),
@@ -115,33 +120,29 @@ export const workspaceReference = {
       body: (
         <>
           <p>
-            An Agent Credential is a named credential with selected permissions. Credentials can
-            expire or be revoked.
+            Agent credentials provide only their assigned scopes within the owning account. They do
+            not grant access to other accounts or administrator privileges.
           </p>
           <p>
-            Authorized agents can access permitted source, evidence, context, and job operations.
-            External agents cannot create Owner attestations or mutate résumés and templates.
+            The public API supports the permitted source, evidence, context, and job actions. An
+            agent’s access depends on its credential scopes. Retired evidence-verification commands
+            return a migration error; saved historical decisions remain readable.
           </p>
-          <p>Credential permissions do not bypass account ownership or admission checks.</p>
         </>
       ),
     },
     {
       id: "devices",
-      title: "Devices and optional services",
+      title: "Devices and preferences",
       body: (
         <>
           <p>
-            Résumé composition is designed for desktop browsers. Smaller screens support review and
-            history.
+            River is designed primarily for desktop use. Use the shared theme control to change
+            light or dark appearance. The old Appearance settings tab is no longer needed.
           </p>
           <p>
-            AI assistance and ATS scoring depend on configured external services. Those tasks can
-            transmit their selected inputs to the configured service.
-          </p>
-          <p>
-            Manual evidence work, résumé assembly, approved template use, PDF preview, and export
-            remain available without AI assistance.
+            AI assistance and scoring are optional services. Manual writing, document review, and
+            export remain available when those services are unavailable.
           </p>
         </>
       ),

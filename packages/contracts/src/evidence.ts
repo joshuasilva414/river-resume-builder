@@ -2,6 +2,7 @@ import {
   ContextData,
   EvidenceMaterialInput,
   EvidenceMetadata,
+  EvidenceType,
   RecordId,
   ReviewState,
   Revision,
@@ -36,6 +37,7 @@ export const CreateEvidenceRequest = Schema.Struct({
 });
 export const EditEvidenceRequest = Schema.Struct({
   ...ObservedRecord.fields,
+  metadata: Schema.optional(EvidenceMetadata),
   material: EvidenceMaterialInput,
 });
 export const EvidenceMetadataRequest = Schema.Struct({
@@ -51,22 +53,23 @@ export const ReviewEvidenceRequest = Schema.Struct({
 export const ArchiveEvidenceRequest = Schema.Struct({
   ...ObservedRecord.fields,
   archived: Schema.Boolean,
-  rationale: Schema.NonEmptyString.check(Schema.isMaxLength(4000)),
+  rationale: Schema.optional(Schema.String.check(Schema.isMaxLength(4000))),
 });
 export const MergeEvidenceRequest = Schema.Struct({
   ...ObservedRecord.fields,
   sourceId: RecordId,
   sourceRevision: Revision,
   material: EvidenceMaterialInput,
-  rationale: Schema.NonEmptyString.check(Schema.isMaxLength(4000)),
+  rationale: Schema.optional(Schema.String.check(Schema.isMaxLength(4000))),
   comparisonOrigin: Schema.optional(ReviewedComparisonOrigin),
 });
 export const DismissDuplicateRequest = Schema.Struct({
   ...ObservedRecord.fields,
-  rationale: Schema.NonEmptyString.check(Schema.isMaxLength(4000)),
+  rationale: Schema.optional(Schema.String.check(Schema.isMaxLength(4000))),
   comparisonOrigin: Schema.optional(ReviewedComparisonOrigin),
 });
 export const EvidenceSearch = Schema.Struct({
+  type: Schema.optional(EvidenceType),
   query: Schema.String.check(Schema.isMaxLength(200)),
   status: Schema.Literals(["All", "Draft", "Needs clarification", "Verified"]),
   archived: Schema.NullOr(Schema.Boolean),
@@ -75,14 +78,23 @@ export const EvidenceSearch = Schema.Struct({
 });
 export type EvidenceSearch = typeof EvidenceSearch.Type;
 
-export const EvidenceCommand = Schema.Union([
+export const AdvertisedEvidenceCommand = Schema.Union([
   Schema.Struct({ type: Schema.Literal("create"), ...CreateEvidenceRequest.fields }),
   Schema.Struct({ type: Schema.Literal("edit"), ...EditEvidenceRequest.fields }),
   Schema.Struct({ type: Schema.Literal("metadata"), ...EvidenceMetadataRequest.fields }),
-  Schema.Struct({ type: Schema.Literal("review"), ...ReviewEvidenceRequest.fields }),
   Schema.Struct({ type: Schema.Literal("archive"), ...ArchiveEvidenceRequest.fields }),
   Schema.Struct({ type: Schema.Literal("merge"), ...MergeEvidenceRequest.fields }),
   Schema.Struct({ type: Schema.Literal("keep-separate"), ...DismissDuplicateRequest.fields }),
   Schema.Struct({ type: Schema.Literal("context"), ...SaveContextRequest.fields }),
 ]);
+// Decode the retired call so REST/MCP clients receive a useful migration error.
+export const EvidenceCommand = Schema.Union([
+  AdvertisedEvidenceCommand,
+  Schema.Struct({ type: Schema.Literal("review"), ...ReviewEvidenceRequest.fields }),
+]);
 export type EvidenceCommand = typeof EvidenceCommand.Type;
+export const ArchiveSourceRequest = Schema.Struct({
+  ...ObservedRecord.fields,
+  archived: Schema.Boolean,
+});
+export type ArchiveSourceRequest = typeof ArchiveSourceRequest.Type;

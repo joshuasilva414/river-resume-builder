@@ -4,89 +4,91 @@ export const scoring = {
   slug: "scoring",
   title: "Score a résumé",
   description:
-    "Submit a saved checkpoint for advisory ATS feedback and record your review of the findings.",
+    "Review the full inputs, request advisory feedback, and track your scoring allowance.",
   group: "How-to guides",
   sections: [
     {
       id: "submit",
-      title: "Score a checkpoint",
+      title: "Score a saved version",
       body: (
         <>
           <p>
-            Scoring sends the full résumé text and saved posting to the configured scoring service.
-            Review those inputs before submission.
+            Scoring sends the full résumé text and its saved job posting to River’s configured
+            scoring service. It uses a separate service from your personal AI connections.
           </p>
-          <p>Start with a checkpoint whose document has passed validation.</p>
           <ol>
-            <li>Open the checkpoint.</li>
             <li>
-              Select <strong>Scores</strong>.
+              Open a saved version with a successfully rendered document and select{" "}
+              <strong>Scores</strong>.
             </li>
             <li>
-              Open <strong>View complete résumé text</strong>.
+              Open <strong>View complete résumé text</strong> and{" "}
+              <strong>View exact posting</strong>.
+            </li>
+            <li>Review the text, provider, input limits, and available allowance.</li>
+            <li>
+              Select <strong>Score checkpoint</strong> when the inputs are correct.
             </li>
             <li>
-              Open <strong>View exact posting</strong>.
-            </li>
-            <li>Inspect the text, provider, and preflight limits.</li>
-            <li>
-              If the inputs are correct and within the limits, select{" "}
-              <strong>Score checkpoint</strong>.
-            </li>
-            <li>
-              Open the completed run in <strong>Scoring history</strong>.
+              Open the completed result in <strong>Scoring history</strong>.
             </li>
           </ol>
+          <p>Scoring is optional. You can review and export a valid document without it.</p>
+        </>
+      ),
+    },
+    {
+      id: "allowance",
+      title: "Check the daily allowance",
+      body: (
+        <>
           <p>
-            If the input exceeds the limits, follow{" "}
-            <GuideLink slug="troubleshooting">Resolve common problems</GuideLink>.
+            The default allowance for a normal account is 25 successful scoring results per UTC day.
+            Each successful template-validation sample counts as one result. Administrators are
+            exempt from this daily cap and can configure or reset account allowances.
+          </p>
+          <p>
+            A pending scoring request reserves capacity. A successful result consumes it. Failed or
+            cancelled work releases it. Reusing an already saved result does not use another slot.
+          </p>
+          <p>
+            When the daily allowance is used, wait until the next UTC day or ask the administrator
+            about your account’s configured allowance. Your personal AI connections have no daily
+            River quota.
           </p>
         </>
       ),
     },
     {
       id: "findings",
-      title: "Review a finding",
+      title: "Review the findings",
       body: (
         <>
-          <p>To record a decision about a suggestion, open the finding's review controls.</p>
-          <ol>
-            <li>Read the complete suggestion.</li>
-            <li>Compare the suggestion with your résumé and evidence.</li>
-            <li>
-              Choose <strong>Addressed</strong>, <strong>Accepted</strong>, or{" "}
-              <strong>Not applicable</strong> to record your decision.
-            </li>
-            <li>
-              Enter a <strong>Rationale</strong>.
-            </li>
-            <li>
-              Select <strong>Save review</strong>.
-            </li>
-          </ol>
           <p>
-            To change the résumé, edit the draft separately. Capture a new checkpoint before
-            requesting a score for the changed document.
+            Compare each suggestion with the résumé and the facts you want to present. Use the
+            finding’s review controls to record whether it is addressed, accepted, or not
+            applicable.
+          </p>
+          <p>
+            To change the document, edit the résumé separately and capture a new version. A score
+            does not establish that a claim is true or predict an employer’s decision.
           </p>
         </>
       ),
     },
     {
       id: "compare",
-      title: "Compare results",
+      title: "Compare saved results",
       body: (
         <>
           <p>
-            To compare saved results, open the score comparison and select a completed run on each
-            side.
+            Open score comparison and choose a completed run on each side. Use results from
+            compatible scoring configurations and the same intended job context.
           </p>
           <p>
-            If River reports incompatible results, inspect the posting and scoring identities
-            instead of treating the scores as comparable.
-          </p>
-          <p>
-            For what scoring can establish, see{" "}
-            <GuideLink slug="review-states">Review states and export checks</GuideLink>.
+            If River reports incompatible results, inspect the saved inputs and scoring
+            configuration before interpreting the numbers. See{" "}
+            <GuideLink slug="review-states">Document checks and result status</GuideLink>.
           </p>
         </>
       ),
