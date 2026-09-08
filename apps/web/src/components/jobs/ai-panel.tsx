@@ -136,7 +136,7 @@ export function JobAiPanel({
         )}
         {list.error && (
           <Button variant="ghost" onClick={() => void list.refetch()}>
-            Retry loading proposal availability
+            Retry loading results
           </Button>
         )}
       </div>
@@ -152,7 +152,7 @@ export function JobAiPanel({
       {view?.type === "queue" && (
         <EvidenceDialog
           title="Job results"
-          description="Generation and review are separate. Saved proposals remain here when AI is unavailable."
+          description="Review saved suggestions, including results from earlier requests."
           onClose={close}
         >
           <div className="space-y-4">
@@ -169,17 +169,18 @@ export function JobAiPanel({
                     Generation {item.operationState === "Pending" ? "Queued" : item.operationState}
                   </Badge>
                   <Badge variant="outline">
-                    {item.reviewState ? `Review ${item.reviewState}` : "No proposal saved"}
+                    {item.reviewState ? `Review ${item.reviewState}` : "No saved results"}
                   </Badge>
                 </div>
-                <p className="text-sm">{item.stage}</p>
-                <p className="font-mono text-[11px] break-all">Task {item.id}</p>
+                <p className="text-sm">
+                  {item.stage === "Proposal ready for review" ? "Ready to review" : item.stage}
+                </p>
                 <Button variant="outline" onClick={() => setView({ type: "task", id: item.id })}>
-                  Open {item.reviewState === "Pending" ? "proposal" : "record"}
+                  Open {item.reviewState === "Pending" ? "suggestions" : "record"}
                 </Button>
               </article>
             ))}
-            {!list.data?.items.length && <p className="text-sm">No proposals on this page.</p>}
+            {!list.data?.items.length && <p className="text-sm">No results on this page.</p>}
             {(offset > 0 || list.data?.hasMore) && (
               <div className="flex gap-3">
                 <Button
@@ -187,14 +188,14 @@ export function JobAiPanel({
                   disabled={offset === 0}
                   onClick={() => setOffset(Math.max(0, offset - 50))}
                 >
-                  Previous proposals
+                  Previous results
                 </Button>
                 <Button
                   variant="outline"
                   disabled={!list.data?.hasMore}
                   onClick={() => setOffset(offset + 50)}
                 >
-                  Next proposals
+                  Next results
                 </Button>
               </div>
             )}
@@ -241,7 +242,7 @@ function Launch({
       title={
         task === "extract-requirements" ? "Suggest job requirements" : "Find relevant evidence"
       }
-      description="The result requires your review. Generating a proposal preserves your saved work."
+      description="Review the suggestions before applying them. Your saved work stays available."
       onClose={onClose}
       pending={action.isPending}
       className="sm:max-w-[676px]"
@@ -416,7 +417,7 @@ function TaskReview({
                 </ul>
                 <p className="text-sm">
                   {proposal?.state === "Pending"
-                    ? "Acceptance is unavailable. Nothing from this proposal has been applied."
+                    ? "Refresh the suggestions before applying them. No changes were applied."
                     : payload?.type === "requirements"
                       ? "This record retains the original input and reviewed map. Current work may include this accepted revision or later edits."
                       : "This record retains its original input. Inspect current evidence before choosing an association."}
@@ -482,7 +483,7 @@ function TaskReview({
             )}
             {proposal?.state === "Rejected" && (
               <p className="rounded-sm border p-4 text-sm">
-                The generated proposal content was removed from live storage. The task and minimal
+                The generated suggestions were removed from live storage. The task and minimal
                 review record remain.
               </p>
             )}
@@ -577,7 +578,7 @@ function TaskReview({
                         disabled={disabled}
                         onClick={() => setRejecting(false)}
                       >
-                        Keep proposal
+                        Keep suggestions
                       </Button>
                       <Button
                         variant="destructive"
@@ -605,7 +606,7 @@ function TaskReview({
                       disabled={disabled || readOnly}
                       onClick={() => setRejecting(true)}
                     >
-                      Reject proposal
+                      Discard suggestions
                     </Button>
                     <Button variant="outline" disabled={disabled} onClick={onManual}>
                       Continue manually
@@ -707,7 +708,7 @@ function Execution({
         <p className="font-mono text-[11px]">Attempt {saved.task.attempts} of 3</p>
       </div>
       <p role="status" aria-live="polite" className="text-sm">
-        {operation?.stage}
+        {operation?.stage === "Proposal ready for review" ? "Ready to review" : operation?.stage}
       </p>
       {operation?.failure && <p className="text-sm">{operation.failure}</p>}
       <p className="text-xs text-muted-foreground">{saved.task.profile.model}</p>
@@ -731,7 +732,7 @@ function Execution({
           )}
           {saved.task.attempts >= 3 && (
             <p className="text-sm">
-              The three-attempt budget is exhausted. Continue manually or generate a new proposal.
+              The three-attempt budget is exhausted. Continue manually or request new suggestions.
             </p>
           )}
           {saved.configured &&

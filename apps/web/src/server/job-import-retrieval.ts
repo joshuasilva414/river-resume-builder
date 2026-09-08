@@ -205,6 +205,33 @@ function renderBeforeDeadline(
   });
 }
 
+/** Include module entry points declared as preload links before client-side hydration. */
+function* scriptResources(html: string) {
+  for (const match of html.matchAll(/<(script|link)\b[^>]*>/gi)) {
+    const attributes = new Map(
+      [...match[0].matchAll(/\s([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g)].map(
+        ([, name, double, single, bare]) => [
+          name?.toLowerCase(),
+          decodeEntities(double ?? single ?? bare ?? ""),
+        ],
+      ),
+    );
+    if (match[1]?.toLowerCase() === "script") {
+      const src = attributes.get("src");
+      if (src) yield src;
+    } else {
+      const rel = attributes.get("rel")?.toLowerCase().split(/\s+/) ?? [];
+      const href = attributes.get("href");
+      if (
+        href &&
+        (rel.includes("modulepreload") ||
+          (rel.includes("preload") && attributes.get("as")?.toLowerCase() === "script"))
+      )
+        yield href;
+    }
+  }
+}
+
 /** Every HTTP redirect is revalidated; browser requests are limited to validated origins. */
 export async function retrievePosting(
   value: string,
@@ -255,10 +282,10 @@ export async function retrievePosting(
       );
     const origins = new Set([url.origin]);
     // External script origins are bounded and checked before allowing them into the rendered page.
-    for (const match of html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi)) {
+    for (const resource of scriptResources(html)) {
       if (origins.size >= 8) break;
       try {
-        const script = publicPostingUrl(new URL(match[1] ?? "", url).href);
+        const script = publicPostingUrl(new URL(resource, url).href);
         await validateDns(script, transport, signal);
         origins.add(script.origin);
       } catch {
@@ -270,7 +297,7 @@ export async function retrievePosting(
       browser,
       {
         url: url.href,
-        gotoOptions: { waitUntil: "networkidle2", timeout: 15000 },
+        gotoOptions: { waitUntil: "networkidle0", timeout: 15000 },
         allowRequestPattern: [...origins].map(
           (origin) => `^${origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/`,
         ),
