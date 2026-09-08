@@ -29,6 +29,8 @@ export function sourceAiOutputSchema(
 ) {
   const output = contract === "river-source-claims-v1" ? SourceAiOutput : AnchoredSourceAiOutput;
   const candidate = output.fields.candidates.value;
+  // Validated citations determine source associations; models do not supply a second ID list.
+  const { sourceIds: _sourceIds, ...materialFields } = candidate.fields.material.fields;
   // Restrict references before generation; domain validation still checks the returned claims.
   const contexts = input
     ? Schema.Array(
@@ -46,7 +48,7 @@ export function sourceAiOutputSchema(
       Schema.Struct({
         ...candidate.fields,
         metadata: Schema.Struct({ ...EvidenceMetadata.fields, type: EvidenceType }),
-        material: Schema.Struct({ ...candidate.fields.material.fields, contexts }),
+        material: Schema.Struct({ ...materialFields, contexts }),
       }),
     ).check(Schema.isMaxLength(1000)),
   });

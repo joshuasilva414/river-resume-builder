@@ -499,57 +499,86 @@ it("indexes long and repeated source lines without splitting Unicode or changing
   for (const anchor of anchors) expect(text.slice(anchor.start, anchor.end)).toBe(anchor.quote);
 });
 
-it("uses the anchored source schema and complete captured input in one bounded provider request", async () => {
-  const { repository, actor, request, extraction } = await fixture();
-  const input = await repository.captureSourceAiInput(actor, request, extraction);
-  const current = sourceAiProfile({
-    connection: { id: newId(), revision: 0, provider: "openai" },
-    model: profile.model,
-  });
-  if (!current) throw Error("Missing profile");
-  expect(current.contract).toBe("river-source-claims-v3");
-  const output = { candidates: [] };
-  let calls = 0;
-  const result = await generateSourceCandidates(
-    "synthetic-test-key",
-    input,
-    current,
-    async (_url, init) => {
-      calls++;
-      const body = JSON.parse(String(init?.body));
-      expect(JSON.parse(body.input[0].content[0].text).sourceAnchors).toEqual(input.sourceAnchors);
-      expect(body.instructions).toContain("Do not invent indexes");
-      expect(body.instructions).toContain("skills throughout");
-      expect(body.store).toBe(false);
-      expect(body.truncation).toBe("disabled");
-      const material = body.text.format.schema.properties.candidates.items.properties.material;
-      expect(material.required).toContain("passageIndexes");
-      expect(material.properties).not.toHaveProperty("citations");
-      return Response.json({
-        id: "resp_fixture",
-        object: "response",
-        created_at: 1,
-        model: current.model,
-        status: "completed",
-        output: [
-          {
-            type: "message",
-            id: "msg_fixture",
-            status: "completed",
-            role: "assistant",
-            content: [{ type: "output_text", text: JSON.stringify(output), annotations: [] }],
-          },
-        ],
-      });
-    },
-  );
-  expect(result).toEqual(output);
-  expect(calls).toBe(1);
-  for (const contract of ["river-source-claims-v1", "river-source-claims-v2"] as const)
-    expect(JSON.stringify(sourceAiOutputSchema(contract))).not.toMatch(
-      /"(?:allOf|not|if|then|else)":/,
+/** OpenAI strict structured output requires every object property, even nullable ones. */
+function assertStrictObjectProperties(value: unknown): void {
+  if (value === null || typeof value !== "object") return;
+  if ("properties" in value && value.properties !== null && typeof value.properties === "object") {
+    expect("required" in value ? value.required : []).toEqual(Object.keys(value.properties));
+    expect("additionalProperties" in value && value.additionalProperties).toBe(false);
+  }
+  for (const child of Object.values(value)) assertStrictObjectProperties(child);
+}
+
+it.each([false, true])(
+  "uses a strict anchored schema and complete input (selected contexts: %s)",
+  async (selectedContexts) => {
+    const { repository, actor, request, extraction } = await fixture();
+    const captured = await repository.captureSourceAiInput(actor, request, extraction);
+    const input = { ...captured, contexts: selectedContexts ? captured.contexts : [] };
+    const current = sourceAiProfile({
+      connection: { id: newId(), revision: 0, provider: "openai" },
+      model: profile.model,
+    });
+    if (!current) throw Error("Missing profile");
+    expect(current.contract).toBe("river-source-claims-v3");
+    const output = { candidates: [] };
+    let calls = 0;
+    let responseSchema: unknown;
+    const result = await generateSourceCandidates(
+      "synthetic-test-key",
+      input,
+      current,
+      async (_url, init) => {
+        calls++;
+        const body = JSON.parse(String(init?.body));
+        expect(JSON.parse(body.input[0].content[0].text).sourceAnchors).toEqual(
+          input.sourceAnchors,
+        );
+        expect(body.instructions).toContain("Do not invent indexes");
+        expect(body.instructions).toContain("skills throughout");
+        expect(body.store).toBe(false);
+        expect(body.truncation).toBe("disabled");
+        expect(body.text.format.strict).toBe(true);
+        responseSchema = body.text.format.schema;
+        const material = body.text.format.schema.properties.candidates.items.properties.material;
+        expect(material.required).toContain("passageIndexes");
+        expect(material.properties).not.toHaveProperty("citations");
+        expect(material.properties.contexts.maxItems).toBe(input.contexts.length);
+        return Response.json({
+          id: "resp_fixture",
+          object: "response",
+          created_at: 1,
+          model: current.model,
+          status: "completed",
+          output: [
+            {
+              type: "message",
+              id: "msg_fixture",
+              status: "completed",
+              role: "assistant",
+              content: [{ type: "output_text", text: JSON.stringify(output), annotations: [] }],
+            },
+          ],
+        });
+      },
     );
-});
+    assertStrictObjectProperties(responseSchema);
+    expect(responseSchema).not.toHaveProperty(
+      "properties.candidates.items.properties.material.properties.sourceIds",
+    );
+    expect(result).toEqual(output);
+    expect(calls).toBe(1);
+    for (const contract of [
+      "river-source-claims-v1",
+      "river-source-claims-v2",
+      "river-source-claims-v3",
+    ] as const) {
+      const schema = sourceAiOutputSchema(contract, input);
+      expect(JSON.stringify(schema)).not.toMatch(/"(?:allOf|not|if|then|else)":/);
+      assertStrictObjectProperties(schema);
+    }
+  },
+);
 
 it("restricts generated context references to the exact selection, including no selection", async () => {
   const { repository, actor, request, extraction } = await fixture();
