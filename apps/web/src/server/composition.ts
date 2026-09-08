@@ -21,6 +21,12 @@ export const inspectResume = (id: string) =>
       store = yield* Store;
     return yield* attempt(() => store.inspectResume(actor.ownerId, id));
   });
+export const upgradeResumeLayouts = (id: string) =>
+  Effect.gen(function* () {
+    const actor = yield* Actor,
+      store = yield* Store;
+    return yield* attempt(() => store.upgradeResumeLayouts(actor, id));
+  });
 export const createResume = (input: CreateResumeRequest) =>
   Effect.gen(function* () {
     const actor = yield* Actor,

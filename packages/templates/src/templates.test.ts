@@ -101,10 +101,10 @@ describe("complete custom graphs", () => {
       minimal = fixedPack("minimal");
     const graph = validateGraph({ ...classic, blocks: minimal.blocks });
     expect(graph.blocks.every((block) => block.manifest.id.startsWith("minimal/"))).toBe(true);
-    expect(graphInventory(graph).renderer).toBe("river-tectonic-0.3.0");
+    expect(graphInventory(graph).renderer).toBe("river-tectonic-0.5.0");
     expect(composeGraph(allTypesDocument, graph)).toEqual(composeGraph(allTypesDocument, graph));
     expect(JSON.parse(compose(allTypesDocument, "classic").identity).rendererVersion).toBe(
-      "river-tectonic-0.2.0",
+      "river-tectonic-0.4.0",
     );
   });
   it("rejects missing types, duplicate content slots, incompatible bindings, and invalid inherited styles", async () => {

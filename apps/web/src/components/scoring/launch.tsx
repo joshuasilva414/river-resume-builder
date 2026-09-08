@@ -14,26 +14,130 @@ import {
 } from "~/server/scoring-functions";
 import { ScoringAllowance, useScoringAllowance } from "./allowance";
 import { ScoreComparison } from "./comparison";
-import { SavedText, ScoreResults, type ScoringDetail } from "./review";
+import { ScoreResults, type ScoringDetail } from "./review";
 
-export function CheckpointScoring({
-  checkpointId,
-  draftId,
-  onClose,
-}: {
-  checkpointId: string;
-  draftId: string;
-  onClose: () => void;
-}) {
-  const client = useQueryClient(),
-    [selected, setSelected] = useState<string | null>(null);
-  const [request, setRequest] = useState<StartScoringRequest | null>(null);
-  const [comparison, setComparison] = useState(false);
-  const context = useQuery({
+function useContext(checkpointId: string) {
+  return useQuery({
     queryKey: ["scoring-context", checkpointId],
     queryFn: async () => unwrap(await getScoringContext({ data: { id: checkpointId } })),
     refetchInterval: (query) => (query.state.data?.documentActive ? 5000 : false),
   });
+}
+
+export function CheckpointScoring({
+  checkpointId,
+  onClose,
+  onStarted,
+}: {
+  checkpointId: string;
+  onClose: () => void;
+  onStarted: () => void;
+}) {
+  const client = useQueryClient(),
+    context = useContext(checkpointId),
+    allowance = useScoringAllowance();
+  const [request, setRequest] = useState<StartScoringRequest | null>(null);
+  const start = useMutation({
+    mutationFn: async () => {
+      if (!context.data) throw new Error("Scoring input is not ready.");
+      const payload = request ?? {
+        checkpointId,
+        revision: context.data.revision,
+        idempotencyKey: crypto.randomUUID(),
+      };
+      setRequest(payload);
+      return unwrap(await scoreCheckpoint({ data: payload }));
+    },
+    onSuccess: () => {
+      setRequest(null);
+      void client.invalidateQueries({ queryKey: ["scoring-allowance"] });
+      void client.invalidateQueries({ queryKey: ["scoring-runs", checkpointId] });
+      onStarted();
+      onClose();
+    },
+    onError: () => {
+      void client.invalidateQueries({ queryKey: ["scoring-context", checkpointId] });
+    },
+  });
+  const setup = context.data;
+  const ready =
+    setup?.configured &&
+    setup.documentReady &&
+    setup.preflight.allowed &&
+    (allowance.data?.exempt || (allowance.data?.remaining ?? 0) > 0);
+  return (
+    <EvidenceDialog
+      title="Score this résumé"
+      description="Uses the complete text of this saved version and its job posting."
+      onClose={onClose}
+      pending={start.isPending}
+      className="sm:max-w-[600px]"
+    >
+      <div className="space-y-6">
+        <Failure error={context.error} />
+        {context.isPending && <p role="status">Checking readiness…</p>}
+        {context.error && (
+          <Button variant="outline" onClick={() => void context.refetch()}>
+            Retry
+          </Button>
+        )}
+        {setup && (
+          <>
+            <p className="text-sm">
+              {!setup.configured
+                ? "Scoring is unavailable. You can still review and export this résumé."
+                : !setup.documentReady
+                  ? "Prepare the PDF for this saved version before scoring."
+                  : "Ready to score this saved résumé against its job posting."}
+            </p>
+            {setup.preflight.inputs
+              .filter(
+                (input) =>
+                  input.issue && !(input.field === "resumeText" && setup.resumeText === null),
+              )
+              .map((input) => (
+                <p key={input.field} className="text-sm text-destructive">
+                  {input.issue}
+                </p>
+              ))}
+          </>
+        )}
+        <ScoringAllowance compact />
+        <Failure error={start.error} />
+        <div className="flex justify-end gap-3">
+          <Button variant="outline" onClick={onClose} disabled={start.isPending}>
+            Cancel
+          </Button>
+          <Button onClick={() => start.mutate()} disabled={start.isPending || (!request && !ready)}>
+            {start.isPending ? "Starting…" : start.error ? "Retry" : "Score"}
+          </Button>
+        </div>
+        {request && start.error && (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setRequest(null);
+              start.reset();
+            }}
+          >
+            Use refreshed input
+          </Button>
+        )}
+      </div>
+    </EvidenceDialog>
+  );
+}
+
+export function ScoringHistory({
+  checkpointId,
+  draftId,
+}: {
+  checkpointId: string;
+  draftId: string;
+}) {
+  const [selected, setSelected] = useState<string | null>(null),
+    [comparison, setComparison] = useState(false);
+  const context = useContext(checkpointId);
   const runs = useInfiniteQuery({
     queryKey: ["scoring-runs", checkpointId],
     initialPageParam: 0,
@@ -50,8 +154,8 @@ export function CheckpointScoring({
   const rows = runs.data?.pages.flatMap((page) => page.items) ?? [];
   const firstId = rows[0]?.run.id;
   useEffect(() => {
-    if (!selected && firstId) setSelected(firstId);
-  }, [firstId, selected]);
+    if (firstId) setSelected(firstId);
+  }, [firstId]);
   const detail = useQuery({
     queryKey: ["scoring-run", selected],
     enabled: !!selected,
@@ -65,216 +169,70 @@ export function CheckpointScoring({
         ? 3000
         : false,
   });
-  const start = useMutation({
-    mutationFn: async () => {
-      if (!context.data) throw new Error("Scoring input is not ready.");
-      const payload = request ?? {
-        checkpointId,
-        revision: context.data.revision,
-        idempotencyKey: crypto.randomUUID(),
-      };
-      setRequest(payload);
-      return unwrap(await scoreCheckpoint({ data: payload }));
-    },
-    onSuccess: (result) => {
-      setRequest(null);
-      void client.invalidateQueries({ queryKey: ["scoring-allowance"] });
-      setSelected(result.id);
-      void client.invalidateQueries({ queryKey: ["scoring-runs", checkpointId] });
-    },
-    onError: () => {
-      void client.invalidateQueries({ queryKey: ["scoring-context", checkpointId] });
-      void client.invalidateQueries({ queryKey: ["scoring-runs", checkpointId] });
-    },
-  });
-  const setup = context.data,
-    allowance = useScoringAllowance();
   return (
-    <EvidenceDialog
-      title="Checkpoint scores"
-      description={`Checkpoint ${checkpointId.slice(-8)}. Scoring uses the complete saved text and its exact posting snapshot.`}
-      onClose={onClose}
-      pending={start.isPending}
-      wide
-    >
-      <div
-        className={
-          selected
-            ? "grid min-w-0 gap-6 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]"
-            : "mx-auto w-full max-w-2xl space-y-6"
-        }
-      >
-        <div className="min-w-0 space-y-5">
-          <section className="space-y-5 rounded-md border bg-card p-5 md:p-6">
-            <h2 className="font-editorial text-2xl">Score this checkpoint</h2>
-            <ScoringAllowance />
-            <Failure error={context.error} />
-            {context.isPending && <p role="status">Loading exact scoring input…</p>}
-            {context.error && (
-              <Button variant="outline" onClick={() => void context.refetch()}>
-                Retry input inspection
-              </Button>
-            )}
-            {setup && (
-              <>
-                <p className="eyebrow break-all">Posting {setup.snapshotId.slice(-8)}</p>
-                {setup.preflight.inputs.map((input) => (
-                  <div key={input.field} className="space-y-1">
-                    <p className="font-mono text-xs">
-                      {input.label}:{" "}
-                      {input.field === "resumeText" && setup.resumeText === null
-                        ? "Unavailable"
-                        : input.characters.toLocaleString()}{" "}
-                      / {input.limit.toLocaleString()} characters
-                    </p>
-                    {input.issue &&
-                      !(input.field === "resumeText" && setup.resumeText === null) && (
-                        <p className="text-sm text-muted-foreground">{input.issue}</p>
-                      )}
-                  </div>
-                ))}
-                <p className="text-xs text-muted-foreground">
-                  Limits use UTF-16 string units. River submits the complete saved inputs to{" "}
-                  {setup.providerOrigin ?? "the configured score provider"}.
-                </p>
-                {setup.resumeText !== null && (
-                  <SavedText title="View complete résumé text" text={setup.resumeText} />
-                )}
-                {setup.jobDescription !== null && (
-                  <SavedText title="View exact posting" text={setup.jobDescription} />
-                )}
-                {!setup.configured && (
-                  <p className="border-l-2 border-warning bg-warning/10 p-3 text-sm">
-                    Scoring is unavailable. Saved results remain reviewable; checkpoint review and
-                    export are available.
-                  </p>
-                )}
-                {!setup.documentReady && (
-                  <p className="text-sm text-muted-foreground">
-                    A complete validated checkpoint document is required. Review or retry its
-                    document job before scoring.
-                  </p>
-                )}
-                <Failure error={start.error} />
-                <Button
-                  disabled={
-                    start.isPending ||
-                    (!request &&
-                      (!setup.configured ||
-                        !setup.documentReady ||
-                        !setup.preflight.allowed ||
-                        (allowance.data?.remaining !== null &&
-                          (allowance.data?.remaining ?? 0) < 1)))
-                  }
-                  onClick={() => start.mutate()}
-                >
-                  {start.isPending && <LoaderCircle className="animate-spin" />}
-                  {start.isPending
-                    ? "Starting scoring…"
-                    : start.error
-                      ? "Retry scoring command"
-                      : "Score checkpoint"}
-                </Button>
-                {request && start.error && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setRequest(null);
-                      void client.invalidateQueries({ queryKey: ["scoring-allowance"] });
-                      start.reset();
-                    }}
-                  >
-                    Review refreshed input
-                  </Button>
-                )}
-              </>
-            )}
-            <p className="text-xs text-muted-foreground">
-              The provider returns all six simulations together. Each complete result uses one
-              scoring allowance.
-            </p>
-          </section>
-          <section className="space-y-4 rounded-md border bg-card p-5 md:p-6">
-            <h2 className="font-editorial text-2xl">Scoring history</h2>
-            <Failure error={runs.error} />
-            {runs.isPending && <p role="status">Loading runs…</p>}
-            {runs.error && (
-              <Button variant="outline" onClick={() => void runs.refetch()}>
-                Retry history
-              </Button>
-            )}
-            {rows.length === 0 && !runs.isPending && (
-              <p className="text-sm">This checkpoint has no scoring runs.</p>
-            )}
-            {rows.map(({ run, operation }) => (
-              <Button
-                key={run.id}
-                variant={selected === run.id ? "secondary" : "outline"}
-                className="h-auto min-h-11 w-full justify-start whitespace-normal p-3 text-left"
-                onClick={() => setSelected(run.id)}
-                aria-pressed={selected === run.id}
-              >
-                <span className="grid gap-1">
-                  <span>
-                    Result {run.id.slice(-8)} · {run.completedAt ? "Complete" : operation.state}
-                  </span>
-                  <span className="text-xs font-normal">
-                    {new Date(run.createdAt).toLocaleString()} · Attempt {run.attempts} / 3
-                  </span>
-                </span>
-              </Button>
-            ))}
-            {runs.hasNextPage && (
-              <Button
-                variant="outline"
-                disabled={runs.isFetchingNextPage}
-                onClick={() => void runs.fetchNextPage()}
-              >
-                Load earlier runs
-              </Button>
-            )}
-            {detail.data?.run.completedAt && (
-              <Button variant="outline" onClick={() => setComparison(true)}>
-                Compare results
-              </Button>
-            )}
-          </section>
-        </div>
-        <div className="min-w-0 space-y-5">
-          <Failure error={detail.error} />
-          {selected && detail.isPending && <p role="status">Loading selected scoring run…</p>}
-          {detail.error && (
-            <Button variant="outline" onClick={() => void detail.refetch()}>
-              Retry selected result
-            </Button>
-          )}
-          {detail.data && (
-            <>
-              <RunStatus
-                key={detail.data.run.id}
-                detail={detail.data}
-                runtimeConfigured={setup?.runtimeConfigured ?? false}
-              />
-              <ScoreResults key={detail.data.run.id} detail={detail.data} />
-              <SavedText
-                title="Input, provider observation and attempt context"
-                text={JSON.stringify(
-                  {
-                    runId: detail.data.run.id,
-                    checkpointId: detail.data.run.checkpointId,
-                    snapshotId: detail.data.run.snapshotId,
-                    profile: detail.data.run.profile,
-                    input: detail.data.run.input,
-                    attempts: detail.data.attempts,
-                  },
-                  null,
-                  2,
-                )}
-              />
-            </>
-          )}
-        </div>
-      </div>
+    <div className="grid min-w-0 gap-8 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <section className="space-y-4">
+        <h2 className="font-editorial text-2xl">Scoring history</h2>
+        <Failure error={runs.error} />
+        {runs.isPending && <p role="status">Loading scores…</p>}
+        {runs.error && (
+          <Button variant="outline" onClick={() => void runs.refetch()}>
+            Retry
+          </Button>
+        )}
+        {!rows.length && !runs.isPending && (
+          <p className="text-sm text-muted-foreground">No scores for this saved version yet.</p>
+        )}
+        {rows.map(({ run, operation }) => (
+          <Button
+            key={run.id}
+            variant={selected === run.id ? "secondary" : "ghost"}
+            className="h-auto min-h-11 w-full justify-start whitespace-normal p-3 text-left"
+            onClick={() => setSelected(run.id)}
+            aria-pressed={selected === run.id}
+          >
+            <span className="grid gap-1">
+              <span>{run.completedAt ? "Complete" : operation.state}</span>
+              <span className="text-xs font-normal">
+                {new Date(run.createdAt).toLocaleString()}
+              </span>
+            </span>
+          </Button>
+        ))}
+        {runs.hasNextPage && (
+          <Button
+            variant="outline"
+            disabled={runs.isFetchingNextPage}
+            onClick={() => void runs.fetchNextPage()}
+          >
+            Earlier scores
+          </Button>
+        )}
+        {detail.data?.run.completedAt && (
+          <Button variant="outline" onClick={() => setComparison(true)}>
+            Compare results
+          </Button>
+        )}
+      </section>
+      <section className="min-w-0 space-y-5">
+        <Failure error={detail.error} />
+        {selected && detail.isPending && <p role="status">Loading score…</p>}
+        {detail.error && (
+          <Button variant="outline" onClick={() => void detail.refetch()}>
+            Retry
+          </Button>
+        )}
+        {detail.data && (
+          <>
+            <RunStatus
+              key={detail.data.run.id}
+              detail={detail.data}
+              runtimeConfigured={context.data?.runtimeConfigured ?? false}
+            />
+            <ScoreResults key={detail.data.run.id} detail={detail.data} />
+          </>
+        )}
+      </section>
       {comparison && detail.data?.run.completedAt && (
         <ScoreComparison
           current={detail.data}
@@ -282,7 +240,7 @@ export function CheckpointScoring({
           onClose={() => setComparison(false)}
         />
       )}
-    </EvidenceDialog>
+    </div>
   );
 }
 function RunStatus({
@@ -336,15 +294,18 @@ function RunStatus({
     },
   });
   const active = current && ["Pending", "Running"].includes(current.operation.state);
+  if (run.completedAt) return null;
   return (
-    <section className="space-y-4 rounded-md border bg-card p-5 md:p-6">
-      <h2 className="font-editorial text-2xl">Result {run.id.slice(-8)}</h2>
+    <section className="space-y-4 py-3">
       <p className="flex items-center gap-2 text-sm" role="status">
         {active && <LoaderCircle className="size-4 animate-spin" />}
         {mutation.isPending && request?.type === "cancel"
           ? "Cancel requested…"
-          : current?.operation.stage}{" "}
-        · Attempt {run.attempts} of 3
+          : active
+            ? "Scoring résumé…"
+            : current?.operation.state === "Cancelled"
+              ? "Scoring cancelled."
+              : "Scoring failed."}
       </p>
       {run.completedAt && (
         <p className="text-sm">Completed {new Date(run.completedAt).toLocaleString()}</p>
@@ -365,10 +326,7 @@ function RunStatus({
         </p>
       )}
       {!active && !run.completedAt && run.attempts >= 3 && (
-        <p className="text-sm">
-          All three attempts have been used. Review the failure and captured input before starting a
-          new run.
-        </p>
+        <p className="text-sm">Start a new score request when you are ready to try again.</p>
       )}
       {retryAt > now && (
         <p className="text-sm">

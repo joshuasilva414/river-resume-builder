@@ -17,6 +17,7 @@ import {
 } from "@river/domain";
 import {
   CUSTOM_RENDERER_VERSION,
+  capturedRenderer,
   RENDERER_VERSION,
   SOURCE_RENDERER_VERSION,
 } from "@river/templates";
@@ -520,9 +521,8 @@ export function createCheckpointRepository(db: Database) {
         )[0];
         const renderer = row.source
           ? SOURCE_RENDERER_VERSION
-          : row.checkpoint.templateGraph
-            ? CUSTOM_RENDERER_VERSION
-            : RENDERER_VERSION;
+          : (capturedRenderer(row.checkpoint.templateIdentity) ??
+            (row.checkpoint.templateGraph ? CUSTOM_RENDERER_VERSION : RENDERER_VERSION));
         if (
           operation?.state !== "Succeeded" ||
           !operation.artifacts ||

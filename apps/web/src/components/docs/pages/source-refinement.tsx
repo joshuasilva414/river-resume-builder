@@ -20,15 +20,14 @@ export const sourceRefinement = {
               Open the saved version and select <strong>Refine final document</strong>.
             </li>
             <li>
-              Enter the intended change in <strong>Refinement goal</strong>.
+              Enter the intended change in <strong>What would you like to change?</strong>.
             </li>
+            <li>Choose the provider and model before submitting.</li>
             <li>
-              Check the provider and model under <strong>AI for this action</strong>.
-            </li>
-            <li>
-              Select <strong>Suggest document changes</strong> and wait for the candidate preview.
+              Select <strong>Suggest changes</strong> to open the proposed document.
             </li>
           </ol>
+          <p>Earlier requests remain in the saved version’s Refinements tab.</p>
         </>
       ),
     },

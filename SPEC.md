@@ -41,6 +41,16 @@ Import job retrieves public URLs, uses bounded browser rendering when needed, pr
 
 See ADRs [0014](docs/adr/0014-use-simple-immediately-usable-evidence.md) and [0015](docs/adr/0015-compose-content-schemas-independently-of-layouts.md). The remaining V1/V1.1 sections describe historical contracts where explicitly superseded here; implementation and acceptance are tracked separately in [v1.2 status](docs/implementation/v1.2.md).
 
+## v1.2.1 editing and document quality
+
+The [v1.2.1 delivery record](docs/implementation/v1.2.1.md) supersedes earlier preview and insertion behavior. Draft editing renders current data directly as an approximate HTML preview. Paged.js paginates locally after a debounce and ignores obsolete results. No new external service receives preview content. Valid content saves and insertion require structural validation but never wait for PDF compilation or viewer readiness. Saved-version PDFs and exports still use the isolated LaTeX/Tectonic renderer and require exact document validation.
+
+Existing sections, nested groups and entries open independently and initially collapse with a useful summary. New records open automatically; collapse preserves unsaved values. Optional settings remain collapsed, and validation reveals affected ancestors. Dates use inferred text input while preserving ambiguous legacy text. Links require a URL and optionally accept display text; each link renders once.
+
+Changed built-ins use content schema/layout revision 2 and document template revision 2. Editable drafts upgrade automatically only when saved identities, definitions and original source exactly match the previous built-ins. Updates preserve content, evidence and revision history, respect concurrent edits and are idempotent. Customized definitions and custom template bindings remain preserved. Editing/inserting historical library content adapts compatible built-ins without rewriting the historical library revision. Checkpoints and exports retain their captured renderer and template versions.
+
+Refinement metadata uses the same recursive field mapping as rendered text, including mixed legacy/structured content, nested lists, required markers and evidence. Preparation failures are actionable. Refinement and scoring launch dialogs each handle one immediate action; saved results live in the saved-version tabs. Ordinary generation shows an activity label, spinner and Cancel, then results or an actionable error with Retry.
+
 ## Historical core information model
 
 The content hierarchy is:
@@ -110,7 +120,7 @@ The primary workflow is:
 
 A plain-text extraction preview accompanies every export. DOCX is deferred.
 
-The authoritative live preview is a Tectonic-generated PDF. Draft changes are debounced and obsolete compilation requests are coalesced. While compilation is pending, the editor continues to show the last successful PDF with an explicit stale or compiling state. A later research spike may evaluate an HTML approximation for faster feedback, but it must remain visibly approximate and cannot become an export dependency or source of truth.
+The editing preview is approximate HTML/CSS with local Paged.js pagination. It reflects current content and supported layout choices. Custom LaTeX can differ. Saved-version PDF review remains authoritative for final spacing, page breaks and export.
 
 The application does not enforce a page target initially. Templates paginate adaptively. Explicit one- or two-page targets may be added later.
 
@@ -357,4 +367,4 @@ The build is ready when:
 - Restored checkpoints do not destroy later work.
 - ATS failures do not block export or corrupt scoring history.
 
-Deferred work includes multi-user collaboration, public template sharing or a marketplace, DOCX export, automatic Notion synchronization, mobile composition, Electron packaging, explicit page-count targets, a sandboxed general-purpose template engine, and an optional HTML preview approximation.
+Deferred work includes multi-user collaboration, public template sharing or a marketplace, DOCX export, automatic Notion synchronization, mobile composition, Electron packaging, explicit page-count targets, a sandboxed general-purpose template engine.

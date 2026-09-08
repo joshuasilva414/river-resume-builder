@@ -3,12 +3,15 @@ import { type Composition, canonicalJson } from "@river/domain";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { RequestFailure, unwrap } from "~/components/evidence/shared";
-import { getResume, updateResume } from "~/server/composition-functions";
+import { getResume, refreshResumeLayouts, updateResume } from "~/server/composition-functions";
 export type ResumeDetail = Extract<Awaited<ReturnType<typeof getResume>>, { ok: true }>["value"];
 export function useResume(id: string) {
   return useQuery({
     queryKey: ["resumes", "detail", id],
-    queryFn: async () => unwrap(await getResume({ data: { id } })),
+    queryFn: async () => {
+      unwrap(await refreshResumeLayouts({ data: { id } }));
+      return unwrap(await getResume({ data: { id } }));
+    },
     refetchInterval: (query) =>
       query.state.data?.request && ["Pending", "Running"].includes(query.state.data.request.state)
         ? 1500

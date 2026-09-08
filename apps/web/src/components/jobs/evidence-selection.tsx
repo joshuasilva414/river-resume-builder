@@ -192,7 +192,7 @@ export function SelectedEvidence({
   return (
     <div>
       {items.map((item) => (
-        <article key={selectionIdentity(item)} className="space-y-3 border-b py-5">
+        <article key={selectionIdentity(item)} className="space-y-2 border-b py-3">
           <div className="flex flex-wrap gap-2">
             {item.issues
               .filter((issue) => issue !== item.reviewState)
@@ -205,11 +205,13 @@ export function SelectedEvidence({
           <p className="text-[15px] leading-[23px] whitespace-pre-wrap break-words">
             {item.assertion}
           </p>
-          <p className="text-xs text-muted-foreground">
-            {item.requirementId
-              ? `Requirement: ${detail.workspace.data.requirements.find((r) => r.id === item.requirementId)?.text ?? "Historical requirement"}`
-              : "General job selection"}
-          </p>
+          {requirementId === undefined && (
+            <p className="text-xs text-muted-foreground">
+              {item.requirementId
+                ? `Requirement: ${detail.workspace.data.requirements.find((r) => r.id === item.requirementId)?.text ?? "Historical requirement"}`
+                : "General job selection"}
+            </p>
+          )}
           <div className="flex flex-wrap gap-3">
             <Button
               variant="link"
@@ -241,7 +243,7 @@ export function SelectedEvidence({
         </article>
       ))}
       {!items.length && (
-        <p className="py-5 text-sm text-muted-foreground">
+        <p className="py-1 text-sm text-muted-foreground">
           {requirementId ? "Gap · no evidence selected" : "No evidence selected for this view."}
         </p>
       )}

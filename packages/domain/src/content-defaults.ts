@@ -1,3 +1,4 @@
+import { builtInLayoutSource } from "./content-layouts";
 import type {
   ContentSchema,
   ContentSchemaField,
@@ -5,6 +6,8 @@ import type {
   StructuredContent,
 } from "./content-schema";
 import { captureSchemaBundle } from "./content-schema";
+
+export const BUILT_IN_CONTENT_REVISION = 2;
 
 const text = (id: string, label: string, required = false): ContentSchemaField => ({
   id,
@@ -25,13 +28,13 @@ const list = (id: string, label: string, items: "text" | "skill" = "text"): Cont
   kind: "list",
   items,
 });
-const ref = (id: string) => ({ id, revision: 1 });
+const ref = (id: string) => ({ id, revision: BUILT_IN_CONTENT_REVISION });
 const schema = (
   id: string,
   name: string,
   level: "entry" | "section",
   fields: readonly ContentSchemaField[],
-): ContentSchema => ({ id, revision: 1, name, level, fields });
+): ContentSchema => ({ id, revision: BUILT_IN_CONTENT_REVISION, name, level, fields });
 const entries = [
   schema("experience-entry", "Experience Entry", "entry", [
     text("employer", "Employer", true),
@@ -67,8 +70,8 @@ const entries = [
     list("details", "Details"),
   ]),
   schema("contact-link", "Contact Link", "entry", [
-    text("label", "Label", true),
     text("url", "URL", true),
+    text("label", "Display text"),
   ]),
 ];
 const entrySection = (id: string, name: string): ContentSchema =>
@@ -115,19 +118,11 @@ export const builtInSchemaBundle: SchemaBundle = {
   version: 2,
   schemas: [...entries, ...sections],
   layouts: [...entries, ...sections].flatMap((definition) => {
-    const source = definition.fields
-      .map((field, index) =>
-        field.id === "heading"
-          ? `\\section*{ {{${field.id}}} }`
-          : index === 0 && definition.id !== "contact-link"
-            ? `\\textbf{ {{${field.id}}} }\\par`
-            : `{{${field.id}}}\\par`,
-      )
-      .join("\n");
+    const source = builtInLayoutSource(definition.id, "classic");
     return [
       {
         id: `${definition.id}-classic`,
-        revision: 1,
+        revision: BUILT_IN_CONTENT_REVISION,
         name: "Classic",
         schema: ref(definition.id),
         source,
@@ -136,14 +131,10 @@ export const builtInSchemaBundle: SchemaBundle = {
         ? [
             {
               id: `${definition.id}-compact`,
-              revision: 1,
+              revision: BUILT_IN_CONTENT_REVISION,
               name: "Compact",
               schema: ref(definition.id),
-              source: definition.fields
-                .map((field, index) =>
-                  index === 0 ? `\\textbf{ {{${field.id}}} }` : `{{${field.id}}}`,
-                )
-                .join("\\par\n"),
+              source: builtInLayoutSource(definition.id, "compact"),
             },
           ]
         : []),

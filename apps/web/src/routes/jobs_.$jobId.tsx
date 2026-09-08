@@ -236,7 +236,7 @@ function JobPage() {
                       {detail.workspace.data.requirements
                         .filter(isQualification)
                         .map((requirement) => (
-                          <article key={requirement.id} className="space-y-3 border-b py-5">
+                          <article key={requirement.id} className="space-y-2 border-b py-3">
                             <div className="flex flex-wrap items-center gap-2">
                               <Badge variant="outline">{requirement.priority}</Badge>
                               <span className="text-xs text-muted-foreground">
@@ -256,7 +256,7 @@ function JobPage() {
                                 </Button>
                               )}
                             </div>
-                            <h3 className="font-sans text-lg font-semibold leading-[26px] whitespace-pre-wrap">
+                            <h3 className="font-sans text-base font-medium leading-6 whitespace-pre-wrap">
                               {requirement.text}
                             </h3>
                             {requirement.keywords.length > 0 && (
@@ -264,25 +264,37 @@ function JobPage() {
                                 Keywords: {requirement.keywords.join(", ")}
                               </p>
                             )}
-                            <SelectedEvidence
-                              detail={detail}
-                              requirementId={requirement.id}
-                              readOnly={readOnly}
-                              busy={busy}
-                              onChoose={choose}
-                              onInspect={setInspection}
-                            />
-                            {!readOnly && (
-                              <Button
-                                variant="outline"
-                                onClick={() =>
-                                  setChoosing(choosing === requirement.id ? null : requirement.id)
-                                }
-                              >
-                                {choosing === requirement.id
-                                  ? "Close evidence search"
-                                  : "Choose evidence"}
-                              </Button>
+                            <div className="flex flex-wrap items-center gap-4">
+                              <span className="text-sm text-muted-foreground">
+                                {detail.selected.filter(
+                                  (item) => item.requirementId === requirement.id,
+                                ).length || "No"}{" "}
+                                selected
+                              </span>
+                              {!readOnly && (
+                                <Button
+                                  variant="ghost"
+                                  onClick={() =>
+                                    setChoosing(choosing === requirement.id ? null : requirement.id)
+                                  }
+                                >
+                                  {choosing === requirement.id
+                                    ? "Close evidence search"
+                                    : "Choose evidence"}
+                                </Button>
+                              )}
+                            </div>
+                            {detail.selected.some(
+                              (item) => item.requirementId === requirement.id,
+                            ) && (
+                              <SelectedEvidence
+                                detail={detail}
+                                requirementId={requirement.id}
+                                readOnly={readOnly}
+                                busy={busy}
+                                onChoose={choose}
+                                onInspect={setInspection}
+                              />
                             )}
                             {choosing === requirement.id && (
                               <EvidenceSearchPanel

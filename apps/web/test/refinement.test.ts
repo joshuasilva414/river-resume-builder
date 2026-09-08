@@ -9,6 +9,7 @@ import { type RefinementBaseArtifacts, schema } from "@river/db";
 import {
   canonicalJson,
   compositionReferences,
+  emptyStructuredContent,
   newId,
   type Principal,
   renderComposition,
@@ -41,7 +42,7 @@ const profile: SourceRefinementProfile = {
   maxOutputTokens: 24000,
   timeoutMs: 60000,
 };
-async function fixture(customTemplate = false) {
+async function fixture(customTemplate = false, structured = false) {
   const f = await compositionFixture(),
     { repository: r, actor } = f;
   const claim = await r.createEvidence(
@@ -79,8 +80,27 @@ async function fixture(customTemplate = false) {
     ...(template?.revisionId
       ? { template: { designId: template.id, revisionId: template.revisionId } }
       : {}),
-    sections: f.data.sections.map((section) =>
-      section.type !== "summary"
+    sections: f.data.sections.map((section) => {
+      if (structured && (section.type === "contact" || section.type === "summary")) {
+        const content = emptyStructuredContent(section.type, newId());
+        return {
+          ...section,
+          blocks: [],
+          reason: "Use structured content for refinement coverage.",
+          structured: {
+            ...content,
+            evidence: section.type === "summary" ? [reference] : [],
+            record: {
+              ...content.record,
+              values:
+                section.type === "contact"
+                  ? { name: "Synthetic Person", email: "person@example.test" }
+                  : { heading: "Summary", summary: "Original synthetic wording." },
+            },
+          },
+        };
+      }
+      return section.type !== "summary"
         ? section
         : {
             ...section,
@@ -98,8 +118,8 @@ async function fixture(customTemplate = false) {
                 })),
               })),
             })),
-          },
-    ),
+          };
+    }),
   };
   await r.saveResume(actor, {
     id: f.draft.id,
@@ -257,6 +277,26 @@ async function fixture(customTemplate = false) {
   };
 }
 
+it("starts refinement from a structured checkpoint and preserves its wording and evidence in a layout proposal", async () => {
+  const f = await fixture(false, true);
+  const task = await f.repository.inspectSourceRefinement(f.actor.ownerId, f.started.id);
+  const fields = task.task.input.checkpoint.fields;
+  expect(fields.map((field) => field.text)).toEqual([
+    "Synthetic Person",
+    "person@example.test",
+    "Summary",
+    "Original synthetic wording.",
+  ]);
+  expect(fields.find((field) => field.text === "Original synthetic wording.")).toMatchObject({
+    required: true,
+    evidence: [f.reference],
+  });
+  await f.candidate();
+  const ready = await f.repository.inspectSourceRefinement(f.actor.ownerId, f.started.id);
+  expect(ready.proposal?.payload?.fields).toEqual(fields);
+  expect((await f.repository.inspectCheckpoint(f.actor.ownerId, f.captured.id)).source).toBeNull();
+});
+
 it("promotes only accepted generic layout values with exact base, permanent attribution and atomic retries", async () => {
   const aiProfile: TemplateAiProfile = {
     model: "gpt-5.4-mini-2026-03-17",
@@ -273,7 +313,7 @@ it("promotes only accepted generic layout values with exact base, permanent attr
     });
     await f.candidate({
       ...f.output,
-      source: f.base.source.replace("{\\parskip}{3pt}", "{\\parskip}{2pt}"),
+      source: f.base.source.replace("{\\parskip}{2pt}", "{\\parskip}{3pt}"),
     });
     const acceptance = await f.acceptance();
     await expect(
@@ -288,7 +328,7 @@ it("promotes only accepted generic layout values with exact base, permanent attr
     const safe = await r.inspectTemplatePromotion(f.actor, saved.id);
     expect(safe.layout).toEqual({
       state: "Isolated",
-      changes: [{ property: "paragraphSpacing", before: 3, after: 2 }],
+      changes: [{ property: "paragraphSpacing", before: 2, after: 3 }],
     });
     expect(safe.base.kind).toBe(customTemplate ? "saved" : "fixed");
     const agent: Principal = { kind: "agent", id: newId(), ownerId: f.actor.ownerId, scopes: [] };

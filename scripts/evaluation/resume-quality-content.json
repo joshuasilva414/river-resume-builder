@@ -1,0 +1,283 @@
+[
+  {
+    "id": "fictional-one-page",
+    "targetPages": 1,
+    "sections": [
+      {
+        "type": "contact",
+        "values": {
+          "name": "Maya Chen",
+          "email": "maya.chen@example.test",
+          "phone": "(206) 555-0142",
+          "location": "Seattle, WA",
+          "links": [
+            { "url": "https://example.test/maya", "label": "Portfolio" },
+            { "url": "https://github.com/example-maya", "label": "GitHub" }
+          ]
+        }
+      },
+      {
+        "type": "summary",
+        "values": {
+          "heading": "Profile",
+          "summary": "Software engineer building accessible web applications and reliable data services. Combines TypeScript and Python development with practical testing, clear documentation, and close collaboration with product and operations teams."
+        }
+      },
+      {
+        "type": "experience",
+        "values": {
+          "heading": "Experience",
+          "entries": [
+            {
+              "employer": "Northline Energy",
+              "title": "Software Engineer",
+              "location": "Seattle, WA",
+              "startDate": "June 2024",
+              "endDate": "Present",
+              "accomplishments": [
+                "Built a React scheduling interface used by 45 field coordinators to assign maintenance visits and resolve conflicts before dispatch.",
+                "Designed typed API contracts and PostgreSQL migrations for work orders, with audit history and role-based access checks across customer accounts.",
+                "Reduced the nightly import from 38 minutes to 11 minutes by batching database writes and adding resumable processing for incomplete files."
+              ]
+            },
+            {
+              "employer": "Harbor Community Services",
+              "title": "Engineering Intern",
+              "location": "Tacoma, WA",
+              "startDate": "May 2023",
+              "endDate": "August 2023",
+              "accomplishments": [
+                "Implemented an accessible appointment form with keyboard navigation, inline validation, and clear confirmation messages for returning clients.",
+                "Added integration tests for availability rules and documented the handoff process so staff could diagnose common booking failures."
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "project",
+        "values": {
+          "heading": "Projects",
+          "entries": [
+            {
+              "project": "Trail Ledger",
+              "description": "TypeScript, React, SQLite",
+              "url": "https://example.test/trail-ledger",
+              "accomplishments": [
+                "Created an offline trip planner that keeps route notes and equipment lists available without a network connection.",
+                "Implemented conflict-aware synchronization and tested reconnection behavior using interrupted requests and concurrent edits."
+              ]
+            },
+            {
+              "project": "Open Pantry",
+              "description": "Python, FastAPI, PostgreSQL",
+              "accomplishments": [
+                "Built an inventory service for a fictional food pantry, including expiration tracking, CSV imports, and weekly stock summaries."
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "education",
+        "values": {
+          "heading": "Education",
+          "entries": [
+            {
+              "institution": "Cascade State University",
+              "degree": "B.S.",
+              "fieldOfStudy": "Computer Science",
+              "endDate": "May 2024",
+              "gpa": 3.78
+            }
+          ]
+        }
+      },
+      {
+        "type": "skill",
+        "values": {
+          "heading": "Technical skills",
+          "skills": [
+            "TypeScript",
+            "JavaScript",
+            "Python",
+            "SQL",
+            "React",
+            "Node.js",
+            "PostgreSQL",
+            "Git",
+            "Docker",
+            "Playwright",
+            "REST APIs",
+            "Accessibility"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "fictional-two-page",
+    "targetPages": 2,
+    "sections": [
+      {
+        "type": "contact",
+        "values": {
+          "name": "Jordan Alvarez",
+          "email": "jordan.alvarez@example.test",
+          "phone": "(312) 555-0178",
+          "location": "Chicago, IL",
+          "links": [
+            { "url": "https://example.test/jordan-alvarez", "label": "Portfolio" },
+            { "url": "https://github.com/example-jordan", "label": "GitHub" }
+          ]
+        }
+      },
+      {
+        "type": "summary",
+        "values": {
+          "heading": "Profile",
+          "summary": "Software engineer with eight years of experience building operational software, data integrations, and internal developer tools. Works across product interfaces and backend services, with a focus on reliable delivery, understandable systems, and useful observability. Leads technical planning while remaining hands-on with implementation, testing, and production support."
+        }
+      },
+      {
+        "type": "experience",
+        "values": {
+          "heading": "Experience",
+          "entries": [
+            {
+              "employer": "Meridian Logistics Cooperative",
+              "title": "Senior Software Engineer",
+              "location": "Chicago, IL",
+              "startDate": "March 2022",
+              "endDate": "Present",
+              "accomplishments": [
+                "Led the design and delivery of a shipment exception workspace that brings carrier events, customer notes, and resolution history into a single accessible interface for 120 operations specialists.",
+                "Replaced a nightly reconciliation job with an event-driven pipeline that validates incoming records, retries transient failures, and routes ambiguous matches to an operator review queue.",
+                "Designed tenant-scoped authorization for shared services and added integration coverage for account boundaries, historical records, and delegated support access.",
+                "Reduced median investigation time from 22 minutes to 9 minutes by linking application traces to the exact shipment event and providing actionable error messages in the support console.",
+                "Established a release checklist covering database compatibility, staged rollouts, rollback evidence, and customer-facing acceptance; supported twelve releases without a data migration incident.",
+                "Mentored three engineers through design reviews and paired debugging sessions, and wrote maintenance guides for the import pipeline, authorization model, and on-call escalation process."
+              ]
+            },
+            {
+              "employer": "Civic Data Partnership",
+              "title": "Software Engineer",
+              "location": "Madison, WI",
+              "startDate": "July 2019",
+              "endDate": "February 2022",
+              "accomplishments": [
+                "Built a public service directory with React and a typed search API, including accessible filtering, clear eligibility summaries, and an editorial workflow for partner organizations.",
+                "Implemented versioned data imports from municipal spreadsheets, preserving the original files and surfacing field-level validation errors before records became visible to residents.",
+                "Improved query performance by examining execution plans, adding focused indexes, and replacing repeated lookups with bounded joins; reduced the slowest directory queries by 65 percent.",
+                "Worked with program coordinators to translate policy changes into testable rules, including effective dates, exceptions, and clear explanations when an application required manual review.",
+                "Added browser tests for keyboard-only navigation and common form errors, and repaired focus management across dialogs used by screen-reader users."
+              ]
+            },
+            {
+              "employer": "Lakefront Software Studio",
+              "title": "Junior Software Engineer",
+              "location": "Milwaukee, WI",
+              "startDate": "June 2018",
+              "endDate": "June 2019",
+              "accomplishments": [
+                "Delivered customer account pages and administrative tools for a regional equipment supplier using JavaScript, Python, and PostgreSQL.",
+                "Implemented server-side validation and transaction boundaries for order adjustments, preventing partial updates when inventory or payment checks failed.",
+                "Created repeatable development fixtures and documented local setup, allowing new contributors to run the application and reproduce reported defects in their first week."
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "project",
+        "values": {
+          "heading": "Selected projects",
+          "entries": [
+            {
+              "project": "Signal Desk",
+              "description": "TypeScript, React, WebSockets, PostgreSQL",
+              "url": "https://example.test/signal-desk",
+              "accomplishments": [
+                "Designed an incident coordination prototype that keeps a shared timeline, ownership decisions, and investigation notes synchronized across browser sessions.",
+                "Separated durable incident records from presence updates and tested reconnects, duplicate events, and concurrent changes with deterministic integration fixtures.",
+                "Published a technical walkthrough explaining the consistency model, failure recovery, and limits of the prototype using a fully fictional incident dataset."
+              ]
+            },
+            {
+              "project": "Archive Bridge",
+              "description": "Python, SQLite, object storage",
+              "accomplishments": [
+                "Built a document import tool that verifies file checksums, records extraction provenance, and exports searchable metadata without modifying original source files.",
+                "Added resumable batch processing and a review report for malformed documents, missing metadata, and conflicting identifiers; tested recovery from interrupted writes."
+              ]
+            },
+            {
+              "project": "Access Patterns Workshop",
+              "description": "Open-source teaching materials",
+              "accomplishments": [
+                "Created small examples that demonstrate secure account isolation, optimistic concurrency, and idempotent commands with readable failure cases and focused tests.",
+                "Ran four peer workshops and revised the exercises from participant feedback, emphasizing how to choose simpler designs and identify assumptions that need validation."
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "education",
+        "values": {
+          "heading": "Education",
+          "entries": [
+            {
+              "institution": "Great Lakes Institute of Technology",
+              "degree": "B.S.",
+              "fieldOfStudy": "Software Engineering",
+              "endDate": "May 2018",
+              "details": ["Capstone: accessible scheduling tools for community organizations."]
+            }
+          ]
+        }
+      },
+      {
+        "type": "credential",
+        "values": {
+          "heading": "Professional development",
+          "entries": [
+            {
+              "credential": "Distributed Systems Engineering",
+              "issuer": "Fictional Continuing Education Institute",
+              "issuedDate": "2024",
+              "details": [
+                "Completed an applied program covering replication, fault recovery, and service observability."
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "skill",
+        "values": {
+          "heading": "Technical skills",
+          "skills": [
+            "TypeScript",
+            "JavaScript",
+            "Python",
+            "SQL",
+            "React",
+            "Node.js",
+            "FastAPI",
+            "PostgreSQL",
+            "SQLite",
+            "Docker",
+            "GitHub Actions",
+            "Playwright",
+            "OpenTelemetry",
+            "REST APIs",
+            "Event-driven processing",
+            "Accessibility",
+            "Technical documentation"
+          ]
+        }
+      }
+    ]
+  }
+]

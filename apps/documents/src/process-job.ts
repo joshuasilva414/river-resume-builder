@@ -11,6 +11,7 @@ import {
 import { canonicalJson, fingerprint } from "@river/domain";
 import {
   CUSTOM_RENDERER_VERSION,
+  capturedRenderer,
   compose,
   composeGraph,
   expectedText,
@@ -208,19 +209,28 @@ async function prepareCompile(job: Exclude<DocumentJob, { type: "extract-source"
     throw new Error("Resume exceeds the 100,000-character limit.");
   if (job.templateGraph && job.templateGraph.theme !== job.theme)
     throw new Error("The graph and selected theme disagree.");
+  const captured = capturedRenderer(job.templateIdentity);
+  const revision = captured === "river-tectonic-0.2.0" ? 1 : 2;
+  const graphRenderer = captured === "river-tectonic-0.3.0" ? captured : CUSTOM_RENDERER_VERSION;
   const templateIdentity = canonicalJson(
-    job.templateGraph ? graphInventory(job.templateGraph) : templateInventory(job.theme),
+    job.templateGraph
+      ? graphInventory(job.templateGraph, graphRenderer)
+      : templateInventory(job.theme, revision),
   );
   if (job.templateIdentity && job.templateIdentity !== templateIdentity)
     throw new Error("The pinned template resources are unavailable in this runtime.");
   const { tex, identity } = job.templateGraph
-    ? composeGraph(job.document, job.templateGraph)
-    : compose(job.document, job.theme);
+    ? composeGraph(job.document, job.templateGraph, graphRenderer)
+    : compose(job.document, job.theme, revision);
   return {
     tex,
     identity,
     templateIdentity,
-    rendererVersion: job.templateGraph ? CUSTOM_RENDERER_VERSION : RENDERER_VERSION,
+    rendererVersion: job.templateGraph
+      ? graphRenderer
+      : revision === 1
+        ? "river-tectonic-0.2.0"
+        : RENDERER_VERSION,
     validate: (text: string) => validateText(job.document, text),
   };
 }

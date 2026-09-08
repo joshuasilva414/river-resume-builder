@@ -21,8 +21,10 @@ export const savedVersions = {
             display.
           </p>
           <p>
-            Earlier content items, blocks, date text, evidence links, and document history remain
-            readable after the v1.2 changes.
+            Editable drafts using unchanged built-in layouts receive layout improvements
+            automatically. Customized layouts stay as saved. These updates preserve your wording,
+            evidence and previous revisions. Earlier library revisions, saved versions and exports
+            remain unchanged.
           </p>
         </>
       ),

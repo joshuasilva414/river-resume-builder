@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { isCurrentBuiltInLayout } from "./content-layouts";
 
 const Key = Schema.NonEmptyString.check(Schema.isPattern(/^[a-zA-Z][a-zA-Z0-9_.-]{0,99}$/));
 export const SchemaReference = Schema.Struct({
@@ -258,11 +259,26 @@ export function formatPartialDate(value: PartialDate): string {
 }
 /** Import only unambiguous dates; retain all other historical labels verbatim. */
 export function readLegacyDate(text: string): PartialDate {
-  if (/^present$/i.test(text.trim())) return { kind: "present" };
-  if (/^\d{4}$/.test(text.trim())) return { kind: "year", year: Number(text.trim()) };
-  if (/^\d{4}-\d{2}$/.test(text.trim())) {
-    const [year, month] = text.trim().split("-").map(Number);
-    if (year && month && month <= 12) return { kind: "month", year, month };
+  const input = text.trim();
+  if (/^present$/i.test(input)) return { kind: "present" };
+  if (/^\d{4}$/.test(input) && Number(input) > 0) return { kind: "year", year: Number(input) };
+  const monthYear = /^(\d{4})-(\d{1,2})$/.exec(input);
+  const slashMonth = /^(\d{1,2})\/(\d{4})$/.exec(input);
+  const named =
+    /^(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.?\s+(\d{4})$/i.exec(
+      input,
+    );
+  const year = Number(monthYear?.[1] ?? slashMonth?.[2] ?? named?.[2]);
+  const month = named
+    ? ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].indexOf(
+        named[1]?.slice(0, 3).toLowerCase() ?? "",
+      ) + 1
+    : Number(monthYear?.[2] ?? slashMonth?.[1]);
+  if (year > 0 && year <= 9999 && month > 0 && month <= 12) return { kind: "month", year, month };
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input) && Number(input.slice(0, 4)) > 0) {
+    const parsed = new Date(`${input}T00:00:00Z`);
+    if (Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === input)
+      return { kind: "day", value: input };
   }
   return { kind: "legacy", text };
 }
@@ -278,20 +294,76 @@ export function contentRecordText(
   record: ContentRecord,
   exclude: readonly string[] = [],
 ): string[] {
-  return resolveContentSchema(bundle, record.schema).fields.flatMap((field) => {
+  return contentRecordFields(bundle, record, exclude).map((field) => field.text);
+}
+
+/** One recursive traversal supplies both rendered text and stable refinement identities. */
+export function contentRecordFields(
+  bundle: SchemaBundle,
+  record: ContentRecord,
+  exclude: readonly string[] = [],
+  parent = "",
+): { locator: string; text: string; required: boolean; role: "heading" | "content" }[] {
+  const path = `${parent}/${encodeURIComponent(record.id)}`;
+  const definition = resolveContentSchema(bundle, record.schema);
+  const layout = resolveContentLayout(bundle, record.layout);
+  if (isCurrentBuiltInLayout(layout) && definition.id === "contact-link") {
+    const id = scalarText(record.values.label) ? "label" : "url";
+    const text = scalarText(record.values[id]);
+    return text && !exclude.includes(id)
+      ? [{ locator: `${path}/${id}`, text, required: true, role: "content" }]
+      : [];
+  }
+  const ordered = [...layout.source.matchAll(/\{\{([a-zA-Z][a-zA-Z0-9_.-]*)\}\}/g)].flatMap(
+    (match) => definition.fields.filter((field) => field.id === match[1]),
+  );
+  return ordered.flatMap((field) => {
     if (exclude.includes(field.id)) return [];
     const value = record.values[field.id];
     if (value === undefined || value === null) return [];
     if (field.kind === "record")
-      return contentRecordText(bundle, Schema.decodeUnknownSync(ContentRecord)(value));
+      return contentRecordFields(
+        bundle,
+        Schema.decodeUnknownSync(ContentRecord)(value),
+        [],
+        `${path}/${field.id}`,
+      );
     if (field.kind === "records")
       return Schema.decodeUnknownSync(Schema.Array(ContentRecord))(value).flatMap((child) =>
-        contentRecordText(bundle, child),
+        contentRecordFields(bundle, child, [], `${path}/${field.id}`),
       );
+    const metadata = {
+      required: field.required,
+      role: field.id === "heading" ? ("heading" as const) : ("content" as const),
+    };
     if (field.kind === "list")
       return Schema.decodeUnknownSync(Schema.Array(Schema.Json))(value)
-        .map(scalarText)
-        .filter(Boolean);
-    return [scalarText(value)].filter(Boolean);
+        .map((item, index) => ({
+          ...metadata,
+          locator: `${path}/${field.id}/${index}`,
+          text: scalarText(item),
+          required: field.required && index === 0,
+        }))
+        .filter((item) => item.text.length > 0);
+    const text = renderedScalarText(record, field, layout);
+    return text ? [{ ...metadata, locator: `${path}/${field.id}`, text }] : [];
   });
+}
+
+/** Built-in labels and date separators belong to the rendered text contract too. */
+export function renderedScalarText(
+  record: ContentRecord,
+  field: ContentSchemaField,
+  layout: ContentLayout,
+) {
+  const text = scalarText(record.values[field.id]);
+  if (!text || !isCurrentBuiltInLayout(layout)) return text;
+  if (field.id === "gpa") return `GPA ${text}`;
+  if (field.id === "fieldOfStudy") return `in ${text}`;
+  if (
+    ["endDate", "expirationDate"].includes(field.id) &&
+    scalarText(record.values[field.id === "endDate" ? "startDate" : "issuedDate"])
+  )
+    return `– ${text}`;
+  return text;
 }

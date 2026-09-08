@@ -1,21 +1,24 @@
 import {
   type Composition,
   type ContentType,
-  canonicalJson,
+  type LibraryGraphNode,
   type LibraryKind,
   type LibraryReference,
   placeBlock,
   placeSection,
   type StructuredContent,
+  upgradeBuiltInContent,
+  validateComposition,
 } from "@river/domain";
+import type { TemplateGraph } from "@river/templates";
 import { useQuery } from "@tanstack/react-query";
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { EvidenceDialog, Failure, FormField, unwrap } from "~/components/evidence/shared";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { requestResumePreview } from "~/server/composition-functions";
 import { getLibrary } from "~/server/library-functions";
-import { WorkingPreview } from "../composition/working-preview";
+import { DraftPreview } from "../composition/preview";
+import { revealEditorErrors } from "./editor-disclosure";
 import { EvidenceLinks } from "./evidence-links";
 import { StructuredFields } from "./schema-fields";
 import { kindLabels, LibraryDataView, type LibraryDetail, useLibraryDetail } from "./shared";
@@ -37,8 +40,16 @@ export function LibraryPicker({
     position?: number,
     structured?: StructuredContent,
   ) => void;
-  preview?: { id: string; revision: number; data: Composition; sectionId?: string };
+  preview?: {
+    id: string;
+    revision: number;
+    data: Composition;
+    graph: readonly LibraryGraphNode[];
+    templateGraph?: TemplateGraph | null;
+    sectionId?: string;
+  };
 }) {
+  const fields = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const query = useDeferredValue(search);
   const [offset, setOffset] = useState(0);
@@ -59,7 +70,7 @@ export function LibraryPicker({
     edited?.revisionId === selected?.revisionId
       ? edited?.content
       : selectedData && selectedData.kind !== "content"
-        ? selectedData.structured
+        ? selectedData.structured && upgradeBuiltInContent(selectedData.structured)
         : undefined;
   const [position, setPosition] = useState(
     preview?.sectionId
@@ -67,7 +78,6 @@ export function LibraryPicker({
           0)
       : (preview?.data.sections.length ?? 0),
   );
-  const [previewed, setPreviewed] = useState<string | null>(null);
   const previewData = preview?.data,
     previewSectionId = preview?.sectionId;
   const proposed = useMemo(() => {
@@ -101,7 +111,18 @@ export function LibraryPicker({
       }),
     };
   }, [previewData, previewSectionId, selected, detail.data, kind, position, structured]);
-  const previewIdentity = proposed ? canonicalJson(proposed) : null;
+  const graph = [...(preview?.graph ?? []), ...(detail.data?.graph ?? [])];
+  let validation: string | undefined;
+  if (proposed) {
+    try {
+      validateComposition(proposed, graph);
+    } catch (error) {
+      validation = error instanceof Error ? error.message : "Check the content fields.";
+    }
+  }
+  useEffect(() => {
+    if (validation && fields.current) revealEditorErrors(fields.current);
+  }, [validation]);
   return (
     <EvidenceDialog
       title={`Choose ${kindLabels[kind].toLowerCase()}`}
@@ -109,7 +130,7 @@ export function LibraryPicker({
       onClose={onClose}
       wide
     >
-      <div className="space-y-5">
+      <div ref={fields} className="space-y-5">
         <FormField label="Search library">
           <Input
             value={search}
@@ -217,22 +238,12 @@ export function LibraryPicker({
                 ))}
               </select>
             </FormField>
-            <WorkingPreview
-              identity={previewIdentity}
-              request={async () =>
-                unwrap(
-                  await requestResumePreview({
-                    data: {
-                      id: preview.id,
-                      revision: preview.revision,
-                      data: proposed,
-                      idempotencyKey: crypto.randomUUID(),
-                    },
-                  }),
-                )
-              }
-              onReady={(identity) => setPreviewed(identity)}
-            />
+            <DraftPreview data={proposed} graph={graph} templateGraph={preview.templateGraph} />
+            {validation && (
+              <p role="status" className="text-sm text-destructive">
+                {validation}
+              </p>
+            )}
           </section>
         )}
         <div className="flex justify-end gap-3 border-t pt-5">
@@ -244,7 +255,7 @@ export function LibraryPicker({
               !selected ||
               !detail.data ||
               detail.data.item.archivedAt !== null ||
-              Boolean(preview && previewed !== previewIdentity)
+              Boolean(validation)
             }
             onClick={() => {
               if (selected && detail.data && detail.data.item.archivedAt === null)
