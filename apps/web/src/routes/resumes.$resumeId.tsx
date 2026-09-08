@@ -395,7 +395,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
         Composition editing is available on a larger screen. Review the saved draft and its PDF
         here.
       </div>
-      <div className="grid flex-1 gap-8 px-5 md:px-8 xl:min-h-0 xl:overflow-hidden xl:px-10 xl:grid-cols-[minmax(360px,540px)_minmax(0,1fr)]">
+      <div className="grid flex-1 gap-8 px-5 md:px-8 xl:min-h-0 xl:overflow-hidden xl:px-10 xl:grid-cols-[minmax(360px,min(540px,43%))_minmax(0,1fr)]">
         <section ref={fields} className="hidden min-w-0 lg:block xl:overflow-y-auto">
           <div className="flex flex-wrap items-center gap-2 py-4">
             <Button

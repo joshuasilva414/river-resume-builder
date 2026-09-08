@@ -30,28 +30,31 @@ export class DocumentContainer extends Container<Env> {
       }),
     );
     const cache = response.headers.get("X-River-Document-Cache");
+    const reportedStage = response.headers.get("X-River-Document-Stage");
+    const stage =
+      reportedStage && Object.hasOwn(runtimeContract.stages, reportedStage)
+        ? reportedStage
+        : "unknown";
     await Effect.runPromise(
       Effect.logInfo("river.document.response").pipe(
         Effect.annotateLogs({
           operationId: /^[a-f0-9-]{36}$/.test(job.jobId) ? job.jobId : "fixture",
           jobType: job.type,
           status: response.status,
+          ...(response.ok ? {} : { stage }),
           cache: cache === "hit" || cache === "miss" || cache === "bypass" ? cache : "unidentified",
         }),
         Effect.provide(Logger.layer([Logger.consoleJson, Logger.tracerLogger])),
       ),
     );
     if (!response.ok) {
-      const reportedStage = response.headers.get("X-River-Document-Stage");
-      const stage =
-        reportedStage && Object.hasOwn(runtimeContract.stages, reportedStage)
-          ? reportedStage
-          : "unknown";
       const protocol =
         response.headers.get("X-River-Document-Protocol") === runtimeContract.protocol
           ? runtimeContract.protocol
           : "unidentified";
-      await response.body?.cancel();
+      // Drain the runtime's fixed error response inside this request context.
+      // Canceling the Container response stream can leave the RPC promise unresolved.
+      await response.arrayBuffer();
       throw new Error(
         `Document runtime failed with status ${response.status}; protocol=${protocol}; stage=${stage}`,
       );
