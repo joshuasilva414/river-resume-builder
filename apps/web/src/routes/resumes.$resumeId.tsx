@@ -436,6 +436,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
             {session.data.sections.map((section, index) => (
               <EditorDisclosure
                 key={section.id}
+                className="[&>summary]:text-lg"
                 title={section.heading || "Contact"}
                 defaultOpen={!initialPlacements.current.has(section.id)}
                 summary={
@@ -1002,7 +1003,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
           onClose={() => setReview(false)}
         >
           <CaptureCheckpoint
-            key={`${detail.draft.id}:${session.ack.revision}`}
+            key={detail.draft.id}
             id={detail.draft.id}
             revision={session.ack.revision}
             waiting={session.dirty || session.pending || !!session.error || outdated}

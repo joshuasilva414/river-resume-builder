@@ -236,53 +236,58 @@ function JobPage() {
                       {detail.workspace.data.requirements
                         .filter(isQualification)
                         .map((requirement) => (
-                          <article key={requirement.id} className="space-y-2 border-b py-3">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant="outline">{requirement.priority}</Badge>
-                              <span className="text-xs text-muted-foreground">
-                                {requirement.category}
-                              </span>
-                              {!readOnly && (
-                                <Button
-                                  className="ml-auto"
-                                  variant="ghost"
-                                  size="sm"
-                                  disabled={busy}
-                                  onClick={() =>
-                                    setDialog({ type: "requirement", detail, requirement })
-                                  }
-                                >
-                                  Edit requirement
-                                </Button>
-                              )}
-                            </div>
-                            <h3 className="font-sans text-base font-medium leading-6 whitespace-pre-wrap">
-                              {requirement.text}
-                            </h3>
-                            {requirement.keywords.length > 0 && (
-                              <p className="text-xs text-muted-foreground">
-                                Keywords: {requirement.keywords.join(", ")}
-                              </p>
-                            )}
-                            <div className="flex flex-wrap items-center gap-4">
-                              <span className="text-sm text-muted-foreground">
-                                {detail.selected.filter(
-                                  (item) => item.requirementId === requirement.id,
-                                ).length || "No"}{" "}
-                                selected
-                              </span>
-                              {!readOnly && (
-                                <Button
-                                  variant="ghost"
-                                  onClick={() =>
-                                    setChoosing(choosing === requirement.id ? null : requirement.id)
-                                  }
-                                >
-                                  {choosing === requirement.id
-                                    ? "Close evidence search"
-                                    : "Choose evidence"}
-                                </Button>
-                              )}
+                          <article
+                            key={requirement.id}
+                            className="@container space-y-2 border-b py-3"
+                          >
+                            <div className="flex flex-col gap-2 @min-[720px]:flex-row @min-[720px]:items-center @min-[720px]:gap-4">
+                              <div className="min-w-0 flex-1 space-y-1">
+                                <h3 className="font-sans text-base font-medium leading-6 whitespace-pre-wrap">
+                                  {requirement.text}
+                                </h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {requirement.priority} · {requirement.category}
+                                  {requirement.keywords.length > 0 &&
+                                    ` · ${requirement.keywords.join(", ")}`}
+                                </p>
+                              </div>
+                              <div className="flex shrink-0 flex-wrap items-center gap-4">
+                                <span className="w-[100px] shrink-0 text-sm text-muted-foreground">
+                                  {detail.selected.some(
+                                    (item) => item.requirementId === requirement.id,
+                                  )
+                                    ? `${detail.selected.filter((item) => item.requirementId === requirement.id).length} selected`
+                                    : "No selection"}
+                                </span>
+                                {!readOnly && (
+                                  <>
+                                    <Button
+                                      className="h-10 w-[152px] shrink-0 justify-start px-0"
+                                      variant="link"
+                                      onClick={() =>
+                                        setChoosing(
+                                          choosing === requirement.id ? null : requirement.id,
+                                        )
+                                      }
+                                    >
+                                      {choosing === requirement.id
+                                        ? "Close evidence search"
+                                        : "Choose evidence"}
+                                    </Button>
+                                    <Button
+                                      className="h-10 w-11 shrink-0 px-0"
+                                      variant="ghost"
+                                      aria-label="Edit requirement"
+                                      disabled={busy}
+                                      onClick={() =>
+                                        setDialog({ type: "requirement", detail, requirement })
+                                      }
+                                    >
+                                      Edit
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
                             </div>
                             {detail.selected.some(
                               (item) => item.requirementId === requirement.id,
