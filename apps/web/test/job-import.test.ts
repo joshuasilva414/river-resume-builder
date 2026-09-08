@@ -95,6 +95,41 @@ it("rejects unsafe destinations and special-purpose addresses, including normali
 const requestUrl = (input: Parameters<typeof fetch>[0]) =>
   new URL(input instanceof Request ? input.url : input instanceof URL ? input.href : input);
 const dnsResponse = () => Response.json({ Status: 0, Answer: [{ type: 1, data: "1.1.1.1" }] });
+it.each([200, 302])(
+  "uses Workers-compatible DNS requests and rejects resolver redirects (HTTP %s)",
+  async (status) => {
+    const requests: Request[] = [];
+    const transport: typeof fetch = async (input, init) => {
+      // Construct with the real Workers Request implementation before the synthetic response.
+      const request = new Request(input, init);
+      requests.push(request);
+      if (requestUrl(request).hostname === "cloudflare-dns.com")
+        return status === 302
+          ? new Response(null, {
+              status,
+              headers: { location: "https://resolver.example.com/dns-query" },
+            })
+          : dnsResponse();
+      return new Response(posting, { headers: { "content-type": "text/plain" } });
+    };
+    const result = retrievePosting("https://careers.example.com/job", undefined, transport);
+    if (status === 302) {
+      await expect(result).rejects.toMatchObject({
+        code: "InvalidInput",
+        message: "The posting address could not be checked. Try again or paste its text.",
+      });
+      expect(requests).toHaveLength(2);
+      expect(
+        requests.every((request) => requestUrl(request).hostname === "cloudflare-dns.com"),
+      ).toBe(true);
+    } else {
+      expect(await result).toMatchObject({ method: "html", text: posting });
+      expect(requests).toHaveLength(3);
+    }
+    expect(requests.every((request) => request.redirect === "manual")).toBe(true);
+  },
+);
+
 it("retrieves ordinary HTML first and uses the browser JSON response for JavaScript pages", async () => {
   let browserCalls = 0;
   const browser: JobBrowser = {

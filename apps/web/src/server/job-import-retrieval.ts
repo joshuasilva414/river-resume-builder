@@ -113,7 +113,7 @@ async function validateDns(url: URL, transport: typeof fetch, signal: AbortSigna
       query.searchParams.set("type", type);
       const response = await transport(query, {
         headers: { accept: "application/dns-json" },
-        redirect: "error",
+        redirect: "manual",
         signal,
       });
       if (!response.ok)
