@@ -1,5 +1,6 @@
 import type {
   RetryWordingRequest,
+  ReviewWordingBatchRequest,
   ReviewWordingRequest,
   StartWordingRequest,
 } from "@river/contracts";
@@ -58,13 +59,17 @@ export function createWordingRepository(db: Database) {
   const conditions = (ownerId: string, input: WordingInput) => {
     const evidence = input.evidence.map((item) => ({
       id: item.claimId,
-      revision: item.aggregateRevision,
+      revisionId: item.currentRevisionId,
+      archived: item.archived,
     }));
     const contexts = [
       ...new Map(
         input.evidence
           .flatMap((item) => item.contexts)
-          .map((item) => [item.id, { id: item.id, revision: item.aggregateRevision }]),
+          .map((item) => [
+            `${item.id}:${item.aggregateRevision}`,
+            { id: item.id, revision: item.aggregateRevision },
+          ]),
       ).values(),
     ];
     return [
@@ -73,8 +78,8 @@ export function createWordingRepository(db: Database) {
         condition: sql`EXISTS (SELECT 1 FROM resume_drafts WHERE id = ${input.draftId} AND owner_id = ${ownerId} AND snapshot_id = ${input.snapshot.id})`,
       },
       {
-        reason: "Supporting evidence material, review, metadata, or lifecycle changed.",
-        condition: sql`NOT EXISTS (SELECT 1 FROM json_each(${JSON.stringify(evidence)}) expected WHERE NOT EXISTS (SELECT 1 FROM evidence_claims c WHERE c.id = json_extract(expected.value, '$.id') AND c.owner_id = ${ownerId} AND c.revision = json_extract(expected.value, '$.revision')))`,
+        reason: "Supporting evidence changed.",
+        condition: sql`NOT EXISTS (SELECT 1 FROM json_each(${JSON.stringify(evidence)}) expected WHERE NOT EXISTS (SELECT 1 FROM evidence_claims c WHERE c.id = json_extract(expected.value, '$.id') AND c.owner_id = ${ownerId} AND c.current_revision_id = json_extract(expected.value, '$.revisionId') AND (c.archived_at IS NOT NULL)=json_extract(expected.value,'$.archived')))`,
       },
       {
         reason: "A supporting context changed.",
@@ -304,7 +309,8 @@ export function createWordingRepository(db: Database) {
         task: safeTask,
         proposal,
         operation,
-        staleReasons: await staleReasons(ownerId, task.input),
+        staleReasons:
+          proposal && proposal.state !== "Pending" ? [] : await staleReasons(ownerId, task.input),
       };
     },
     async listWording(ownerId: string, draftId: string, offset: number) {
@@ -447,6 +453,132 @@ export function createWordingRepository(db: Database) {
       }
       return id;
     },
+    async listPendingWording(ownerId: string, draftId: string) {
+      if (!(await resumes.getResume(ownerId, draftId)))
+        throw new ApplicationError({ code: "NotFound", message: "Résumé not found." });
+      return db
+        .select({
+          id: s.wordingProposals.id,
+          revision: s.wordingProposals.revision,
+          digest: s.wordingProposals.digest,
+          payload: s.wordingProposals.payload,
+          taskId: s.wordingTasks.id,
+          input: s.wordingTasks.input,
+        })
+        .from(s.wordingTasks)
+        .innerJoin(s.wordingProposals, eq(s.wordingProposals.taskId, s.wordingTasks.id))
+        .where(
+          and(
+            eq(s.wordingTasks.ownerId, ownerId),
+            eq(s.wordingTasks.draftId, draftId),
+            eq(s.wordingProposals.state, "Pending"),
+          ),
+        )
+        .orderBy(desc(s.wordingTasks.createdAt), desc(s.wordingTasks.id));
+    },
+    async reviewWordingBatch(actor: Principal, request: ReviewWordingBatchRequest) {
+      owner(actor);
+      return commands.commit(
+        actor,
+        "review-wording-batch",
+        request.idempotencyKey,
+        request,
+        async () => {
+          const detail = await resumes.inspectResume(actor.ownerId, request.draftId);
+          if (detail.draft.revision !== request.revision)
+            conflict("The résumé changed. Refresh the wording choices before applying them.");
+          let data = detail.draft.data;
+          const guards = [resumes.resumeGuard(actor, request.draftId, request.revision)],
+            writes: Write[] = [],
+            paths = new Set<string>(),
+            inputs: WordingInput[] = [];
+          for (const item of request.items) {
+            const proposal = (
+              await db
+                .select()
+                .from(s.wordingProposals)
+                .where(eq(s.wordingProposals.id, item.id))
+                .limit(1)
+            )[0];
+            if (
+              !proposal?.payload ||
+              proposal.state !== "Pending" ||
+              proposal.revision !== item.revision ||
+              proposal.digest !== item.digest
+            )
+              conflict(
+                "A wording choice changed or was already applied. Refresh before trying again; nothing was applied.",
+              );
+            const task = await taskById(actor.ownerId, proposal.taskId);
+            if (task.draftId !== request.draftId)
+              conflict("Every wording choice must belong to this résumé.");
+            if (task.input.snapshot.id !== detail.snapshot.id)
+              conflict("The job posting changed. Refresh these wording choices.");
+            inputs.push(task.input);
+            const path = canonicalJson(task.input.target.path);
+            if (paths.has(path))
+              conflict("Choose one wording alternative per entry before applying the batch.");
+            paths.add(path);
+            const current = await currentTarget(actor.ownerId, task.input);
+            if (current.draft.revision !== request.revision)
+              conflict("The résumé changed while reviewing choices. Refresh and try again.");
+            if (!item.wording.trim())
+              throw new ApplicationError({
+                code: "InvalidInput",
+                message: "Write the wording before applying this choice.",
+              });
+            const payload = { ...proposal.payload, wording: item.wording };
+            data = applyWordingProposal(data, task.input.target.path, payload);
+            writes.push(
+              db
+                .update(s.wordingProposals)
+                .set({
+                  state: "Accepted",
+                  revision: proposal.revision + 1,
+                  appliedRevision: request.revision + 1,
+                  reviewedAt: Date.now(),
+                  payload,
+                })
+                .where(eq(s.wordingProposals.id, proposal.id)),
+            );
+          }
+          const first = inputs[0];
+          if (!first)
+            throw new ApplicationError({
+              code: "InvalidInput",
+              message: "Select at least one wording choice.",
+            });
+          // A single JSON parameter keeps large batches below D1's bound-parameter limit.
+          guards.push(
+            ...inputGuards(actor.ownerId, {
+              ...first,
+              evidence: inputs.flatMap((input) => input.evidence),
+            }),
+            guarded(
+              sql`NOT EXISTS (SELECT 1 FROM json_each(${JSON.stringify(request.items.map(({ id, revision, digest }) => ({ id, revision, digest })))}) expected WHERE NOT EXISTS (SELECT 1 FROM wording_proposals p WHERE p.id=json_extract(expected.value,'$.id') AND p.revision=json_extract(expected.value,'$.revision') AND p.digest=json_extract(expected.value,'$.digest') AND p.state='Pending'))`,
+              "A wording choice was reviewed elsewhere. Refresh and try again.",
+            ),
+          );
+          writes.push(
+            ...(await resumes.resumeUpdateWrites(actor, request.draftId, request.revision, data)),
+          );
+          return {
+            result: { id: request.draftId, revision: request.revision + 1, revisionId: null },
+            guards,
+            writes,
+            history: [
+              {
+                entityId: request.draftId,
+                after: {
+                  wordingChoices: request.items.map((item) => item.id),
+                  revision: request.revision + 1,
+                },
+              },
+            ],
+          };
+        },
+      );
+    },
     async reviewWording(actor: Principal, request: ReviewWordingRequest) {
       owner(actor);
       return commands.commit(actor, "review-wording", request.idempotencyKey, request, async () => {
@@ -481,11 +613,10 @@ export function createWordingRepository(db: Database) {
             resumes.resumeGuard(actor, detail.draft.id, detail.draft.revision),
             ...inputGuards(actor.ownerId, task.input),
           );
-          const data = applyWordingProposal(
-            detail.draft.data,
-            task.input.target.path,
-            proposal.payload,
-          );
+          const data = applyWordingProposal(detail.draft.data, task.input.target.path, {
+            ...proposal.payload,
+            wording: request.wording ?? proposal.payload.wording,
+          });
           writes.push(
             ...(await resumes.resumeUpdateWrites(
               actor,
@@ -504,7 +635,11 @@ export function createWordingRepository(db: Database) {
               revision: proposal.revision + 1,
               reviewedAt: Date.now(),
               appliedRevision,
-              ...(request.decision === "Rejected" ? { payload: null } : {}),
+              ...(request.decision === "Rejected"
+                ? { payload: null }
+                : request.wording
+                  ? { payload: { ...proposal.payload, wording: request.wording } }
+                  : {}),
             })
             .where(eq(s.wordingProposals.id, proposal.id)),
         );

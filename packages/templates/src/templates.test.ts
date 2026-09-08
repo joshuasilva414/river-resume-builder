@@ -24,14 +24,15 @@ describe("safe composition and text integrity", () => {
       expect(compose(syntheticResume, theme)).toEqual(compose(syntheticResume, theme));
     },
   );
-  it("blocks missing, reordered, and duplicated text", () => {
+  it("blocks missing and duplicated text while reporting reordered text", () => {
     const expected = expectedText(syntheticResume);
     expect(validateText(syntheticResume, expected).passed).toBe(true);
     expect(validateText(syntheticResume, expected.replace("Fieldnotes", "")).passed).toBe(false);
     expect(validateText(syntheticResume, `${expected} Fieldnotes`).passed).toBe(false);
-    expect(validateText(syntheticResume, expected.split("\n").reverse().join("\n")).passed).toBe(
-      false,
-    );
+    expect(validateText(syntheticResume, expected.split("\n").reverse().join("\n"))).toMatchObject({
+      passed: true,
+      checks: { readingOrder: false },
+    });
   });
 });
 

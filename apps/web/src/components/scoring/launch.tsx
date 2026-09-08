@@ -1,5 +1,6 @@
 import type { RetryScoringRequest, StartScoringRequest } from "@river/contracts";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { EvidenceDialog, Failure, unwrap } from "~/components/evidence/shared";
 import { Button } from "~/components/ui/button";
@@ -11,6 +12,7 @@ import {
   retryScoringRun,
   scoreCheckpoint,
 } from "~/server/scoring-functions";
+import { ScoringAllowance, useScoringAllowance } from "./allowance";
 import { ScoreComparison } from "./comparison";
 import { SavedText, ScoreResults, type ScoringDetail } from "./review";
 
@@ -76,6 +78,7 @@ export function CheckpointScoring({
     },
     onSuccess: (result) => {
       setRequest(null);
+      void client.invalidateQueries({ queryKey: ["scoring-allowance"] });
       setSelected(result.id);
       void client.invalidateQueries({ queryKey: ["scoring-runs", checkpointId] });
     },
@@ -84,7 +87,8 @@ export function CheckpointScoring({
       void client.invalidateQueries({ queryKey: ["scoring-runs", checkpointId] });
     },
   });
-  const setup = context.data;
+  const setup = context.data,
+    allowance = useScoringAllowance();
   return (
     <EvidenceDialog
       title="Checkpoint scores"
@@ -103,6 +107,7 @@ export function CheckpointScoring({
         <div className="min-w-0 space-y-5">
           <section className="space-y-5 rounded-md border bg-card p-5 md:p-6">
             <h2 className="font-editorial text-2xl">Score this checkpoint</h2>
+            <ScoringAllowance />
             <Failure error={context.error} />
             {context.isPending && <p role="status">Loading exact scoring input…</p>}
             {context.error && (
@@ -155,10 +160,15 @@ export function CheckpointScoring({
                   disabled={
                     start.isPending ||
                     (!request &&
-                      (!setup.configured || !setup.documentReady || !setup.preflight.allowed))
+                      (!setup.configured ||
+                        !setup.documentReady ||
+                        !setup.preflight.allowed ||
+                        (allowance.data?.remaining !== null &&
+                          (allowance.data?.remaining ?? 0) < 1)))
                   }
                   onClick={() => start.mutate()}
                 >
+                  {start.isPending && <LoaderCircle className="animate-spin" />}
                   {start.isPending
                     ? "Starting scoring…"
                     : start.error
@@ -170,6 +180,7 @@ export function CheckpointScoring({
                     variant="outline"
                     onClick={() => {
                       setRequest(null);
+                      void client.invalidateQueries({ queryKey: ["scoring-allowance"] });
                       start.reset();
                     }}
                   >
@@ -179,8 +190,8 @@ export function CheckpointScoring({
               </>
             )}
             <p className="text-xs text-muted-foreground">
-              The provider returns all six simulations together. A successful score does not
-              acknowledge evidence issues or authorize export.
+              The provider returns all six simulations together. Each complete result uses one
+              scoring allowance.
             </p>
           </section>
           <section className="space-y-4 rounded-md border bg-card p-5 md:p-6">
@@ -316,6 +327,7 @@ function RunStatus({
     },
     onSuccess: () => {
       setRequest(null);
+      void client.invalidateQueries({ queryKey: ["scoring-allowance"] });
       void client.invalidateQueries({ queryKey: ["scoring-run", run.id] });
       void client.invalidateQueries({ queryKey: ["scoring-runs", run.checkpointId] });
     },
@@ -327,7 +339,8 @@ function RunStatus({
   return (
     <section className="space-y-4 rounded-md border bg-card p-5 md:p-6">
       <h2 className="font-editorial text-2xl">Result {run.id.slice(-8)}</h2>
-      <p className="text-sm" role="status">
+      <p className="flex items-center gap-2 text-sm" role="status">
+        {active && <LoaderCircle className="size-4 animate-spin" />}
         {mutation.isPending && request?.type === "cancel"
           ? "Cancel requested…"
           : current?.operation.stage}{" "}
@@ -372,6 +385,7 @@ function RunStatus({
             variant="outline"
             onClick={() => {
               setRequest(null);
+              void client.invalidateQueries({ queryKey: ["scoring-allowance"] });
               mutation.reset();
             }}
           >

@@ -104,6 +104,8 @@ const allowedCommands = new Set([
   "textbf",
   "textit",
   "small",
+  "hfill",
+  "textwidth",
 ]);
 /** This is a deliberately closed fragment grammar. It never evaluates template code. */
 export function validateTemplate(template: TemplateRevision): void {
@@ -131,10 +133,10 @@ export function validateTemplate(template: TemplateRevision): void {
     if (!allowedCommands.has(match[1] ?? ""))
       throw new Error(`Prohibited LaTeX command: ${match[1]}`);
   for (const match of source.matchAll(/\\usepackage(?:\[[^\]]*\])?\{([^}]*)\}/g))
-    if (!["fontspec", "geometry", "enumitem", "titlesec"].includes(match[1] ?? ""))
+    if (!["fontspec", "geometry", "enumitem", "titlesec", "multicol"].includes(match[1] ?? ""))
       throw new Error("Unapproved LaTeX package.");
   for (const match of source.matchAll(/\\(?:begin|end)\{([^}]*)\}/g))
-    if (!["document", "itemize"].includes(match[1] ?? ""))
+    if (!["document", "itemize", "minipage", "multicols"].includes(match[1] ?? ""))
       throw new Error("Unapproved LaTeX environment.");
   if (manifest.level === "document") {
     const normalized = source.replace(

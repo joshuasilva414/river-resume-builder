@@ -37,7 +37,7 @@ export function GettingStarted() {
       key: "evidence",
       title: "Add your experience",
       to: "/sources",
-      text: "Import a résumé or add notes. Review proposed facts before using them.",
+      text: "Import a résumé and add the extracted evidence you want to keep, or add your own notes.",
     },
     {
       key: "job",
@@ -55,19 +55,19 @@ export function GettingStarted() {
       key: "draft",
       title: "Build a résumé",
       to: "/jobs",
-      text: "Open a job and create a draft with your saved content.",
+      text: "Open a job and create a résumé with your saved content.",
     },
     {
       key: "review",
       title: "Review your résumé",
       to: "/jobs",
-      text: "Save a checkpoint, check the PDF, and review its evidence.",
+      text: "Save a version, inspect the PDF, and check its wording and layout.",
     },
     {
       key: "exported",
       title: "Download your PDF",
       to: "/jobs",
-      text: "Resolve review items, then export the finished résumé.",
+      text: "When the document checks pass, export your finished résumé.",
     },
   ] as const;
   return (

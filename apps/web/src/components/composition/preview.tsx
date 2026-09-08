@@ -1,10 +1,12 @@
 import { renderComposition } from "@river/domain";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { LoaderCircle } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Failure, unwrap } from "~/components/evidence/shared";
 import { PdfPreview } from "~/components/pdf-preview";
 import { Button } from "~/components/ui/button";
 import { requestResumePreview } from "~/server/composition-functions";
+import { cancelDocumentOperation } from "~/server/functions";
 import type { ResumeDetail } from "./use-draft";
 export function DraftPreview({
   detail,
@@ -16,17 +18,38 @@ export function DraftPreview({
   dirty: boolean;
 }) {
   const client = useQueryClient(),
+    cancelled = useRef(0),
     attempted = useRef<number | null>(null),
     identity = useRef<{ revision: number; key: string } | null>(null);
   const mutation = useMutation({
     mutationFn: async (retry: boolean) => {
+      const generation = cancelled.current;
       if (identity.current?.revision !== revision || retry)
         identity.current = { revision, key: crypto.randomUUID() };
-      return unwrap(
+      const result = unwrap(
         await requestResumePreview({
           data: { id: detail.draft.id, revision, idempotencyKey: identity.current.key },
         }),
       );
+      if (generation !== cancelled.current)
+        unwrap(
+          await cancelDocumentOperation({
+            data: { operationId: result.id, idempotencyKey: crypto.randomUUID() },
+          }),
+        );
+      return result;
+    },
+    onSuccess: () => client.invalidateQueries({ queryKey: ["resumes", "detail", detail.draft.id] }),
+  });
+  const cancellation = useMutation({
+    mutationFn: async () => {
+      cancelled.current++;
+      if (detail.request && ["Pending", "Running"].includes(detail.request.state))
+        unwrap(
+          await cancelDocumentOperation({
+            data: { operationId: detail.request.id, idempotencyKey: crypto.randomUUID() },
+          }),
+        );
     },
     onSuccess: () => client.invalidateQueries({ queryKey: ["resumes", "detail", detail.draft.id] }),
   });
@@ -78,20 +101,30 @@ export function DraftPreview({
     <aside className="min-w-0 bg-muted/60 xl:overflow-y-auto">
       <header className="flex flex-wrap items-center gap-3 border-b bg-background px-6 py-5">
         <h2 className="font-sans text-sm font-semibold">PDF preview</h2>
-        <p role="status" className="text-xs text-muted-foreground">
+        <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
+          {(active || mutation.isPending) && <LoaderCircle className="size-4 animate-spin" />}
           {active || mutation.isPending
             ? "Updating"
             : expired
               ? "Preview expired"
               : current
-                ? "Current saved revision"
+                ? "Current"
                 : detail.preview
                   ? earlierTemplates
                     ? "Earlier template rendering"
-                    : "Earlier saved revision"
+                    : "Showing the last successful preview"
                   : "No preview yet"}
-          {detail.preview && !expired && ` · Showing revision ${detail.draft.lastPreviewRevision}`}
         </p>
+        {(active || mutation.isPending) && (
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={cancellation.isPending}
+            onClick={() => cancellation.mutate()}
+          >
+            Cancel
+          </Button>
+        )}
       </header>
       <div className="space-y-5 p-6">
         {detail.preview?.artifacts && !expired && (
@@ -100,7 +133,7 @@ export function DraftPreview({
         {expired && (
           <div className="space-y-3">
             <p className="text-sm">
-              Transient previews expire after seven days. Retained checkpoint files stay available.
+              Previews expire after seven days. Files from saved versions stay available.
             </p>
             <Button
               variant="outline"
@@ -111,11 +144,11 @@ export function DraftPreview({
             </Button>
           </div>
         )}
-        <Failure error={mutation.error} />
+        <Failure error={mutation.error ?? cancellation.error} />
         {readiness && <p className="text-sm">{readiness}</p>}
         {detail.request?.failure && (
           <p className="border-l-2 border-warning p-4 text-sm">
-            {detail.request.failure} The saved draft and last successful PDF are preserved.
+            {detail.request.failure} Your résumé and last successful PDF are preserved.
           </p>
         )}
         {!readiness &&
@@ -137,7 +170,9 @@ export function DraftPreview({
             </Button>
           )}
         {dirty && (
-          <p className="text-xs text-muted-foreground">Preview follows acknowledged saves.</p>
+          <p className="text-xs text-muted-foreground">
+            The preview updates after your changes save.
+          </p>
         )}
         {detail.preview?.artifacts && !expired && (
           <div className="flex flex-wrap gap-4 text-sm">

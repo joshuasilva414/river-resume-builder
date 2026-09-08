@@ -271,6 +271,7 @@ function workflowFor(
 ) {
   if (!("type" in input)) return env.DOCUMENT_WORKFLOW;
   switch (input.type) {
+    case "job-import":
     case "job-ai":
       return env.JOB_AI_WORKFLOW;
     case "source-ai":

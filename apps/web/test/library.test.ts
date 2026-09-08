@@ -4,11 +4,15 @@ import { createRepository, schema } from "@river/db";
 import {
   type BlockData,
   type ContentData,
+  ContentRecord,
+  emptyStructuredContent,
   type LibraryReference,
   newId,
   type Principal,
   type SectionData,
+  type StructuredContent,
 } from "@river/domain";
+import { Schema } from "effect";
 import { beforeAll, expect, it } from "vitest";
 import { compositionFixture } from "./fixtures/composition";
 
@@ -274,7 +278,7 @@ it("guards concurrent archive and editing, enforces Owner access, and permanentl
     id: ref.itemId,
     revision: 0,
     archived: true,
-    rationale: "Fixture complete",
+    rationale: "",
     idempotencyKey: "archive",
   };
   const agent: Principal = {
@@ -290,9 +294,6 @@ it("guards concurrent archive and editing, enforces Owner access, and permanentl
   await expect(
     repository.setLibraryArchived({ kind: "owner", id: other, ownerId: other }, request),
   ).rejects.toMatchObject({ code: "NotFound" });
-  await expect(
-    repository.setLibraryArchived(actor, { ...request, rationale: "  " }),
-  ).rejects.toMatchObject({ code: "InvalidInput" });
   const results = await Promise.all([
     repository.setLibraryArchived(actor, request),
     repository.setLibraryArchived(actor, request),
@@ -338,4 +339,91 @@ it("guards concurrent archive and editing, enforces Owner access, and permanentl
   );
   expect(restores.filter((result) => result.status === "fulfilled")).toHaveLength(1);
   expect((await repository.inspectLibrary(actor.id, { id: ref.itemId })).lifecycle).toHaveLength(2);
+});
+
+it("saves nested entries with the section atomically and preserves earlier reusable values on edit", async () => {
+  const { repository, actor } = await fixture();
+  const base = emptyStructuredContent("experience", newId()),
+    entryId = newId();
+  const structured: StructuredContent = {
+    ...base,
+    record: {
+      ...base.record,
+      values: {
+        heading: "Experience",
+        entries: [
+          {
+            id: entryId,
+            schema: { id: "experience-entry", revision: 1 },
+            layout: { id: "experience-entry-classic", revision: 1 },
+            values: {
+              employer: "Example Labs",
+              title: "Engineer",
+              accomplishments: ["Built the editor."],
+            },
+          },
+        ],
+      },
+    },
+  };
+  const request = {
+    id: null,
+    revision: null,
+    label: "Experience",
+    rationale: "",
+    idempotencyKey: "one-save",
+    data: {
+      kind: "section",
+      type: "experience",
+      heading: "Experience",
+      blocks: [],
+      structured,
+    } as const,
+  };
+  const saved = await repository.saveLibrary(actor, request);
+  expect(await repository.saveLibrary(actor, request)).toEqual(saved);
+  const entry = await repository.getLibraryItem(actor.ownerId, entryId);
+  expect(entry?.kind).toBe("block");
+  if (!entry) throw new Error("Nested entry was not saved.");
+  const before = await repository.getLibraryRevision(actor.ownerId, {
+    itemId: entryId,
+    revisionId: entry.currentRevisionId,
+  });
+  expect(before?.revision.data).toMatchObject({
+    structured: { record: { values: { title: "Engineer" } } },
+  });
+  const entries = Schema.decodeUnknownSync(Schema.Array(ContentRecord))(
+    structured.record.values.entries,
+  );
+  await repository.saveLibrary(actor, {
+    ...request,
+    id: saved.id,
+    revision: saved.revision,
+    idempotencyKey: "edit-section",
+    data: {
+      ...request.data,
+      structured: {
+        ...structured,
+        record: {
+          ...structured.record,
+          values: {
+            ...structured.record.values,
+            entries: entries.map((entry) => ({
+              ...entry,
+              values: { ...entry.values, title: "Senior Engineer" },
+            })),
+          },
+        },
+      },
+    },
+  });
+  expect((await repository.getLibraryItem(actor.ownerId, entryId))?.currentRevisionId).toBe(
+    entry.currentRevisionId,
+  );
+  expect(
+    await repository.getLibraryRevision(actor.ownerId, {
+      itemId: entryId,
+      revisionId: entry.currentRevisionId,
+    }),
+  ).toEqual(before);
 });

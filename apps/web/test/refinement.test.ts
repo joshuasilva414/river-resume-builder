@@ -604,6 +604,7 @@ it("requires complete current review and creates an immutable source checkpoint 
     issueIds: original.report.issues.map((issue) => issue.id),
     idempotencyKey: "old-ack",
   });
+  const originalAfterAcknowledgment = await r.inspectCheckpoint(f.actor.ownerId, f.captured.id);
   await r.saveResume(f.actor, {
     id: f.draft.id,
     revision: 1,
@@ -633,13 +634,11 @@ it("requires complete current review and creates an immutable source checkpoint 
   expect(cp.source?.source).toContain(changed);
   expect(cp.checkpoint.document).toEqual(original.checkpoint.document);
   expect(cp.acknowledgments).toHaveLength(0);
-  expect(
-    cp.report.issues.some(
-      (issue) => issue.kind === "Needs clarification" && issue.wording === changed,
-    ),
-  ).toBe(true);
+  expect(cp.report.issues.some((issue) => issue.kind === "Needs clarification")).toBe(false);
   expect((await r.getResume(f.actor.ownerId, f.draft.id))?.data.name).toBe("Newer working draft");
-  expect((await r.inspectCheckpoint(f.actor.ownerId, f.captured.id)).source).toBeNull();
+  expect(await r.inspectCheckpoint(f.actor.ownerId, f.captured.id)).toEqual(
+    originalAfterAcknowledgment,
+  );
   expect((await r.inspectSourceRefinement(f.actor.ownerId, f.started.id)).proposal?.state).toBe(
     "Accepted",
   );
@@ -649,19 +648,7 @@ it("requires complete current review and creates an immutable source checkpoint 
     reportId: cp.report.id,
     digest: cp.report.digest,
   };
-  await expect(
-    r.exportCheckpoint(f.actor, { ...exportInput, idempotencyKey: "source-unack-export" }),
-  ).rejects.toMatchObject({ code: "InvalidInput" });
-  const ack = await r.acknowledgeCheckpoint(f.actor, {
-    ...exportInput,
-    issueIds: cp.report.issues.map((issue) => issue.id),
-    idempotencyKey: "source-ack",
-  });
-  await r.exportCheckpoint(f.actor, {
-    ...exportInput,
-    revision: ack.revision,
-    idempotencyKey: "source-export",
-  });
+  await r.exportCheckpoint(f.actor, { ...exportInput, idempotencyKey: "source-export" });
   expect((await r.inspectCheckpoint(f.actor.ownerId, saved.id)).exported).not.toBeNull();
   expect(
     (await r.listCheckpoints(f.actor.ownerId, { draftId: f.draft.id, offset: 0 })).items,

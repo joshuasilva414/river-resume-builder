@@ -35,7 +35,7 @@ export const SetLibraryArchivedRequest = Schema.Struct({
   id: RecordId,
   revision: Revision,
   archived: Schema.Boolean,
-  rationale: Schema.NonEmptyString.check(Schema.isMaxLength(4000)),
+  rationale: Schema.String.check(Schema.isMaxLength(4000)),
 });
 export type SetLibraryArchivedRequest = typeof SetLibraryArchivedRequest.Type;
 

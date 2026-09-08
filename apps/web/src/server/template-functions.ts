@@ -1,6 +1,7 @@
 import {
   ApproveTemplateRequest,
   MixTemplateRequest,
+  PreviewWorkingTemplateRequest,
   RetireTemplateRequest,
   SaveTemplateRequest,
   StartTemplateValidationRequest,
@@ -9,9 +10,9 @@ import {
 } from "@river/contracts";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { bindings } from "./env";
-import { dispatchPending, execute } from "./services";
+import { Actor, attempt, dispatchPending, execute, Store } from "./services";
 import {
   approveTemplate,
   inspectTemplate,
@@ -26,6 +27,22 @@ import {
 export const getTemplates = createServerFn({ method: "GET" })
   .validator(Schema.decodeUnknownSync(TemplateSearch))
   .handler(({ data }) => execute(bindings(), getRequestHeaders(), listTemplates(data)));
+export const previewWorkingTemplate = createServerFn({ method: "POST" })
+  .validator(Schema.decodeUnknownSync(PreviewWorkingTemplateRequest))
+  .handler(async ({ data }) => {
+    const env = bindings();
+    const result = await execute(
+      env,
+      getRequestHeaders(),
+      Effect.gen(function* () {
+        const actor = yield* Actor,
+          store = yield* Store;
+        return yield* attempt(() => store.previewWorkingTemplate(actor, data));
+      }),
+    );
+    if (result.ok) await dispatchPending(env).catch(() => {});
+    return result;
+  });
 export const getTemplate = createServerFn({ method: "GET" })
   .validator(Schema.decodeUnknownSync(TemplateIdentity))
   .handler(({ data }) =>

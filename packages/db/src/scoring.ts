@@ -29,6 +29,7 @@ import type { Database } from "./index";
 import * as s from "./schema";
 import { prepareScoringRun, scoringCapacity } from "./scoring-command";
 import type { ScoringFailure, ScoringInput, ScoringResult } from "./scoring-types";
+import { prepareScoringAllowance, settleScoringAllowance } from "./usage";
 
 function owner(actor: Principal) {
   if (actor.kind !== "owner")
@@ -155,9 +156,15 @@ export function createScoringRepository(db: Database) {
         await limit.check();
         const operationId = newId(),
           now = Date.now();
+        const allowance = prepareScoringAllowance(
+          db,
+          actor,
+          operationId,
+          run.result ? [] : [`checkpoint:${run.id}`],
+        );
         return {
           result: { id: run.id, revision: run.revision + 1, revisionId: operationId },
-          guards: [guard, limit],
+          guards: [guard, limit, ...allowance.guards],
           writes: [
             db.insert(s.operations).values({
               id: operationId,
@@ -176,6 +183,7 @@ export function createScoringRepository(db: Database) {
               .insert(s.scoringAttempts)
               .values({ operationId, runId: run.id, ordinal: run.attempts + 1, createdAt: now }),
             db.insert(s.dispatches).values({ operationId }),
+            ...allowance.writes,
           ],
           history: [
             {
@@ -491,6 +499,7 @@ export function createScoringRepository(db: Database) {
           .update(s.scoringRuns)
           .set({ result })
           .where(and(eq(s.scoringRuns.id, row.run.id), sql`${s.scoringRuns.result} IS NULL`)),
+        settleScoringAllowance(db, operationId, `checkpoint:${row.run.id}`),
       ]);
     },
     async claimScoringSubmission(operationId: string) {
@@ -503,6 +512,7 @@ export function createScoringRepository(db: Database) {
             sql`${s.scoringAttempts.submittedAt} IS NULL`,
             sql`${s.scoringAttempts.observation} IS NOT NULL`,
             activeCondition(operationId),
+            sql`EXISTS (SELECT 1 FROM scoring_usage_reservations WHERE operation_id=${operationId} AND state='Reserved')`,
             sql`EXISTS (SELECT 1 FROM scoring_runs WHERE operation_id=${operationId} AND input IS NOT NULL AND result IS NULL)`,
           ),
         )

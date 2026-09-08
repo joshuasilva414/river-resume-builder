@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "river-local",
+  "browser": { "binding": "BROWSER" },
   "account_id": "a91c30d69981b341efe3b656a263f6da",
   "main": "src/server.ts",
   "compatibility_date": "2026-08-22",
@@ -102,6 +103,7 @@
   "env": {
     "staging": {
       "name": "river-staging",
+      "browser": { "binding": "BROWSER" },
       "tail_consumers": [{ "service": "river-telemetry-staging" }],
       "vars": {
         "ENVIRONMENT": "staging",
@@ -204,6 +206,7 @@
     },
     "production": {
       "name": "river-production",
+      "browser": { "binding": "BROWSER" },
       "tail_consumers": [{ "service": "river-telemetry-production" }],
       "vars": {
         "ENVIRONMENT": "production",

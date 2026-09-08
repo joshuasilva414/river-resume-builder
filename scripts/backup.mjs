@@ -30,7 +30,7 @@ const tables = (await query(catalogQuery, environment)).map((row) => row.name);
 const applied = (await query(migrationQuery, environment)).map((row) => row.name);
 const migrations = [];
 for (const name of applied) {
-  assert.match(name, /^\d{4}_[a-z_]+\.sql$/);
+  assert.match(name, /^\d{4}_[a-z0-9_]+\.sql$/);
   const sql = await readFile(join(root, "packages/db/migrations", name), "utf8");
   migrations.push({ name, sql, sha256: sha256(sql) });
 }

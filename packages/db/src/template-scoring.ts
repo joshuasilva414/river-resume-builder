@@ -32,6 +32,7 @@ import * as s from "./schema";
 import { scoringCapacity } from "./scoring-command";
 import type { ScoringFailure } from "./scoring-types";
 import type { TemplateScoringDocument } from "./template-scoring-types";
+import { prepareScoringAllowance, releaseScoringAllowance, settleScoringAllowance } from "./usage";
 
 function owner(actor: Principal) {
   if (actor.kind !== "owner")
@@ -216,6 +217,13 @@ export function createTemplateScoringRepository(db: Database) {
             fixtureSet.fixtures.map((f) => f.id),
           );
           if (!operationWrite) throw new Error("Missing operation write");
+          const allowance = prepareScoringAllowance(
+            db,
+            actor,
+            operationId,
+            fixtureSet.fixtures.map((f) => `template:${id}:${f.id}`),
+          );
+          guards.push(...allowance.guards);
           return {
             result: { id, revision: 0, revisionId: operationId },
             guards,
@@ -236,6 +244,7 @@ export function createTemplateScoringRepository(db: Database) {
                 db.insert(s.templateScoringFixtures).values({ runId: id, fixtureId: fixture.id }),
               ),
               ...rest,
+              ...allowance.writes,
             ],
             history: [
               {
@@ -277,6 +286,15 @@ export function createTemplateScoringRepository(db: Database) {
           for (const item of guards) await item.check();
           const operationId = newId(),
             revision = run.revision + 1;
+          const allowance = prepareScoringAllowance(
+            db,
+            actor,
+            operationId,
+            previous.fixtures
+              .filter((f) => !f.rawResponseJson)
+              .map((f) => `template:${run.id}:${f.fixtureId}`),
+          );
+          guards.push(...allowance.guards);
           return {
             result: { id: run.id, revision, revisionId: operationId },
             guards,
@@ -292,6 +310,7 @@ export function createTemplateScoringRepository(db: Database) {
                 .update(s.templateScoringRuns)
                 .set({ revision, operationId, attempts: run.attempts + 1 })
                 .where(eq(s.templateScoringRuns.id, run.id)),
+              ...allowance.writes,
             ],
             history: [
               {
@@ -414,7 +433,7 @@ export function createTemplateScoringRepository(db: Database) {
               ),
             ),
         ],
-        sql`EXISTS (SELECT 1 FROM template_scoring_fixture_attempts a JOIN template_scoring_fixtures f ON f.fixture_id=a.fixture_id AND f.run_id=${row.run.id} WHERE a.operation_id=${operationId} AND a.fixture_id=${fixtureId} AND a.submitted_at IS NULL AND f.document IS NOT NULL AND f.raw_response_json IS NULL)`,
+        sql`EXISTS (SELECT 1 FROM template_scoring_fixture_attempts a JOIN template_scoring_fixtures f ON f.fixture_id=a.fixture_id AND f.run_id=${row.run.id} WHERE a.operation_id=${operationId} AND a.fixture_id=${fixtureId} AND a.submitted_at IS NULL AND f.document IS NOT NULL AND f.raw_response_json IS NULL) AND EXISTS (SELECT 1 FROM scoring_usage_reservations WHERE id=${`template:${row.run.id}:${fixtureId}`} AND operation_id=${operationId} AND state='Reserved')`,
       );
     },
     async retainTemplateScoringResponse(operationId: string, fixtureId: string, raw: unknown) {
@@ -450,8 +469,9 @@ export function createTemplateScoringRepository(db: Database) {
                 eq(s.templateScoringFixtures.fixtureId, fixtureId),
               ),
             ),
+          settleScoringAllowance(db, operationId, `template:${row.run.id}:${fixtureId}`),
         ],
-        sql`EXISTS (SELECT 1 FROM template_scoring_fixtures WHERE run_id=${row.run.id} AND fixture_id=${fixtureId} AND raw_response_json IS NULL)`,
+        sql`EXISTS (SELECT 1 FROM template_scoring_fixtures WHERE run_id=${row.run.id} AND fixture_id=${fixtureId} AND raw_response_json IS NULL) AND EXISTS (SELECT 1 FROM scoring_usage_reservations WHERE id=${`template:${row.run.id}:${fixtureId}`} AND operation_id=${operationId} AND state='Reserved')`,
       );
     },
     async failTemplateScoringFixture(
@@ -459,7 +479,10 @@ export function createTemplateScoringRepository(db: Database) {
       fixtureId: string,
       failure: ScoringFailure,
     ) {
+      const row = await runtime(operationId);
+      if (!row) return false;
       return commitRuntime(operationId, [
+        releaseScoringAllowance(db, operationId, `template:${row.run.id}:${fixtureId}`),
         db
           .update(s.templateScoringFixtureAttempts)
           .set({ failure })

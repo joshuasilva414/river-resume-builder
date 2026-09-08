@@ -26,6 +26,7 @@ export const ResumeSearch = Schema.Struct({
 });
 export type ResumeSearch = typeof ResumeSearch.Type;
 export const PreviewResumeRequest = Schema.Struct({
+  data: Schema.optional(Composition),
   idempotencyKey: CommandKey,
   id: RecordId,
   revision: Revision,

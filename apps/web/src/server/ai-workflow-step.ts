@@ -3,10 +3,14 @@ import { ApplicationError } from "@river/domain";
 import { AiProviderFailure } from "./ai-failure";
 
 /** Preserve expected failures across step serialization without retaining generated content. */
-export async function runAiWorkflowStep(step: WorkflowStep, run: () => Promise<void>) {
+export async function runAiWorkflowStep(
+  step: WorkflowStep,
+  run: () => Promise<void>,
+  timeout: "90 seconds" | "10 minutes" = "90 seconds",
+) {
   const result = await step.do(
     "generate-validate-persist",
-    { retries: { limit: 0, delay: "1 second", backoff: "constant" }, timeout: "90 seconds" },
+    { retries: { limit: 0, delay: "1 second", backoff: "constant" }, timeout },
     async () => {
       try {
         await run();

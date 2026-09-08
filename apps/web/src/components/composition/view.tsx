@@ -1,6 +1,7 @@
 import {
   blockDefinitions,
   type Composition,
+  contentRecordText,
   contentValue,
   type LibraryGraphNode,
 } from "@river/domain";
@@ -26,10 +27,30 @@ export function CompositionView({
           {provenance && section.reason && (
             <p className="text-xs break-all">Changed for this résumé: {section.reason}</p>
           )}
+          {section.structured && (
+            <p className="whitespace-pre-line text-[15px] leading-6">
+              {contentRecordText(section.structured, section.structured.record, ["heading"]).join(
+                "\n",
+              )}
+            </p>
+          )}
+          {provenance && section.structured && (
+            <EvidenceLinks value={section.structured.evidence} />
+          )}
           {section.blocks.map((block) => (
             <article key={block.id} className="space-y-3 border-l-2 pl-4">
               {provenance && block.reason && (
                 <p className="text-xs break-all">Changed for this résumé: {block.reason}</p>
+              )}
+              {block.structured && (
+                <>
+                  <div className="space-y-2">
+                    <p className="whitespace-pre-line text-[15px] leading-6">
+                      {contentRecordText(block.structured, block.structured.record).join("\n")}
+                    </p>
+                  </div>
+                  {provenance && <EvidenceLinks value={block.structured.evidence} />}
+                </>
               )}
               {blockDefinitions[block.type].fields.map((field) => (
                 <div key={field.key} className="space-y-3">

@@ -1,5 +1,4 @@
-import type { EvidenceSearch } from "@river/contracts";
-import type { EvidenceReference } from "@river/domain";
+import { type EvidenceReference, EvidenceType } from "@river/domain";
 import { useQuery } from "@tanstack/react-query";
 import { useDeferredValue, useState } from "react";
 import { EvidenceInspector } from "~/components/evidence/inspector";
@@ -41,10 +40,7 @@ export function EvidenceLinks({
         )}
       </div>
       {!value.length && (
-        <p className="border-l-2 border-warning bg-warning/10 p-4 text-sm">
-          Unsupported wording · no evidence linked. You can save this wording and review support
-          before export.
-        </p>
+        <p className="text-sm text-muted-foreground">No evidence linked. Links are optional.</p>
       )}
       {value.map((reference) => (
         <EvidenceLink
@@ -90,8 +86,6 @@ function EvidenceLink({
   const detail = result.data;
   const selected = detail?.revisions.find((r) => r.id === reference.revisionId);
   const current = detail?.revisions.find((r) => r.id === detail.claim.currentRevisionId);
-  const decision = detail?.decisions.find((d) => d.revisionId === reference.revisionId);
-  const state = decision?.state ?? "Draft";
   const stale = detail && reference.revisionId !== detail.claim.currentRevisionId;
   return (
     <article className="space-y-3 rounded-sm border p-4">
@@ -100,20 +94,16 @@ function EvidenceLink({
       {detail && (
         <>
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">{state}</Badge>
-            {stale && <Badge variant="outline">Stale evidence</Badge>}
-            {detail.claim.archivedAt && <Badge variant="outline">Archived</Badge>}
-            {!selected?.material.citations.length && <Badge variant="outline">Unsupported</Badge>}
+            <Badge variant="outline">{detail.claim.metadata.type ?? "Other"}</Badge>
+            {stale && <Badge variant="outline">Evidence changed</Badge>}
+            {detail.claim.archivedAt && <Badge variant="outline">In Trash</Badge>}
           </div>
           <p className="text-sm whitespace-pre-wrap">
-            {selected?.material.assertion ?? "Referenced evidence revision is unavailable."}
-          </p>
-          <p className="eyebrow break-all">
-            Exact evidence revision {reference.revisionId.slice(-8)}
+            {selected?.material.assertion ?? "The linked evidence is unavailable."}
           </p>
           <div className="flex flex-wrap gap-3">
             <Button type="button" variant="link" className="px-0" onClick={() => setInspect(true)}>
-              Open assertion, citations and context
+              View evidence
             </Button>
             {onRemove && (
               <Button type="button" variant="ghost" onClick={onRemove}>
@@ -122,7 +112,7 @@ function EvidenceLink({
             )}
             {stale && onReplace && (
               <Button type="button" variant="outline" onClick={() => setCompare(true)}>
-                Compare newer revision
+                Compare current evidence
               </Button>
             )}
           </div>
@@ -130,8 +120,8 @@ function EvidenceLink({
       )}
       {inspect && detail && (
         <EvidenceDialog
-          title="Evidence provenance"
-          description="This is the exact evidence revision linked to your wording."
+          title="Evidence"
+          description="The evidence saved with this wording."
           onClose={() => setInspect(false)}
           wide
         >
@@ -140,24 +130,24 @@ function EvidenceLink({
       )}
       {compare && detail && current && (
         <EvidenceDialog
-          title="Compare evidence revisions"
-          description="Changing the link updates this form only. Save the new wording revision explicitly."
+          title="Compare evidence"
+          description="Choose which saved evidence to use with this wording."
           onClose={() => setCompare(false)}
           wide
         >
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
-              <p className="eyebrow">Linked revision · {state}</p>
+              <p className="eyebrow">Linked evidence</p>
               <MaterialSummary material={selected?.material} contexts={detail.contexts} />
             </div>
             <div>
-              <p className="eyebrow">Current revision · {detail.claim.reviewState}</p>
+              <p className="eyebrow">Current evidence</p>
               <MaterialSummary material={current.material} contexts={detail.contexts} />
             </div>
           </div>
           <div className="mt-5 flex flex-wrap justify-end gap-3">
             <Button variant="outline" onClick={() => setCompare(false)}>
-              Keep linked revision
+              Keep linked evidence
             </Button>
             <Button
               onClick={() => {
@@ -165,7 +155,7 @@ function EvidenceLink({
                 setCompare(false);
               }}
             >
-              Use current revision
+              Use current evidence
             </Button>
           </div>
         </EvidenceDialog>
@@ -184,10 +174,17 @@ function EvidencePicker({
 }) {
   const [search, setSearch] = useState("");
   const query = useDeferredValue(search);
-  const [status, setStatus] = useState<EvidenceSearch["status"]>("All");
+  const [type, setType] = useState<EvidenceType>();
   const [archived, setArchived] = useState(false);
   const [offset, setOffset] = useState(0);
-  const input = { query, status, archived: archived ? null : false, contextId: null, offset };
+  const input = {
+    query,
+    type,
+    status: "All" as const,
+    archived: archived ? null : false,
+    contextId: null,
+    offset,
+  };
   const results = useQuery({
     queryKey: ["evidence", "search", input],
     queryFn: async () => unwrap(await getEvidence({ data: input })),
@@ -197,7 +194,7 @@ function EvidencePicker({
   return (
     <EvidenceDialog
       title="Choose supporting evidence"
-      description="Inspect the assertion and provenance before linking an exact revision."
+      description="Choose saved evidence to support your wording."
       onClose={onClose}
       wide
     >
@@ -212,23 +209,17 @@ function EvidencePicker({
               }}
             />
           </FormField>
-          <FormField label="Review status">
+          <FormField label="Type">
             <select
               className={selectClass}
-              value={status}
+              value={type ?? ""}
               onChange={(event) => {
-                const value = event.target.value;
-                if (
-                  value === "All" ||
-                  value === "Verified" ||
-                  value === "Draft" ||
-                  value === "Needs clarification"
-                )
-                  setStatus(value);
+                setType(EvidenceType.literals.find((item) => item === event.target.value));
                 setOffset(0);
               }}
             >
-              {["All", "Verified", "Draft", "Needs clarification"].map((s) => (
+              <option value="">All types</option>
+              {EvidenceType.literals.map((s) => (
                 <option key={s}>{s}</option>
               ))}
             </select>
@@ -243,7 +234,7 @@ function EvidencePicker({
               setOffset(0);
             }}
           />
-          Show archived evidence
+          Include evidence in Trash
         </label>
         <Failure error={results.error} />
         {results.error && (
@@ -268,8 +259,8 @@ function EvidencePicker({
               <span className="min-w-0">
                 <span className="block whitespace-pre-wrap text-sm">{claim.assertion}</span>
                 <span className="mt-2 block text-xs text-muted-foreground">
-                  {claim.reviewState}
-                  {claim.archivedAt ? " · Archived" : ""}
+                  {claim.metadata.type ?? "Other"}
+                  {claim.archivedAt ? " · In Trash" : ""}
                   {value.some((ref) => ref.claimId === claim.id) ? " · Already linked" : ""}
                 </span>
               </span>
@@ -317,7 +308,7 @@ function EvidencePicker({
               if (selected && detail.data) onPick(selected);
             }}
           >
-            Link this revision
+            Link evidence
           </Button>
         </div>
       </div>

@@ -94,11 +94,7 @@ describe("source proposal review contract", () => {
       origin: "source",
       reviewRequired: true,
     });
-    expect(
-      sourceExportIssues(candidate.fields, [], []).filter(
-        (item) => item.kind === "Needs clarification",
-      ),
-    ).toHaveLength(2);
+    expect(sourceExportIssues(candidate.fields, [], [])).toEqual([]);
     const repeat = captureSourceCandidate(candidate.fields, [], newId(), {
       ...original,
       fields: candidate.fields.map((field) => ({

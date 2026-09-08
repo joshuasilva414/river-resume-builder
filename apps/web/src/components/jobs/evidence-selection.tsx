@@ -1,4 +1,3 @@
-import type { EvidenceSearch } from "@river/contracts";
 import { type EvidenceSelection, selectionIdentity } from "@river/domain";
 import { useQuery } from "@tanstack/react-query";
 import { useDeferredValue, useState } from "react";
@@ -8,7 +7,6 @@ import {
   Failure,
   FormField,
   MaterialSummary,
-  selectClass,
   unwrap,
   useEvidenceDetail,
 } from "~/components/evidence/shared";
@@ -36,11 +34,16 @@ export function EvidenceSearchPanel({
   onInspect: (selection: EvidenceSelection) => void;
 }) {
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<EvidenceSearch["status"]>("All");
   const [archived, setArchived] = useState(false);
   const [offset, setOffset] = useState(0);
   const query = useDeferredValue(search);
-  const input = { query, status, archived: archived ? null : false, contextId: null, offset };
+  const input = {
+    query,
+    status: "All" as const,
+    archived: archived ? null : false,
+    contextId: null,
+    offset,
+  };
   const matches = useQuery({
     queryKey: ["evidence", "search", input],
     queryFn: async () => unwrap(await getEvidence({ data: input })),
@@ -61,29 +64,6 @@ export function EvidenceSearchPanel({
             />
           </FormField>
         </div>
-        <div className="w-44">
-          <FormField label="Review status">
-            <select
-              className={selectClass}
-              value={status}
-              onChange={(event) => {
-                const value = event.target.value;
-                if (
-                  value === "All" ||
-                  value === "Draft" ||
-                  value === "Needs clarification" ||
-                  value === "Verified"
-                )
-                  setStatus(value);
-                setOffset(0);
-              }}
-            >
-              {["All", "Draft", "Needs clarification", "Verified"].map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </FormField>
-        </div>
       </div>
       <label className="flex min-h-11 items-center gap-3 text-sm">
         <input
@@ -95,7 +75,7 @@ export function EvidenceSearchPanel({
             setOffset(0);
           }}
         />
-        Include archived evidence
+        Include deleted evidence
       </label>
       <Failure error={matches.error} />
       {matches.error && (
@@ -142,7 +122,6 @@ export function EvidenceSearchPanel({
             />
             <div className="min-w-0 flex-1">
               <div className="mb-2 flex flex-wrap gap-2">
-                <Badge variant="outline">{shown.reviewState}</Badge>
                 {shown.issues
                   .filter((issue) => issue !== shown.reviewState)
                   .map((issue) => (
@@ -160,7 +139,7 @@ export function EvidenceSearchPanel({
                 variant="link"
                 onClick={() => onInspect(saved ?? selection)}
               >
-                Inspect citation and verification
+                View evidence
               </Button>
             </div>
           </article>
@@ -215,7 +194,6 @@ export function SelectedEvidence({
       {items.map((item) => (
         <article key={selectionIdentity(item)} className="space-y-3 border-b py-5">
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">{item.reviewState}</Badge>
             {item.issues
               .filter((issue) => issue !== item.reviewState)
               .map((issue) => (
@@ -238,7 +216,7 @@ export function SelectedEvidence({
               className="min-h-11 px-0 whitespace-normal text-left"
               onClick={() => onInspect(item)}
             >
-              Inspect citation and verification
+              View evidence
             </Button>
             {!readOnly && (
               <Button
@@ -294,8 +272,8 @@ export function JobEvidenceInspector({
   const stale = current?.id !== selection.evidenceRevisionId;
   return (
     <EvidenceDialog
-      title="Evidence provenance"
-      description="Inspect the exact wording, source passages, and review decisions for this selection."
+      title="Evidence"
+      description="Review the selected wording and optional sources."
       onClose={onClose}
       wide
       pending={busy}
@@ -307,25 +285,23 @@ export function JobEvidenceInspector({
           {stale && (
             <div className="mb-5 space-y-3 rounded-sm border p-4">
               <p className="text-sm">
-                A newer evidence revision is available. This selection keeps its original wording.
+                Newer evidence is available. This selection keeps its original wording.
               </p>
               <Button variant="outline" onClick={() => setCompare(!compare)}>
-                {compare ? "Close comparison" : "Compare revisions"}
+                {compare ? "Close comparison" : "Compare saved versions"}
               </Button>
               {compare && (
                 <>
                   <div className="grid gap-5 sm:grid-cols-2">
                     <div>
-                      <p className="eyebrow">Selected revision</p>
+                      <p className="eyebrow">Selected version</p>
                       <MaterialSummary
                         material={selected?.material}
                         contexts={evidence.data.contexts}
                       />
                     </div>
                     <div>
-                      <p className="eyebrow">
-                        Current revision · {evidence.data.claim.reviewState}
-                      </p>
+                      <p className="eyebrow">Current version</p>
                       <MaterialSummary
                         material={current?.material}
                         contexts={evidence.data.contexts}
@@ -344,7 +320,7 @@ export function JobEvidenceInspector({
                         onClose();
                       }}
                     >
-                      Use current revision for this association
+                      Use current evidence
                     </Button>
                   )}
                 </>
@@ -359,9 +335,9 @@ export function JobEvidenceInspector({
           {allowSelection && !readOnly && selected && (
             <div className="mt-5 space-y-3 border-t pt-5">
               <p className="text-sm">
-                Choose the exact evidence revision shown above for this association.
-                {stale && " This is an older revision; its wording remains unchanged."}
-                {evidence.data.claim.archivedAt && " This evidence is currently archived."}
+                Use the evidence shown above.
+                {stale && " This is an older version; its wording remains unchanged."}
+                {evidence.data.claim.archivedAt && " This evidence is in Trash."}
               </p>
               <Button
                 disabled={busy}
@@ -370,7 +346,7 @@ export function JobEvidenceInspector({
                   onClose();
                 }}
               >
-                Choose this exact revision
+                Use this evidence
               </Button>
             </div>
           )}

@@ -3,6 +3,7 @@ import {
   ApplicationError,
   canonicalJson,
   fingerprint,
+  isQualification,
   JobWorkspace,
   newId,
   type Principal,
@@ -111,6 +112,7 @@ export function createJobRepository(db: Database) {
     posting: Extract<JobCommand, { type: "snapshot" }>["posting"],
     snapshotId: string,
     workspaceId: string,
+    workspace: JobWorkspace = emptyWorkspace,
   ) => {
     if (!posting.text.trim())
       throw new ApplicationError({
@@ -143,7 +145,7 @@ export function createJobRepository(db: Database) {
         actorId: actor.id,
         createdAt: Date.now(),
       }),
-      ...jobWorkspaceWrites(db, actor, snapshotId, workspaceId, emptyWorkspace),
+      ...jobWorkspaceWrites(db, actor, snapshotId, workspaceId, workspace),
     ] satisfies Write[];
   };
   return {
@@ -249,10 +251,8 @@ export function createJobRepository(db: Database) {
           reviewState,
           rationale: entry.decision?.rationale ?? null,
           issues: [
-            ...(reviewState === "Verified" ? [] : [reviewState]),
             ...(entry.claim.archivedAt !== null ? ["Archived"] : []),
             ...(entry.claim.currentRevisionId !== entry.evidence.id ? ["Stale"] : []),
-            ...(!entry.evidence.material.citations.length ? ["Unsupported"] : []),
           ],
         };
       });
@@ -278,6 +278,117 @@ export function createJobRepository(db: Database) {
               code: "InvalidInput",
               message: "A role title and company are required.",
             });
+          if (input.type === "import") {
+            const previous = input.target
+              ? await observe(actor, input.target.id, input.target.revision)
+              : null;
+            if (previous?.archivedAt != null)
+              throw new ApplicationError({
+                code: "Conflict",
+                message: "Restore this job before refreshing its posting.",
+              });
+            const guards = previous ? [guard(actor, previous.id, previous.revision)] : [];
+            if (input.importId) {
+              const imported = (
+                await db
+                  .select()
+                  .from(s.jobImports)
+                  .where(
+                    and(
+                      eq(s.jobImports.id, input.importId),
+                      eq(s.jobImports.ownerId, actor.ownerId),
+                    ),
+                  )
+                  .limit(1)
+              )[0];
+              const operation = imported
+                ? (
+                    await db
+                      .select()
+                      .from(s.operations)
+                      .where(eq(s.operations.id, imported.latestOperationId))
+                      .limit(1)
+                  )[0]
+                : null;
+              if (
+                !imported ||
+                imported.savedJobId ||
+                operation?.state === "Cancelled" ||
+                ["Pending", "Running"].includes(operation?.state ?? "")
+              )
+                throw new ApplicationError({
+                  code: "Conflict",
+                  message:
+                    "This import is running, cancelled, or already saved. Start a new import.",
+                });
+              guards.push({
+                condition: sql`EXISTS (SELECT 1 FROM job_imports i JOIN operations o ON o.id=i.latest_operation_id WHERE i.id=${imported.id} AND i.owner_id=${actor.ownerId} AND i.saved_job_id IS NULL AND o.state IN ('Succeeded','Failed'))`,
+                check: async () => {
+                  throw new ApplicationError({
+                    code: "Conflict",
+                    message: "This import changed. Reload before saving.",
+                  });
+                },
+              });
+            }
+            const id = previous?.id ?? newId(),
+              snapshotId = newId(),
+              revisionId = newId(),
+              now = Date.now();
+            const requirements = input.requirements.map(({ quote, ...fields }) => {
+              const start = quote ? input.posting.text.indexOf(quote) : -1;
+              if (quote && start < 0)
+                throw new ApplicationError({
+                  code: "InvalidInput",
+                  message:
+                    "A source passage is no longer in the posting. Review the imported requirements.",
+                });
+              return {
+                id: newId(),
+                ...fields,
+                confidence: null,
+                passages:
+                  start < 0 ? [] : [{ snapshotId, quote, start, end: start + quote.length }],
+              };
+            });
+            const revision = previous ? previous.revision + 1 : 0;
+            const record = {
+              id,
+              ownerId: actor.ownerId,
+              details: input.details,
+              revision,
+              currentSnapshotId: snapshotId,
+              createdAt: previous?.createdAt ?? now,
+              updatedAt: now,
+            };
+            return {
+              result: { id, revision, revisionId },
+              guards,
+              writes: [
+                previous
+                  ? db.update(s.jobs).set(record).where(eq(s.jobs.id, id))
+                  : db.insert(s.jobs).values(record),
+                ...(await postingWrites(
+                  actor,
+                  id,
+                  input.details,
+                  input.posting,
+                  snapshotId,
+                  revisionId,
+                  { requirements, selections: [] },
+                )),
+                ...(input.importId
+                  ? [
+                      db
+                        .update(s.jobImports)
+                        .set({ savedJobId: id })
+                        .where(eq(s.jobImports.id, input.importId)),
+                    ]
+                  : []),
+              ],
+              history: [{ entityId: id, after: { snapshotId, revision, imported: true } }],
+            };
+          }
           if (input.type === "create") {
             const id = newId(),
               snapshotId = newId(),
@@ -318,11 +429,6 @@ export function createJobRepository(db: Database) {
               message: "Restore this job target before editing its work.",
             });
           if (input.type === "archive" || input.type === "details") {
-            if (input.type === "archive" && !input.rationale.trim())
-              throw new ApplicationError({
-                code: "InvalidInput",
-                message: "Explain the archive or restore decision.",
-              });
             const next = {
               ...updated,
               ...(input.type === "archive"
@@ -405,6 +511,11 @@ export function createJobRepository(db: Database) {
                   message: "A supporting passage does not match this exact posting snapshot.",
                 });
             const requirement = { id: input.requirementId ?? newId(), ...input.fields };
+            if (!isQualification(requirement))
+              data = {
+                ...data,
+                selections: data.selections.filter((item) => item.requirementId !== requirement.id),
+              };
             data = {
               ...data,
               requirements: input.requirementId
@@ -419,41 +530,50 @@ export function createJobRepository(db: Database) {
               selections: data.selections.filter((s) => s.requirementId !== input.requirementId),
             };
           } else {
-            const selection = input.selection;
-            if (
-              selection.requirementId &&
-              !data.requirements.some((r) => r.id === selection.requirementId)
-            )
+            const batch = input.type === "selections" ? input.selections : [input.selection];
+            if (new Set(batch.map(selectionIdentity)).size !== batch.length)
               throw new ApplicationError({
                 code: "InvalidInput",
-                message: "Choose a requirement from this posting's current map.",
+                message: "Choose each evidence association once.",
               });
-            const evidence = (
-              await db
-                .select({ id: s.evidenceRevisions.id })
-                .from(s.evidenceRevisions)
-                .innerJoin(s.claims, eq(s.claims.id, s.evidenceRevisions.claimId))
-                .where(
-                  and(
-                    eq(s.claims.ownerId, actor.ownerId),
-                    eq(s.claims.id, selection.claimId),
-                    eq(s.evidenceRevisions.id, selection.evidenceRevisionId),
-                  ),
+            for (const selection of batch) {
+              if (
+                selection.requirementId &&
+                !data.requirements.some(
+                  (r) => r.id === selection.requirementId && isQualification(r),
                 )
-                .limit(1)
-            )[0];
-            if (!evidence)
-              throw new ApplicationError({
-                code: "NotFound",
-                message: "Evidence revision not found.",
-              });
-            const selections = data.selections.filter(
-              (item) => selectionIdentity(item) !== selectionIdentity(selection),
-            );
-            data = {
-              ...data,
-              selections: input.selected ? [...selections, selection] : selections,
-            };
+              )
+                throw new ApplicationError({
+                  code: "InvalidInput",
+                  message: "Choose a requirement from this posting's current map.",
+                });
+              const evidence = (
+                await db
+                  .select({ id: s.evidenceRevisions.id })
+                  .from(s.evidenceRevisions)
+                  .innerJoin(s.claims, eq(s.claims.id, s.evidenceRevisions.claimId))
+                  .where(
+                    and(
+                      eq(s.claims.ownerId, actor.ownerId),
+                      eq(s.claims.id, selection.claimId),
+                      eq(s.evidenceRevisions.id, selection.evidenceRevisionId),
+                    ),
+                  )
+                  .limit(1)
+              )[0];
+              if (!evidence)
+                throw new ApplicationError({
+                  code: "NotFound",
+                  message: "Evidence revision not found.",
+                });
+              const selections = data.selections.filter(
+                (item) => selectionIdentity(item) !== selectionIdentity(selection),
+              );
+              data = {
+                ...data,
+                selections: input.selected ? [...selections, selection] : selections,
+              };
+            }
           }
           if (
             !Schema.is(JobWorkspace)(data) ||

@@ -150,7 +150,7 @@ export function createEvidenceRepository(db: Database) {
       revision: 0,
       currentRevisionId: revisionId,
       assertion: material.assertion,
-      metadata,
+      metadata: { ...metadata, type: metadata.type ?? "Other" },
       reviewState: "Draft" as const,
       searchText: searchText(material, metadata),
       createdAt: now,
@@ -350,7 +350,10 @@ export function createEvidenceRepository(db: Database) {
             message: "Restore this claim before editing it.",
           });
         const before = await getEvidenceRevision(actor.ownerId, previous.currentRevisionId);
-        if (canonicalJson(before?.material) === canonicalJson(material))
+        if (
+          canonicalJson(before?.material) === canonicalJson(material) &&
+          (!input.metadata || canonicalJson(previous.metadata) === canonicalJson(input.metadata))
+        )
           throw new ApplicationError({
             code: "InvalidInput",
             message: "Change the assertion, citations, or context before saving a new revision.",
@@ -363,7 +366,10 @@ export function createEvidenceRepository(db: Database) {
           revision,
           reviewState: "Draft" as const,
           currentDecisionId: null,
-          searchText: searchText(material, previous.metadata),
+          metadata: input.metadata
+            ? { ...input.metadata, type: input.metadata.type ?? "Other" }
+            : previous.metadata,
+          searchText: searchText(material, input.metadata ?? previous.metadata),
           updatedAt: Date.now(),
         };
         return {
@@ -391,7 +397,7 @@ export function createEvidenceRepository(db: Database) {
         if (!material)
           throw new ApplicationError({ code: "NotFound", message: "Evidence Revision not found." });
         const next = {
-          metadata: input.metadata,
+          metadata: { ...input.metadata, type: input.metadata.type ?? "Other" },
           revision: previous.revision + 1,
           searchText: searchText(material.material, input.metadata),
           updatedAt: Date.now(),
@@ -459,11 +465,6 @@ export function createEvidenceRepository(db: Database) {
     async archiveEvidence(actor: Principal, input: typeof ArchiveEvidenceRequest.Type) {
       return commands.commit(actor, "archive-evidence", input.idempotencyKey, input, async () => {
         const previous = await observedClaim(actor.ownerId, input.id, input.revision);
-        if (!input.rationale.trim())
-          throw new ApplicationError({
-            code: "InvalidInput",
-            message: "Record why this claim is archived or restored.",
-          });
         const next = {
           archivedAt: input.archived ? Date.now() : null,
           mergedIntoId: input.archived ? previous.mergedIntoId : null,
@@ -490,10 +491,10 @@ export function createEvidenceRepository(db: Database) {
       material: EvidenceMaterial,
     ) {
       return commands.commit(actor, "merge-evidence", input.idempotencyKey, input, async () => {
-        if (input.id === input.sourceId || !input.rationale.trim())
+        if (input.id === input.sourceId)
           throw new ApplicationError({
             code: "InvalidInput",
-            message: "Choose two distinct claims and record a merge rationale.",
+            message: "Choose two distinct evidence items.",
           });
         const target = await observedClaim(actor.ownerId, input.id, input.revision);
         const source = await observedClaim(actor.ownerId, input.sourceId, input.sourceRevision);
@@ -571,7 +572,9 @@ export function createEvidenceRepository(db: Database) {
           : input.archived
             ? isNotNull(s.claims.archivedAt)
             : isNull(s.claims.archivedAt),
-        input.status === "All" ? undefined : eq(s.claims.reviewState, input.status),
+        input.type
+          ? sql`coalesce(json_extract(${s.claims.metadata}, '$.type'), 'Other') = ${input.type}`
+          : undefined,
         input.contextId
           ? sql`EXISTS (SELECT 1 FROM evidence_context_references WHERE revision_id = ${s.claims.currentRevisionId} AND context_id = ${input.contextId})`
           : undefined,
@@ -595,7 +598,8 @@ export function createEvidenceRepository(db: Database) {
         .orderBy(desc(s.claims.updatedAt), desc(s.claims.id))
         .limit(51)
         .offset(input.offset);
-      return { items: items.slice(0, 50), hasMore: items.length > 50 };
+      const count = await db.select({ total: sql<number>`count(*)` }).from(s.claims).where(where);
+      return { items: items.slice(0, 50), hasMore: items.length > 50, total: count[0]?.total ?? 0 };
     },
     async evidenceHistory(ownerId: string, id: string) {
       if (!(await getClaim(ownerId, id)))
@@ -729,11 +733,6 @@ export function createEvidenceRepository(db: Database) {
             code: "Conflict",
             message: "These claims changed. Review the current comparison.",
           });
-        if (!input.rationale.trim())
-          throw new ApplicationError({
-            code: "InvalidInput",
-            message: "Record why these claims should stay separate.",
-          });
         const guard: Guard = {
           condition: sql`EXISTS (SELECT 1 FROM evidence_duplicates WHERE id = ${pair.id} AND revision = ${input.revision} AND state = 'Pending')`,
           check: async () => {
@@ -754,7 +753,11 @@ export function createEvidenceRepository(db: Database) {
           writes: [
             db
               .update(s.duplicatePairs)
-              .set({ state: "Separate", revision: pair.revision + 1, rationale: input.rationale })
+              .set({
+                state: "Separate",
+                revision: pair.revision + 1,
+                rationale: input.rationale ?? "",
+              })
               .where(eq(s.duplicatePairs.id, pair.id)),
           ],
           history: [

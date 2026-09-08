@@ -1,8 +1,9 @@
 import type { CreateSourceRequest } from "@river/contracts";
-import { canonicalJson, fingerprint } from "@river/domain";
+import { type AiSelection, canonicalJson, fingerprint } from "@river/domain";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
+import { AiSelector } from "~/components/ai-selection";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import {
@@ -37,6 +38,7 @@ export function SourceIntake({
   onCreated: (id: string) => void;
 }) {
   const client = useQueryClient();
+  const [ai, setAi] = useState<AiSelection>();
   const [file, setFile] = useState<File | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const pending = useRef<{ digest: string; key: string; revision: number } | null>(null);
@@ -89,6 +91,7 @@ export function SourceIntake({
         for (let offset = 0; offset < bytes.length; offset += 8192)
           binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
         const input = {
+          ...(ai ? { ai } : {}),
           title: value.title.trim(),
           filename,
           mime,
@@ -133,7 +136,7 @@ export function SourceIntake({
           <DialogDescription>
             {resume
               ? "Select the exact original file or paste the same text. River checks it against the saved fingerprint."
-              : "Keep the original and its provenance. Extraction creates a separate text record."}
+              : "River keeps your original and extracts editable evidence with your selected AI connection."}
           </DialogDescription>
         </DialogHeader>
         <form
@@ -171,7 +174,6 @@ export function SourceIntake({
                       <SelectGroup>
                         <SelectItem value="pasted">Pasted text</SelectItem>
                         <SelectItem value="document">Document file</SelectItem>
-                        <SelectItem value="attestation">Owner attestation</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -211,7 +213,7 @@ export function SourceIntake({
                         <p className="text-xs text-muted-foreground">
                           {mode === "attestation"
                             ? "This source will be visibly identified as your own attestation."
-                            : "Paste the original wording. You can write and verify claims separately."}
+                            : "Paste the original wording. Review extracted evidence before adding it."}
                         </p>
                       </Field>
                     )}
@@ -234,7 +236,7 @@ export function SourceIntake({
                     placeholder="https://"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Stored as provenance. River does not fetch the page.
+                    Optional link to where this source came from.
                   </p>
                 </Field>
               )}
@@ -243,8 +245,7 @@ export function SourceIntake({
               {(field) => (
                 <Field>
                   <FieldLabel htmlFor="source-note">
-                    Provenance note{" "}
-                    <span className="font-normal text-muted-foreground">(optional)</span>
+                    Note <span className="font-normal text-muted-foreground">(optional)</span>
                   </FieldLabel>
                   <Textarea
                     id="source-note"
@@ -256,6 +257,7 @@ export function SourceIntake({
                 </Field>
               )}
             </form.Field>
+            {!resume && <AiSelector value={ai} onChange={setAi} disabled={upload.isPending} />}
             {failure && (
               <Alert variant="destructive">
                 <AlertDescription>{failure}</AlertDescription>

@@ -2,99 +2,103 @@ import { type Guide, GuideLink } from "../shared";
 
 export const ai = {
   slug: "ai",
-  title: "Review AI suggestions",
-  description: "Inspect a proposal and choose whether to apply the proposed change.",
+  title: "Review AI results",
+  description:
+    "Choose a model, review the result for each task, and recover from changed inputs or failures.",
   group: "How-to guides",
   sections: [
     {
       id: "available",
-      title: "Start an assistance task",
+      title: "Start an AI task",
       body: (
         <>
           <p>
-            AI tasks can send selected inputs to an external service. Check the selected material
-            and provider/model before starting.
+            Connect your own provider in <GuideLink slug="ai-connections">AI connections</GuideLink>
+            . Before each task, check <strong>AI for this action</strong> and change the provider or
+            model if needed.
           </p>
-          <ol>
-            <li>Open the source, job target, wording item, or template you want help with.</li>
-            <li>
-              Connect your own provider in Settings if you have not already. See{" "}
-              <GuideLink slug="ai-connections">Connect your AI provider</GuideLink>.
-            </li>
-            <li>Open its AI assistance controls and check AI for this action.</li>
-            <li>Select the inputs required by the task.</li>
-            <li>Enter your request, if the task includes an instruction field.</li>
-            <li>Start the task.</li>
-            <li>Open the proposal when the task completes.</li>
-          </ol>
           <p>
-            If assistance is unavailable, follow the manual task guide or contact the person running
-            River.
+            AI can extract source evidence, analyze job requirements, find evidence matches, suggest
+            wording, help build templates, and refine a final document. Manual résumé work remains
+            available without an AI connection.
+          </p>
+          <p>
+            While a task runs, follow its status and use <strong>Cancel</strong> if you want to
+            stop. A cancelled task cannot publish a late result into your saved work.
           </p>
         </>
       ),
     },
     {
       id: "review",
-      title: "Accept or reject a proposal",
+      title: "Review and save the result",
       body: (
         <>
-          <p>Review the complete proposal before making a decision.</p>
-          <ol>
-            <li>Compare the proposal with the source material and current content.</li>
-            <li>Check factual support, omissions, and changed meaning.</li>
-            <li>
-              For a requirement map, inspect removed requirements and affected evidence
-              associations.
-            </li>
-            <li>If you want the proposed change, use the acceptance action.</li>
-            <li>If you do not want the proposed change, use the rejection action instead.</li>
-            <li>Inspect the saved result.</li>
-          </ol>
+          <dl>
+            <dt>Source evidence</dt>
+            <dd>
+              Edit text, types, and keywords. Add selected items or all results in one review.
+            </dd>
+            <dt>Job import</dt>
+            <dd>
+              Edit the description, job details, and requirements. Save the job and chosen
+              requirements together.
+            </dd>
+            <dt>Requirements and evidence matches</dt>
+            <dd>Inspect the results, then use selected results or the complete set.</dd>
+            <dt>Wording</dt>
+            <dd>
+              Edit a choice before applying it. Apply selected changes or all available changes,
+              with one alternative for each target.
+            </dd>
+            <dt>Template chat</dt>
+            <dd>
+              Responses update the working copy and sample preview. Use Undo if needed. One Save
+              validates and stores the completed template.
+            </dd>
+          </dl>
           <p>
-            After accepting source candidates, review the resulting Draft claims through{" "}
-            <GuideLink slug="evidence">Create and review claims</GuideLink>.
-          </p>
-          <p>
-            Ranking suggestions need no separate acceptance. Inspect current evidence and choose
-            what to use through <GuideLink slug="jobs">Tailor to a job posting</GuideLink>.
+            Check names, dates, scope, and numbers. Remove unsupported claims. Counts on
+            selected/all actions cover the complete result set, including other pages.
           </p>
         </>
       ),
     },
     {
       id: "stale",
-      title: "Replace a stale suggestion",
+      title: "Refresh a result after relevant inputs change",
       body: (
         <>
           <p>
-            If River reports changed inputs, review the current material before requesting another
-            proposal.
+            An <strong>Inputs changed</strong> message means a relevant source, requirement,
+            evidence item, or target wording changed after analysis. Run the task again and review
+            fresh results before applying them.
           </p>
-          <ol>
-            <li>Inspect the changed evidence, wording, or other dependency.</li>
-            <li>Start a new task with the intended current inputs.</li>
-            <li>Review the replacement proposal before accepting it.</li>
-          </ol>
           <p>
-            For why the earlier proposal cannot be applied unchanged, see{" "}
-            <GuideLink slug="saved-versions">Saved versions and local changes</GuideLink>.
+            The same initial pasted text and an already-applied result should not produce this
+            warning. Bulk actions refuse a stale batch without applying only part of it.
+          </p>
+          <p>
+            For a failed task, read the displayed error. Retry within the task’s limit or start a
+            new task with another model. Job imports retain retrieved text after analysis failure;
+            sources remain available after extraction failure.
           </p>
         </>
       ),
     },
     {
       id: "source-refinement",
-      title: "Refine the final document",
+      title: "Refine a final document",
       body: (
         <>
           <p>
-            To refine a finished document, follow{" "}
-            <GuideLink slug="source-refinement">Refine document source</GuideLink>.
+            Final-document refinement edits the generated document and can affect wording and
+            layout. It saves an accepted result as a separate version after preview and review.
           </p>
           <p>
-            To create a reusable layout, follow{" "}
-            <GuideLink slug="templates">Create and approve a template</GuideLink>.
+            Follow <GuideLink slug="source-refinement">Refine the final document</GuideLink>.
+            Returning to the structured editor can omit changes made only to that generated
+            document.
           </p>
         </>
       ),

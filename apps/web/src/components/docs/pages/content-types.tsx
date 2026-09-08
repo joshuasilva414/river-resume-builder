@@ -1,98 +1,147 @@
-import { blockDefinitions } from "@river/domain";
 import type { Guide } from "../shared";
 
 export const contentTypes = {
   slug: "content-types",
-  title: "Content types and fields",
-  description:
-    "The structure of reusable content, blocks, and sections, including required fields.",
+  title: "Content schemas and fields",
+  description: "Standard section fields, nested entries, and the layouts that render their values.",
   group: "Reference",
   sections: [
     {
       id: "items",
-      title: "Library items",
+      title: "Content, schemas, and layouts",
       body: (
         <>
           <dl>
-            <dt>Content item</dt>
-            <dd>A piece of résumé wording with optional links to Evidence Revisions.</dd>
-            <dt>Block</dt>
+            <dt>Content schema</dt>
             <dd>
-              A collection of fields that contain Content items. The block type determines its
-              fields.
+              A named set of typed fields. Fields can hold text, numbers, dates, booleans, lists, or
+              nested records.
+            </dd>
+            <dt>Entry</dt>
+            <dd>
+              A record such as one experience or education entry. It can be entered inline or reused
+              from saved content.
             </dd>
             <dt>Section</dt>
-            <dd>An ordered collection of Blocks of one type.</dd>
+            <dd>A record placed in a résumé, such as Summary or a list of Experience Entries.</dd>
+            <dt>Layout</dt>
+            <dd>
+              The rendering instructions for a compatible schema. Different layouts can show the
+              same saved values.
+            </dd>
             <dt>Library label</dt>
-            <dd>A private name used to find an item. The label is not printed.</dd>
-            <dt>Section heading</dt>
-            <dd>The heading printed above a section. Contact sections have no printed heading.</dd>
+            <dd>
+              A private name for finding saved content. It is separate from a printed section
+              heading.
+            </dd>
           </dl>
           <p>
-            Names, dates, and contact details are explicit wording. An Owner profile update does not
-            rewrite those values in existing content.
+            Older Content items and blocks remain readable. New sections can use direct fields and
+            nested entries without creating separate items for each value.
           </p>
         </>
       ),
     },
-    // Derive fields and bounds from the same definitions used by the library editor.
-    ...Object.entries(blockDefinitions).map(([type, definition]) => ({
-      id: type,
-      title: definition.label,
+    {
+      id: "contact",
+      title: "Contact",
       body: (
         <>
           <p>
-            The {definition.label} block has the following fields. Minimum and maximum specify how
-            many content items each field accepts.
+            Contact holds the name and optional contact details. Links can have a label and a
+            destination. The résumé uses one Contact section first; include a name before rendering
+            the document.
           </p>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-sm">
-              <caption className="sr-only">{definition.label} fields and content limits</caption>
-              <thead>
-                <tr>
-                  <th scope="col" className="border-b py-3 pr-4 font-semibold">
-                    Field
-                  </th>
-                  <th scope="col" className="border-b py-3 pr-4 font-semibold">
-                    Minimum
-                  </th>
-                  <th scope="col" className="border-b py-3 font-semibold">
-                    Maximum
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {definition.fields.map((field) => (
-                  <tr key={field.key}>
-                    <th scope="row" className="border-b py-3 pr-4 font-normal">
-                      {field.label}
-                    </th>
-                    <td className="border-b py-3 pr-4">{field.min}</td>
-                    <td className="border-b py-3">{field.max}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </>
       ),
-    })),
+    },
     {
-      id: "composition",
-      title: "Résumé composition rules",
+      id: "summary",
+      title: "Summary",
       body: (
         <>
           <p>
-            A résumé has at most one contact section, placed first. A PDF preview requires a contact
-            block with a name.
+            Summary contains direct text. Type the summary into its field and select a compatible
+            layout. A separate nested entry is unnecessary.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "experience",
+      title: "Experience",
+      body: (
+        <>
+          <p>
+            Experience contains a list of Experience Entries. Each entry holds details such as
+            title, employer, location, start and end dates, and accomplishments. Create and edit
+            entries inside the section, then save them together.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "project",
+      title: "Projects",
+      body: (
+        <>
+          <p>
+            Projects holds project entries with the project name, descriptive details, optional
+            links, and accomplishments. Use known facts and leave unknown details empty.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "education",
+      title: "Education",
+      body: (
+        <>
+          <p>
+            Education holds education entries. GPA is a numeric field. Date fields support a year,
+            month and year, full date, or Present. Existing date text remains readable when opening
+            older content.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "skill",
+      title: "Skills",
+      body: (
+        <>
+          <p>
+            Skill lists use active evidence with type Skill. Saved skill values remain with existing
+            content even when an evidence item later changes or moves to Trash.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "credential",
+      title: "Credentials",
+      body: (
+        <>
+          <p>
+            Credentials holds records for certifications and other credentials. Enter names,
+            issuers, and dates only when known. Custom schemas can define additional typed fields.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "composition",
+      title: "Composition and compatibility",
+      body: (
+        <>
+          <p>
+            Fields can reference a named entry schema or a list of records. Each nested record uses
+            a compatible layout. Schema and layout references are saved at specific versions so
+            later edits do not silently change a résumé.
           </p>
           <p>
-            Other sections and their blocks follow the saved reading order. A placed item refers to
-            an exact library revision.
-          </p>
-          <p>
-            An archived library item remains available through existing saved references.
-            New-content pickers exclude archived items.
+            Missing, incompatible, private, or circular references are rejected. Switching
+            compatible layouts retains values, including fields the selected layout does not print.
           </p>
         </>
       ),

@@ -4,7 +4,7 @@ import { createRepository, schema, usageFailure } from "@river/db";
 import { newId, type Principal } from "@river/domain";
 import { syntheticResume } from "@river/templates";
 import { eq } from "drizzle-orm";
-import { beforeAll, expect, it } from "vitest";
+import { beforeAll, expect, it, vi } from "vitest";
 
 beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
 const input = { document: syntheticResume, theme: "classic" as const };
@@ -70,59 +70,56 @@ it("limits shared capacity across accounts while keeping system backups availabl
   expect(await next.store.readUsage(next.id)).toMatchObject({ active: 0, today: 0 });
 });
 
-it("counts completed, failed and cancelled attempts against the UTC daily budget and rolls back dependent uploads", async () => {
+it("allows source intake after many completed attempts while retaining concurrent task limits", async () => {
   const { store, id, actor } = await account();
-  await env.DB.prepare(`WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<100)
+  await env.DB.prepare(`WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<1100)
     INSERT INTO operations (id,owner_id,state,stage,input,created_at,updated_at)
     SELECT 'daily-' || ? || '-' || x, ?, CASE x%3 WHEN 0 THEN 'Failed' WHEN 1 THEN 'Cancelled' ELSE 'Succeeded' END,
       'Fixture', '{}', unixepoch('now')*1000, unixepoch('now')*1000 FROM n`)
     .bind(id, id)
     .run();
-  expect(await store.readUsage(id)).toMatchObject({ today: 100, active: 0 });
-  const rejected = await store
-    .beginSource(actor, {
-      idempotencyKey: "over-budget-upload",
-      title: "Private",
-      filename: "private.txt",
-      mime: "text/plain",
-      kind: "pasted",
-      provenanceUrl: null,
-      note: "",
-      digest: "ab".repeat(32),
-      byteLength: 1,
-    })
-    .catch(usageFailure);
-  expect(rejected).toMatchObject({
-    code: "RateLimited",
-    message: expect.stringContaining("100 tasks"),
+  expect(await store.readUsage(id)).toMatchObject({ today: 1100, active: 0, dailyLimit: null });
+  await store.beginSource(actor, {
+    idempotencyKey: "unlimited-upload",
+    title: "Private",
+    filename: "private.txt",
+    mime: "text/plain",
+    kind: "pasted",
+    provenanceUrl: null,
+    note: "",
+    digest: "ab".repeat(32),
+    byteLength: 1,
   });
-  expect(await store.listSources(id)).toHaveLength(0);
-  expect(await store.activity(id)).toHaveLength(0);
-  await env.DB.prepare(
-    "UPDATE operations SET created_at = unixepoch('now', 'start of day')*1000-1 WHERE owner_id=?",
-  )
-    .bind(id)
-    .run();
-  await store.startCompile(id, "new-day", input);
-  expect(await store.readUsage(id)).toMatchObject({ today: 1, active: 1 });
+  expect(await store.listSources(id)).toHaveLength(1);
+  const fresh = await account();
+  await fresh.store.startCompile(fresh.id, "global-no-daily-limit", input);
+  expect(await fresh.store.readUsage(fresh.id)).toMatchObject({
+    active: 1,
+    today: 1,
+    dailyLimit: null,
+  });
 });
 
-it("enforces the service daily ceiling without spending ordinary users' remaining budget", async () => {
-  const accounts = await Promise.all(Array.from({ length: 10 }, account));
-  for (const { id } of accounts) {
-    await env.DB.prepare(`WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM n WHERE x<100)
-      INSERT INTO operations (id,owner_id,state,stage,input,created_at,updated_at)
-      SELECT 'global-' || ? || '-' || x, ?, 'Succeeded', 'Fixture', '{}', unixepoch('now')*1000, unixepoch('now')*1000 FROM n`)
-      .bind(id, id)
-      .run();
+it("returns the reset window from the same database day as its successful count", async () => {
+  const f = await account();
+  const clock = await env.DB.prepare("SELECT strftime('%Y-%m-%d','now') AS day").first<{
+    day: string;
+  }>();
+  if (!clock) throw Error("Expected database clock");
+  await f.store.db
+    .insert(schema.scoringUsageDays)
+    .values({ ownerId: f.id, day: clock.day, used: 25 });
+  // Model an application clock crossing midnight after the database read started.
+  const now = vi
+    .spyOn(Date, "now")
+    .mockReturnValue(Date.parse(`${clock.day}T00:00:00.000Z`) + 86_400_000);
+  try {
+    const allowance = await f.store.readScoringAllowance(f.actor);
+    expect(allowance).toMatchObject({ day: clock.day, used: 25, remaining: 0 });
+    expect(allowance.resetsAt).toBe(
+      new Date(Date.parse(`${clock.day}T00:00:00.000Z`) + 86_400_000).toISOString(),
+    );
+  } finally {
+    now.mockRestore();
   }
-  const fresh = await account();
-  const failure = await fresh.store
-    .startCompile(fresh.id, "global-daily", input)
-    .catch(usageFailure);
-  expect(failure).toMatchObject({
-    code: "RateLimited",
-    message: expect.stringContaining("daily processing limit"),
-  });
-  expect(await fresh.store.readUsage(fresh.id)).toMatchObject({ active: 0, today: 0 });
 });

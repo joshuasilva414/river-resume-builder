@@ -16,7 +16,7 @@ export const evidencePermissions = {
   create: "evidence:write",
   edit: "evidence:write",
   metadata: "evidence:write",
-  review: "evidence:verify",
+  review: "evidence:write",
   archive: "evidence:archive",
   merge: "evidence:merge",
   "keep-separate": "evidence:merge",
@@ -37,6 +37,13 @@ export const resolveMaterial = (env: Env, input: EvidenceMaterialInput) =>
   Effect.gen(function* () {
     const actor = yield* Actor;
     const store = yield* Store;
+    for (const sourceId of input.sourceIds ?? []) {
+      const source = yield* attempt(() => store.getSource(actor.ownerId, sourceId));
+      if (!source)
+        return yield* Effect.fail(
+          new ApplicationError({ code: "NotFound", message: "A selected source is unavailable." }),
+        );
+    }
     if (!input.assertion.trim())
       return yield* Effect.fail(
         new ApplicationError({
@@ -123,6 +130,14 @@ export const runEvidenceCommand = (env: Env, input: EvidenceCommand) =>
           message: "This credential does not allow that evidence command.",
         }),
       );
+    if (input.type === "review")
+      return yield* Effect.fail(
+        new ApplicationError({
+          code: "InvalidInput",
+          message:
+            "Evidence verification was retired in River v1.2. Saved evidence is immediately usable. Use create, edit, or metadata to update evidence.",
+        }),
+      );
     const replay = yield* attempt(() =>
       store.replayCommand(actor.id, commandNames[input.type], input.idempotencyKey, input),
     );
@@ -142,8 +157,6 @@ export const runEvidenceCommand = (env: Env, input: EvidenceCommand) =>
       }
       case "metadata":
         return yield* attempt(() => store.updateEvidenceMetadata(actor, input));
-      case "review":
-        return yield* attempt(() => store.reviewEvidence(actor, input));
       case "archive":
         return yield* attempt(() => store.archiveEvidence(actor, input));
       case "keep-separate":
@@ -195,9 +208,10 @@ export const inspectEvidence = (id: string) =>
     const history = yield* attempt(() => store.evidenceHistory(actor.ownerId, id));
     const sourceIds = [
       ...new Set(
-        history.revisions.flatMap((revision) =>
-          revision.material.citations.map((citation) => citation.sourceId),
-        ),
+        history.revisions.flatMap((revision) => [
+          ...revision.material.citations.map((citation) => citation.sourceId),
+          ...(revision.material.sourceIds ?? []),
+        ]),
       ),
     ];
     const sources = [];

@@ -3,6 +3,7 @@ import {
   blockDefinitions,
   type CommandOutcome,
   canonicalJson,
+  contentRecordText,
   type LibraryData,
 } from "@river/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -55,6 +56,12 @@ export function LibraryDataView({
   data: LibraryData;
   graph: readonly LibraryNode[];
 }) {
+  if (data.kind !== "content" && data.structured)
+    return (
+      <p className="whitespace-pre-wrap text-[15px] leading-6 break-words">
+        {contentRecordText(data.structured, data.structured.record).join("\n")}
+      </p>
+    );
   if (data.kind === "content")
     return <p className="whitespace-pre-wrap text-[15px] leading-6 break-words">{data.wording}</p>;
   if (data.kind === "block")

@@ -5,10 +5,10 @@ import type {
   FeedbackStatus,
 } from "@river/contracts";
 import type {
-  AgentScope,
   AiExecutionMetadata,
   AiProfile,
   AiProvider,
+  AiSelection,
   BackupObject,
   CapturedEvidence,
   CommandOutcome,
@@ -25,7 +25,10 @@ import type {
   JobAiInput,
   JobAiProposal,
   JobDetails,
+  JobImportAnalysis,
+  JobImportInput,
   JobWorkspace,
+  LegacyAgentScope,
   LibraryData,
   LibraryGraphNode,
   LibraryKind,
@@ -83,6 +86,8 @@ import type {
   TemplateFixtureResult,
   TemplateValidationReport,
 } from "./template-types";
+
+export * from "./usage-schema";
 
 export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
@@ -213,7 +218,7 @@ export const credentials = sqliteTable(
       .references(() => user.id),
     name: text("name").notNull(),
     secretHash: text("secret_hash").notNull(),
-    scopes: text("scopes", { mode: "json" }).$type<readonly AgentScope[]>().notNull(),
+    scopes: text("scopes", { mode: "json" }).$type<readonly LegacyAgentScope[]>().notNull(),
     revision: integer("revision").notNull().default(0),
     createdAt: integer("created_at").notNull(),
     expiresAt: integer("expires_at"),
@@ -244,6 +249,7 @@ export const operations = sqliteTable(
           }
         | { sourceId: string; processingId: string }
         | { type: "job-ai"; taskId: string }
+        | { type: "job-import"; importId: string }
         | { type: "wording-ai"; taskId: string }
         | { type: "source-ai"; taskId: string }
         | { type: "duplicate-ai"; taskId: string }
@@ -398,6 +404,8 @@ export const sources = sqliteTable(
     revision: integer("revision").notNull().default(0),
     operationId: text("operation_id").notNull(),
     currentProcessingId: text("current_processing_id"),
+    archivedAt: integer("archived_at"),
+    extractionAi: text("extraction_ai", { mode: "json" }).$type<AiSelection>(),
     failure: text("failure"),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
@@ -1184,6 +1192,7 @@ export const duplicateAiProposals = sqliteTable("duplicate_ai_proposals", {
 export const templateDesigns = sqliteTable(
   "template_designs",
   {
+    archivedAt: integer("archived_at"),
     id: text("id").primaryKey(),
     ownerId: text("owner_id")
       .notNull()
@@ -1221,6 +1230,7 @@ export const templateRevisions = sqliteTable(
   ],
 );
 export const templateValidations = sqliteTable("template_validations", {
+  approveOnSuccess: integer("approve_on_success", { mode: "boolean" }).notNull().default(false),
   id: text("id").primaryKey(),
   revisionId: text("revision_id")
     .notNull()
@@ -1428,5 +1438,25 @@ export const aiExecutionMetadata = sqliteTable("ai_execution_metadata", {
     .notNull()
     .references(() => user.id),
   data: text("data", { mode: "json" }).$type<AiExecutionMetadata>().notNull(),
+  createdAt: integer("created_at").notNull(),
+});
+
+export const jobImports = sqliteTable("job_imports", {
+  id: text("id").primaryKey(),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => user.id),
+  input: text("input", { mode: "json" }).$type<JobImportInput>().notNull(),
+  profile: text("profile", { mode: "json" }).$type<AiProfile>().notNull(),
+  text: text("text").notNull().default(""),
+  retrievedUrl: text("retrieved_url"),
+  retrievalMethod: text("retrieval_method").$type<"html" | "browser" | "paste">(),
+  analysis: text("analysis", { mode: "json" }).$type<JobImportAnalysis>(),
+  latestOperationId: text("latest_operation_id")
+    .notNull()
+    .references(() => operations.id),
+  revision: integer("revision").notNull().default(0),
+  attempts: integer("attempts").notNull().default(1),
+  savedJobId: text("saved_job_id").references(() => jobs.id),
   createdAt: integer("created_at").notNull(),
 });

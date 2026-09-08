@@ -1,147 +1,75 @@
-# Resume Builder
+# River
 
-Resume Builder is a private, owner-directed system for turning sourced personal evidence into tailored resumes. Its language distinguishes factual records, reusable content, working compositions, and immutable history.
+River is a private, account-isolated résumé builder. Each person controls their evidence, wording, reusable content, and saved résumés.
 
 ## Language
 
 **Owner**:
-The single person who controls the application and makes final decisions about evidence, wording, templates, and exports.
-_Avoid_: User, administrator
+The person who controls one private account and makes decisions about its content.
+_Avoid_: Tenant, workspace member
 
-**Owner Profile**:
-The stable identity and contact information of the Owner used across resumes.
-_Avoid_: Profile, candidate
+**Administrator**:
+The person who manages service usage, account allowances, and backups. Administrative access does not grant access to another person's résumé or source content.
 
-**Employment**:
-A period of work performed by the Owner for an employer or organization, independent of how it is described on a resume.
-_Avoid_: Role, experience
+**Source**:
+A captured document or text from which evidence can be extracted. Evidence can also be entered without a source.
+_Avoid_: Source artifact
 
-**Project**:
-A body of work created or materially contributed to by the Owner, independent of its resume presentation.
-_Avoid_: Project entry
+**Evidence**:
+A saved statement or skill with text, keywords, optional sources, and a type. Types are Skill, Achievement, Experience, Education, Credential, and Other.
+_Avoid_: Claim, verified fact
 
-**Education**:
-A program of study undertaken by the Owner, including its institution, qualification, and dates.
-_Avoid_: Education entry
+**Entry**:
+One record of related résumé information, such as a position, project, or education. Entries can be edited inside a section and reused independently.
+_Avoid_: Block
 
-**Credential**:
-A qualification, certification, award, or license issued to the Owner by another organization.
-_Avoid_: Certification entry
+**Section**:
+A part of a résumé that contains direct text, nested entries, or both. A Summary contains text; Experience contains a list of Experience Entry records.
 
-**Agent Credential**:
-A named, scoped identity through which an external agent accesses permitted application capabilities.
-_Avoid_: API key, service account
+**Content schema**:
+A named definition of the fields a section or entry accepts. Fields can contain scalar values, lists, or records described by another schema.
 
-**Source Artifact**:
-An immutable captured input that preserves where potential evidence came from. It may contain externally authored material or an Owner attestation, but its existence does not determine whether a claim is verified.
-_Avoid_: Evidence, attachment, source file
+**Field identity**:
+The stable meaning of a field across compatible schemas. Changing how a field is displayed does not change its identity or its value.
 
-**Source Processing Result**:
-An immutable derived representation of a Source Artifact produced by a named version of a parser or extractor.
-_Avoid_: Parsed source, current extraction
-
-**Evidence Citation**:
-A precise link from an Evidence Revision to a supporting excerpt or location within a Source Artifact.
-_Avoid_: Source link, provenance note
-
-**Evidence Claim**:
-The stable identity of one atomic factual assertion about the owner, linked to its supporting sources and context. A claim may be active or archived independently of the review state of its revisions.
-_Avoid_: Evidence record, fact
-
-**Evidence Revision**:
-An immutable version of an Evidence Claim whose review state is Draft, Needs Clarification, or Verified. Verification applies to a specific revision rather than to the claim for all time, independently of what kind of Source Artifact supports it.
-_Avoid_: Claim version, evidence version
-
-**Evidence Verification**:
-An explicit decision by the Owner or an authorized Agent Credential that an Evidence Revision accurately reflects its cited sources. It records the verifier and rationale while preserving whether a source is an Owner attestation.
-_Avoid_: Approval, verified claim
-
-**Resume Content Item**:
-Reusable resume content such as a bullet, summary, skill, employment entry, project, education entry, or credential, independent of its placement and visual presentation.
-_Avoid_: Resume-ready item, resume component
-
-**Content Revision**:
-An immutable version of a Resume Content Item that cites the exact Evidence Revisions supporting its wording.
-_Avoid_: Content version, bullet version
-
-**Content Override**:
-A resume-specific wording variant that preserves its base Content Revision, exact supporting Evidence Revisions, and reason without changing the reusable library until the Owner explicitly promotes it.
-_Avoid_: Local edit, custom text
-
-**Resume Block**:
-The stable identity of a reusable composition of content for one block type, independent of its use in any one Resume Draft.
-_Avoid_: Block instance, component
-
-**Block Revision**:
-An immutable, presentation-neutral composition that binds exact Content Revisions to a Resume Block's typed fields and preserves its semantic options.
-_Avoid_: Block version, saved block
-
-**Resume Section**:
-The stable identity of a reusable ordered composition of Resume Blocks, independent of its use in any one Resume Draft.
-_Avoid_: Section instance, group
-
-**Section Revision**:
-An immutable, presentation-neutral composition that preserves a Resume Section's heading semantics, ordered Block Revision bindings, and section options.
-_Avoid_: Section version, saved section
-
-**Resume Placement**:
-One occurrence of a Block or Section in a Resume Draft, referencing an exact reusable revision and its chosen presentation. Multiple placements may share a base revision while carrying independent local edits.
-_Avoid_: Shared instance, linked copy
-
-**Composition Override**:
-A draft-local variation of a placed Block or Section that preserves its base revision without changing the reusable composition. The Owner may promote it as a new revision or fork it into a separate reusable identity.
-_Avoid_: Modified library block, shared edit
-
-**Job Target**:
-The stable record for one employment opening toward which resumes are tailored. It identifies the current Job Posting Snapshot for new work while retaining earlier snapshots.
-_Avoid_: Role, job, opening
-
-**Job Posting Snapshot**:
-An immutable capture of the job description and associated posting details for a Job Target. Resume Checkpoints preserve the exact snapshot they used.
-_Avoid_: Job snapshot, description
-
-**Requirement Map**:
-The stable analysis of one Job Posting Snapshot into requirements, priorities, terminology, confidence, and supporting passages.
-_Avoid_: Job analysis, requirements list
-
-**Requirement Map Revision**:
-An immutable AI-generated or Owner-edited version of a Requirement Map. Resume Checkpoints preserve the exact revision used during tailoring.
-_Avoid_: Requirement version, analysis result
-
-**Resume Draft**:
-The mutable working composition associated with a Job Target.
-_Avoid_: Working document, resume workspace
-
-**Resume Checkpoint**:
-An immutable capture of a Resume Draft that preserves the exact evidence revisions, job posting snapshot, content, and presentation choices used at that moment.
-_Avoid_: Version, saved resume
+**Layout**:
+A presentation of values conforming to one content schema. Compatible layouts use the same schema and can display the same content without conversion.
 
 **Template**:
-The stable identity of a reusable presentation design for a document, section, or block.
-_Avoid_: Layout, theme
+A reusable résumé design containing layouts and their required content schemas.
 
-**Template Revision**:
-An immutable version of a Template whose lifecycle is Draft, Validated, Approved, or Retired. Retired revisions remain available to historical checkpoints but not to new drafts.
-_Avoid_: Template version, generated template
+**Job**:
+An employment opening with a current captured description and any earlier captures.
+_Avoid_: Job target
 
-**Template Manifest**:
-The typed, validated contract of one Template Revision, including its level, compatible content and children, style contract, tokens, assets, slots, and validation metadata.
-_Avoid_: Template configuration, template metadata
+**Job capture**:
+A saved description and posting details from one point in time. Refreshing a posting preserves earlier captures and résumés.
+_Avoid_: Job Posting Snapshot
 
-**Render Artifact**:
-A content-addressed PDF, LaTeX source, extracted text, or validation report produced from exact document, template, renderer, asset, and compiler inputs.
-_Avoid_: Preview file, output file
+**Qualification**:
+A job requirement that can be supported by relevant evidence.
 
-**AI Proposal**:
-An AI-generated candidate change tied to exact input and target revisions, with an independent Pending, Accepted, or Rejected review state. It gains authority only through Owner acceptance and cannot be accepted after relevant dependencies change without review of an updated proposal.
-_Avoid_: AI edit, automatic change
+**Eligibility**:
+An informational condition such as work authorization or location. River does not infer the person's answer or use eligibility as a résumé-creation gate.
 
-**Operation**:
-The application-owned record of a multi-step background task, including its status, current stage, attempts, result, and failure information. It ends as Succeeded, Failed, or Cancelled without waiting for review of any resulting AI Proposal.
-_Avoid_: Workflow, job
+**Résumé**:
+A working document tailored to a job. Editing it does not silently change reusable content or another résumé.
+_Avoid_: Draft aggregate
 
-## v1.1 presentation and AI execution
+**Saved version**:
+An immutable capture of a résumé and its exact content, job capture, and presentation. Restoring it creates a separate working branch.
+_Avoid_: Checkpoint
 
-Production labels use “wording,” “entry,” and “section” for Content Item, Block, and Section. Ready-to-fill starters hide the required graph construction while preserving that domain model. Advanced tools is an opt-in presentation area, not a separate authority or owner role.
+**Trash**:
+Recoverable deleted items. Deletion does not change content retained by saved résumés.
+_Avoid_: Archived revisions
 
-An AI Connection is one account-owned provider credential, stored encrypted and revisioned. AI Selection chooses a connection and model for a new task. An execution binding captures the connection ID, provider and key revision; it never contains the key. Workspace preferences store the default selection, onboarding dismissal, and advanced-tools setting. Model availability is provider-supplied and does not imply every model supports River's structured contract.
+**AI connection**:
+An account-owned credential for a chosen AI provider. Each task uses the explicitly selected provider and model.
+
+**Wording alternative**:
+An editable suggested wording change that the person chooses to apply.
+_Avoid_: Proposal, candidate
+
+**Scoring allowance**:
+The number of successful scoring results an account may retain during a UTC day. Failed attempts and reuse of an existing result do not consume allowance.

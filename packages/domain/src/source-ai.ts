@@ -15,7 +15,11 @@ import { indexTextPassages } from "./text-passages";
 export const SourceAiProfile = Schema.Struct({
   ...AiExecutionFields,
   model: AiModel,
-  contract: Schema.Literals(["river-source-claims-v1", "river-source-claims-v2"]),
+  contract: Schema.Literals([
+    "river-source-claims-v1",
+    "river-source-claims-v2",
+    "river-source-claims-v3",
+  ]),
   maxInputCharacters: Schema.Literal(160000),
   maxOutputTokens: Schema.Literal(12000),
   timeoutMs: Schema.Literal(60000),
@@ -66,7 +70,7 @@ export const SourceCandidateOutput = Schema.Struct({
   ),
 });
 export const SourceAiOutput = Schema.Struct({
-  candidates: Schema.Array(SourceCandidateOutput).check(Schema.isMaxLength(20)),
+  candidates: Schema.Array(SourceCandidateOutput).check(Schema.isMaxLength(1000)),
 });
 const { citations: _citations, ...materialFields } = EvidenceMaterialInput.fields;
 export const AnchoredSourceAiOutput = Schema.Struct({
@@ -81,7 +85,7 @@ export const AnchoredSourceAiOutput = Schema.Struct({
         ),
       }),
     }),
-  ).check(Schema.isMaxLength(20)),
+  ).check(Schema.isMaxLength(1000)),
 });
 export const SourceCandidate = Schema.Struct({
   ...SourceCandidateOutput.fields,
@@ -126,6 +130,8 @@ export function validateSourceCandidates(
     throw new ApplicationError({ code: "InvalidInput", message });
   };
   return decoded.candidates.map((candidate) => {
+    if (candidate.material.sourceIds?.some((id) => id !== input.source.id))
+      invalid("Evidence may only reference the supplied source.");
     if (!candidate.material.assertion.trim() || !candidate.material.citations.length)
       invalid("Each proposed claim must contain an assertion and exact source citation.");
     const keys = new Set<string>();

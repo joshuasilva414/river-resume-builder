@@ -42,9 +42,7 @@ export function JobSummary({ detail }: { detail: JobDetail }) {
         {detail.job.details.role} · {detail.job.details.company}
       </p>
       <p>{detail.job.details.location}</p>
-      <p>
-        Revision {detail.job.revision} · {detail.job.archivedAt ? "Archived" : "Active"}
-      </p>
+
       <details>
         <summary className="cursor-pointer">
           Saved posting · {new Date(detail.snapshot.createdAt).toLocaleString()}
@@ -58,20 +56,8 @@ export function JobSummary({ detail }: { detail: JobDetail }) {
               {r.priority} · {r.category} · {r.text}
             </p>
             <p className="text-xs text-muted-foreground">
-              Keywords: {r.keywords.join(", ") || "None"} · Interpretation confidence:{" "}
-              {r.confidence === null ? "Unspecified" : `${r.confidence * 100}%`}
+              Keywords: {r.keywords.join(", ") || "None"}
             </p>
-            {r.passages.map((p) => (
-              <blockquote
-                key={`${p.start}:${p.end}`}
-                className="mt-2 border-l-2 pl-3 whitespace-pre-wrap"
-              >
-                {p.quote}
-                <p className="text-xs text-muted-foreground">
-                  Offsets {p.start}–{p.end}
-                </p>
-              </blockquote>
-            ))}
           </li>
         ))}
       </ul>

@@ -5,11 +5,13 @@ import {
   ApplicationError,
   canonicalJson,
   indexPostingPassages,
+  isQualification,
   type JobAiInput,
   type JobAiProposal,
   JobWorkspace,
   newId,
   type Principal,
+  selectionIdentity,
   validateJobProposal,
 } from "@river/domain";
 import { and, desc, eq, isNull, type SQL, sql } from "drizzle-orm";
@@ -50,7 +52,7 @@ export function createJobAiRepository(db: Database) {
   ): readonly { reason: string; condition: SQL }[] => {
     const candidates = input.candidates.map((item) => ({
       id: item.claimId,
-      revision: item.aggregateRevision,
+      revisionId: item.evidenceRevisionId,
     }));
     const contexts = [
       ...new Map(
@@ -61,12 +63,18 @@ export function createJobAiRepository(db: Database) {
     ];
     return [
       {
-        reason: "The job, posting, or Requirement Map changed.",
-        condition: sql`EXISTS (SELECT 1 FROM job_targets j JOIN job_workspaces w ON w.snapshot_id = j.current_snapshot_id WHERE j.id = ${input.jobId} AND j.owner_id = ${ownerId} AND j.revision = ${input.jobRevision} AND j.archived_at IS NULL AND j.current_snapshot_id = ${input.snapshotId} AND w.current_revision_id = ${input.workspaceRevisionId})`,
+        reason: "The posting or relevant requirements changed.",
+        condition: sql`EXISTS (SELECT 1 FROM job_targets j JOIN job_workspaces w ON w.snapshot_id=j.current_snapshot_id JOIN job_workspace_revisions r ON r.id=w.current_revision_id WHERE j.id=${input.jobId} AND j.owner_id=${ownerId} AND j.archived_at IS NULL AND j.current_snapshot_id=${input.snapshotId} AND ${
+          input.requirementId
+            ? sql`EXISTS (SELECT 1 FROM json_each(r.data,'$.requirements') q WHERE json_extract(q.value,'$.id')=${input.requirementId} AND q.value=${JSON.stringify(input.workspace.requirements.find((item) => item.id === input.requirementId))})`
+            : input.task === "rank-evidence"
+              ? sql`(SELECT json_group_array(json(q.value)) FROM json_each(r.data,'$.requirements') q WHERE COALESCE(json_extract(q.value,'$.kind'),'Qualification')<>'Eligibility')=${JSON.stringify(input.workspace.requirements.filter(isQualification))}`
+              : sql`json_extract(r.data,'$.requirements')=${JSON.stringify(input.workspace.requirements)}`
+        })`,
       },
       {
-        reason: "Evidence material, review, metadata, or lifecycle changed.",
-        condition: sql`NOT EXISTS (SELECT 1 FROM json_each(${JSON.stringify(candidates)}) expected WHERE NOT EXISTS (SELECT 1 FROM evidence_claims c WHERE c.id = json_extract(expected.value, '$.id') AND c.owner_id = ${ownerId} AND c.revision = json_extract(expected.value, '$.revision') AND c.archived_at IS NULL))`,
+        reason: "Supporting evidence changed or was deleted.",
+        condition: sql`NOT EXISTS (SELECT 1 FROM json_each(${JSON.stringify(candidates)}) expected WHERE NOT EXISTS (SELECT 1 FROM evidence_claims c WHERE c.id = json_extract(expected.value, '$.id') AND c.owner_id = ${ownerId} AND c.current_revision_id = json_extract(expected.value, '$.revisionId') AND c.archived_at IS NULL))`,
       },
       {
         reason: "A referenced context changed.",
@@ -123,7 +131,9 @@ export function createJobAiRepository(db: Database) {
           conflict("The job changed. Review the current posting before generating a proposal.");
         if (
           request.requirementId &&
-          !detail.workspace.data.requirements.some((item) => item.id === request.requirementId)
+          !detail.workspace.data.requirements.some(
+            (item) => item.id === request.requirementId && isQualification(item),
+          )
         )
           throw new ApplicationError({
             code: "InvalidInput",
@@ -134,13 +144,17 @@ export function createJobAiRepository(db: Database) {
             code: "InvalidInput",
             message: "Extraction proposes one complete Requirement Map.",
           });
-        if (request.task === "rank-evidence" && !detail.workspace.data.requirements.length)
+        if (
+          request.task === "rank-evidence" &&
+          !detail.workspace.data.requirements.some(isQualification)
+        )
           throw new ApplicationError({
             code: "InvalidInput",
             message: "Add or review requirements before ranking evidence.",
           });
         const requirements = detail.workspace.data.requirements.filter(
-          (item) => !request.requirementId || item.id === request.requirementId,
+          (item) =>
+            isQualification(item) && (!request.requirementId || item.id === request.requirementId),
         );
         const keywords =
           requirements.flatMap((item) => item.keywords).join(" ") || detail.job.details.role;
@@ -288,7 +302,8 @@ export function createJobAiRepository(db: Database) {
         task: safeTask,
         proposal,
         operation,
-        staleReasons: await inputsChanged(ownerId, task.input),
+        staleReasons:
+          proposal && proposal.state !== "Pending" ? [] : await inputsChanged(ownerId, task.input),
       };
     },
     async listJobAi(ownerId: string, jobId: string, offset: number) {
@@ -458,28 +473,80 @@ export function createJobAiRepository(db: Database) {
             );
           guards.push(...inputGuards(actor.ownerId, task.input));
           const payload: JobAiProposal = proposal.payload;
+          const current = await jobs.inspectJob(actor.ownerId, { id: task.jobId });
+          let data = current.workspace.data;
           if (payload.type === "requirements") {
-            const ids = new Set(payload.requirements.map((item) => item.id));
-            const removed = task.input.workspace.selections.filter(
+            const requested = request.requirementIds ? new Set(request.requirementIds) : null;
+            if (
+              requested &&
+              (requested.size !== request.requirementIds?.length ||
+                [...requested].some((id) => !payload.requirements.some((item) => item.id === id)))
+            )
+              throw new ApplicationError({
+                code: "InvalidInput",
+                message: "Select requirements from this result once.",
+              });
+            const selected = requested
+              ? payload.requirements.filter((item) => requested.has(item.id))
+              : payload.requirements;
+            const selectedIds = new Set(selected.map((item) => item.id));
+            const requirements = requested
+              ? [...data.requirements.filter((item) => !selectedIds.has(item.id)), ...selected]
+              : selected;
+            const ids = new Set(requirements.filter(isQualification).map((item) => item.id));
+            const removed = data.selections.filter(
               (selection) => selection.requirementId !== null && !ids.has(selection.requirementId),
             );
             if (removed.length && !request.acknowledgeRemovedAssociations)
               throw new ApplicationError({
                 code: "InvalidInput",
-                message: "Review and acknowledge every removed requirement-specific association.",
+                message: "Review the evidence associations removed by this requirement update.",
               });
-            const data = Schema.decodeUnknownSync(JobWorkspace)({
-              requirements: payload.requirements,
-              selections: task.input.workspace.selections.filter(
+            data = {
+              requirements,
+              selections: data.selections.filter(
                 (selection) => selection.requirementId === null || ids.has(selection.requirementId),
               ),
-            });
+            };
+          } else if (request.selections) {
+            const ids = new Set(request.selections.map(selectionIdentity));
+            if (
+              ids.size !== request.selections.length ||
+              request.selections.some(
+                (selection) =>
+                  !payload.results.some(
+                    (result) =>
+                      selectionIdentity(result) === selectionIdentity(selection) &&
+                      result.evidenceRevisionId === selection.evidenceRevisionId,
+                  ),
+              )
+            )
+              throw new ApplicationError({
+                code: "InvalidInput",
+                message: "Choose evidence matches from this result once.",
+              });
+            data = {
+              ...data,
+              selections: [
+                ...data.selections.filter((item) => !ids.has(selectionIdentity(item))),
+                ...request.selections,
+              ],
+            };
+          }
+          if (payload.type === "requirements" || request.selections?.length) {
+            data = Schema.decodeUnknownSync(JobWorkspace)(data);
             revisionId = newId();
+            guards.push(
+              guarded(
+                sql`EXISTS (SELECT 1 FROM job_targets WHERE id=${current.job.id} AND revision=${current.job.revision})`,
+                "The job changed while applying results. Refresh and try again.",
+              ),
+            );
             writes.push(
               db
                 .update(s.jobs)
-                .set({ revision: task.input.jobRevision + 1, updatedAt: Date.now() })
-                .where(eq(s.jobs.id, task.jobId)),
+                .set({ revision: current.job.revision + 1, updatedAt: Date.now() })
+                .where(eq(s.jobs.id, current.job.id)),
               ...jobWorkspaceWrites(db, actor, task.input.snapshotId, revisionId, data),
             );
           }

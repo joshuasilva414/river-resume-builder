@@ -194,6 +194,11 @@ it("retains exact input and actual result identity, then recovers publication wi
   const { repository, actor, input, resumeText, key, checkpoint, detail } = await fixture();
   const run = await repository.startScoring(actor, input, profile),
     id = run.revisionId ?? "";
+  expect(await repository.readScoringAllowance(actor)).toMatchObject({
+    used: 0,
+    reserved: 1,
+    remaining: 24,
+  });
   expect(await prepareScoring(env, id)).toBe("Prepared");
   const before = await repository.inspectScoring(actor, run.id);
   expect(before.run.input).toMatchObject({
@@ -206,6 +211,11 @@ it("retains exact input and actual result identity, then recovers publication wi
   await submitScoring(env, id, transport);
   const staged = await repository.inspectScoring(actor, run.id);
   expect(staged.run.completedAt).toBeNull();
+  expect(await repository.readScoringAllowance(actor)).toMatchObject({
+    used: 1,
+    reserved: 0,
+    remaining: 24,
+  });
   expect(staged.run.result?.response._scoringIdentity?.deployment.buildId).toBe(
     "actual-result-build",
   );
@@ -226,6 +236,11 @@ it("retains exact input and actual result identity, then recovers publication wi
   expect(await repository.completeScoring(retry.revisionId ?? "")).toBe(true);
   expect(await repository.completeScoring(retry.revisionId ?? "")).toBe(false);
   const finished = await repository.inspectScoring(actor, run.id);
+  expect(await repository.readScoringAllowance(actor)).toMatchObject({
+    used: 1,
+    reserved: 0,
+    remaining: 24,
+  });
   expect(finished.run.result).toEqual(staged.run.result);
   expect(finished.run.completedAt).not.toBeNull();
   expect(finished.attempts.map((attempt) => attempt.operation.state)).toEqual([
@@ -251,6 +266,11 @@ it("blocks late responses after cancellation and preserves cancellation during r
   await repository.observeScoringProvider(id, syntheticScoringVersion);
   expect(await repository.claimScoringSubmission(id)).toBe(true);
   await repository.cancelOperation(actor.id, id, "cancel-scoring");
+  expect(await repository.readScoringAllowance(actor)).toMatchObject({
+    used: 0,
+    reserved: 0,
+    remaining: 25,
+  });
   expect(
     await repository.retainScoringResult(
       id,
@@ -490,4 +510,104 @@ it("stores concurrent finding decisions against exact completed results and keep
       idempotencyKey: "wrong-review-revision",
     }),
   ).rejects.toMatchObject({ code: "Conflict" });
+});
+
+it("atomically reserves the final daily result and releases failed and cancelled work", async () => {
+  const f = await fixture();
+  const day = (await f.repository.readScoringAllowance(f.actor)).day;
+  await f.repository.db
+    .insert(schema.scoringUsageDays)
+    .values({ ownerId: f.actor.ownerId, day, used: 24 });
+  const attempts = await Promise.allSettled(
+    [0, 1].map((i) =>
+      f.repository.startScoring(f.actor, { ...f.input, idempotencyKey: `last-${i}` }, profile),
+    ),
+  );
+  const accepted = attempts.find((v) => v.status === "fulfilled");
+  const rejected = attempts.find((v) => v.status === "rejected");
+  if (accepted?.status !== "fulfilled" || rejected?.status !== "rejected")
+    throw Error("Expected one admission");
+  expect(rejected.reason).toMatchObject({ code: "RateLimited" });
+  expect(await f.repository.readScoringAllowance(f.actor)).toMatchObject({
+    used: 24,
+    reserved: 1,
+    remaining: 0,
+  });
+  expect(
+    (await f.repository.listScoring(f.actor, { checkpointId: f.checkpoint.id, offset: 0 })).items,
+  ).toHaveLength(1);
+  await f.repository.failScoring(accepted.value.revisionId ?? "", {
+    code: "Unavailable",
+    message: "Provider failed",
+    retryAt: null,
+  });
+  expect(await f.repository.readScoringAllowance(f.actor)).toMatchObject({
+    used: 24,
+    reserved: 0,
+    remaining: 1,
+  });
+  const retry = await f.repository.retryScoring(f.actor, {
+    id: accepted.value.id,
+    revision: 0,
+    idempotencyKey: "last-retry",
+  });
+  expect(await f.repository.readScoringAllowance(f.actor)).toMatchObject({ used: 24, reserved: 1 });
+  await f.repository.cancelOperation(f.actor.id, retry.revisionId ?? "", "release-retry");
+  expect(await f.repository.readScoringAllowance(f.actor)).toMatchObject({
+    used: 24,
+    reserved: 0,
+    remaining: 1,
+  });
+});
+it("exempts administrators and ignores prior-day successes while retaining pending slots", async () => {
+  const f = await fixture(),
+    allowance = await f.repository.readScoringAllowance(f.actor);
+  await f.repository.db.insert(schema.scoringUsageDays).values([
+    { ownerId: f.actor.ownerId, day: "2000-01-01", used: 100 },
+    { ownerId: f.actor.ownerId, day: allowance.day, used: 25 },
+  ]);
+  const admin: Principal = { ...f.actor, isAdmin: true };
+  const run = await f.repository.startScoring(admin, f.input, profile);
+  expect(await f.repository.readScoringAllowance(admin)).toMatchObject({
+    used: 25,
+    reserved: 1,
+    remaining: null,
+    exempt: true,
+  });
+  await f.repository.db
+    .delete(schema.scoringUsageDays)
+    .where(eq(schema.scoringUsageDays.day, allowance.day));
+  await f.repository.db.update(schema.scoringReservations).set({ createdAt: Date.UTC(2000, 0, 1) });
+  expect(await f.repository.readScoringAllowance(f.actor)).toMatchObject({
+    used: 0,
+    reserved: 1,
+    remaining: 24,
+  });
+  await f.repository.cancelOperation(f.actor.id, run.revisionId ?? "", "cancel-old");
+  expect(await f.repository.readScoringAllowance(f.actor)).toMatchObject({
+    used: 0,
+    reserved: 0,
+    remaining: 25,
+  });
+});
+it("does not consume allowance for an invalid provider response", async () => {
+  const f = await fixture(),
+    run = await f.repository.startScoring(f.actor, f.input, profile);
+  const operationId = run.revisionId ?? "";
+  await prepareScoring(env, operationId);
+  await f.repository.observeScoringProvider(operationId, syntheticScoringVersion);
+  await f.repository.claimScoringSubmission(operationId);
+  await expect(
+    f.repository.retainScoringResult(operationId, { invalid: true }),
+  ).rejects.toBeDefined();
+  await f.repository.failScoring(operationId, {
+    code: "InvalidResponse",
+    message: "Invalid provider output",
+    retryAt: null,
+  });
+  expect(await f.repository.readScoringAllowance(f.actor)).toMatchObject({
+    used: 0,
+    reserved: 0,
+    remaining: 25,
+  });
 });

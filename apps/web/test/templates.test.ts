@@ -2,7 +2,13 @@ import { applyD1Migrations } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import type { CompiledResult } from "@river/contracts";
 import { createRepository, schema } from "@river/db";
-import { canonicalJson, fingerprint, newId, type Principal } from "@river/domain";
+import {
+  builtInSchemaBundle,
+  canonicalJson,
+  fingerprint,
+  newId,
+  type Principal,
+} from "@river/domain";
 import {
   CUSTOM_RENDERER_VERSION,
   fixedPack,
@@ -22,7 +28,10 @@ const resources = {
   fonts: "synthetic-fonts",
   cacheDigest: "synthetic-digest",
 };
-async function fixture(existing?: Awaited<ReturnType<typeof compositionFixture>>) {
+async function fixture(
+  existing?: Awaited<ReturnType<typeof compositionFixture>>,
+  composable = false,
+) {
   const repository = existing?.repository ?? createRepository(env.DB),
     id = existing?.actor.ownerId ?? newId();
   const actor: Principal = existing?.actor ?? { kind: "owner", id, ownerId: id };
@@ -44,16 +53,20 @@ async function fixture(existing?: Awaited<ReturnType<typeof compositionFixture>>
     source: fixedPack("classic").document.source,
     overrides: { font: "Latin Modern Sans" as const },
     idempotencyKey: "save",
+    ...(composable
+      ? { workingGraph: { ...fixedPack("classic"), composition: builtInSchemaBundle } }
+      : {}),
   };
   const draft = await repository.saveTemplate(actor, input);
   if (!draft.revisionId) throw Error("Missing revision");
   const revisionId = draft.revisionId;
-  async function validate(mismatch = false) {
+  async function validate(mismatch = false, approveOnSuccess = false) {
     const current = await repository.inspectTemplate(id, revisionId);
     const validation = await repository.startTemplateValidation(actor, {
       revisionId,
       revision: current.revision.reviewRevision,
       idempotencyKey: "validation",
+      approveOnSuccess,
     });
     for (const item of templateFixtures) {
       const digest = await fingerprint(item.id);
@@ -391,4 +404,23 @@ it("pins an exact approved graph into previews and checkpoints while retirement 
   expect(
     (await repository.inspectCheckpoint(actor.id, captured.id)).checkpoint.templateGraph,
   ).toEqual(exact.revision.graph);
+});
+
+it("saves a complete working schema graph once and makes it usable after successful sample checks", async () => {
+  const { repository, actor, input, draft, revisionId, validate } = await fixture(undefined, true);
+  expect(await repository.saveTemplate(actor, input)).toEqual(draft);
+  const before = await repository.inspectTemplate(actor.ownerId, revisionId);
+  expect(before.revision.graph.composition).toEqual(builtInSchemaBundle);
+  await validate(false, true);
+  const saved = await repository.inspectTemplate(actor.ownerId, revisionId);
+  expect(saved.revision.state).toBe("Approved");
+  expect(saved.revisions).toHaveLength(1);
+  expect(saved.revision.graph).toEqual(before.revision.graph);
+});
+it("retains the working schema graph as a draft when a sample check fails", async () => {
+  const { repository, actor, revisionId, validate } = await fixture(undefined, true);
+  await validate(true, true);
+  const saved = await repository.inspectTemplate(actor.ownerId, revisionId);
+  expect(saved.revision.state).toBe("Draft");
+  expect(saved.revision.graph.composition).toEqual(builtInSchemaBundle);
 });

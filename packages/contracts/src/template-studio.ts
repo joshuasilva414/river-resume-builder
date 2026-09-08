@@ -2,6 +2,7 @@ import { RecordId, Revision } from "@river/domain";
 import {
   TemplateBase,
   TemplateBrief,
+  TemplateGraph,
   TemplateLifecycle,
   TemplateOverrides,
   TemplateScope,
@@ -16,6 +17,7 @@ export const TemplateDestination = Schema.Struct({
   name: Schema.NonEmptyString.check(Schema.isMaxLength(160)),
 });
 export const SaveTemplateRequest = Schema.Struct({
+  workingGraph: Schema.optional(TemplateGraph),
   ...TemplateDestination.fields,
   idempotencyKey: CommandKey,
   base: TemplateBase,
@@ -24,6 +26,11 @@ export const SaveTemplateRequest = Schema.Struct({
   overrides: TemplateOverrides,
 });
 export type SaveTemplateRequest = typeof SaveTemplateRequest.Type;
+export const PreviewWorkingTemplateRequest = Schema.Struct({
+  idempotencyKey: CommandKey,
+  graph: TemplateGraph,
+});
+export type PreviewWorkingTemplateRequest = typeof PreviewWorkingTemplateRequest.Type;
 export const MixTemplateRequest = Schema.Struct({
   idempotencyKey: CommandKey,
   name: TemplateDestination.fields.name,
@@ -36,11 +43,13 @@ export const MixTemplateRequest = Schema.Struct({
 export type MixTemplateRequest = typeof MixTemplateRequest.Type;
 export const TemplateIdentity = Schema.Struct({ revisionId: RecordId });
 export const TemplateSearch = Schema.Struct({
+  archived: Schema.optional(Schema.Boolean),
   state: Schema.NullOr(TemplateLifecycle),
   offset: Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 1000000 })),
 });
 export type TemplateSearch = typeof TemplateSearch.Type;
 export const StartTemplateValidationRequest = Schema.Struct({
+  approveOnSuccess: Schema.optional(Schema.Boolean),
   idempotencyKey: CommandKey,
   revisionId: RecordId,
   revision: Revision,
@@ -59,6 +68,7 @@ export const RetireTemplateRequest = Schema.Struct({
 });
 export type RetireTemplateRequest = typeof RetireTemplateRequest.Type;
 export const StartTemplateAiRequest = Schema.Struct({
+  workingGraph: Schema.optional(TemplateGraph),
   ...AiSelectionFields,
   ...TemplateDestination.fields,
   reservedDesignId: RecordId,

@@ -217,10 +217,10 @@ it("pins one task, persists a reviewed map with stable new IDs, and rejects stal
     (await store.inspectJob(actor.id, { id: created.id })).workspace.data.requirements,
   ).toHaveLength(0);
   await store.runJobCommand(actor, {
-    type: "details",
+    type: "snapshot",
     id: created.id,
     revision: 0,
-    details: { role: "Changed", company: "Fixture", location: "" },
+    posting: { text: "A changed posting", url: null },
     idempotencyKey: "change",
   });
   await expect(
@@ -696,4 +696,149 @@ it("rejects ranking acceptance when a captured context changes without changing 
     }),
   ).rejects.toMatchObject({ code: "Conflict" });
   expect((await store.inspectJob(actor.id, { id: created.id })).selected).toHaveLength(0);
+});
+
+it("keeps initial and accepted analysis clear of false stale warnings and accepts after unrelated detail or selection changes", async () => {
+  const { store, actor, created, request, output } = await fixture();
+  const started = await store.startJobAi(actor, request, profile);
+  expect((await store.inspectJobAi(actor.id, started.id)).staleReasons).toEqual([]);
+  if (!started.revisionId) throw Error("Missing operation");
+  await store.publishJobAi(actor.id, started.id, started.revisionId, output);
+  await store.runJobCommand(actor, {
+    type: "details",
+    id: created.id,
+    revision: 0,
+    details: { role: "Display edit", company: "Fixture", location: "Remote" },
+    idempotencyKey: "display-only",
+  });
+  const detail = await store.inspectJobAi(actor.id, started.id);
+  expect(detail.staleReasons).toEqual([]);
+  if (!detail.proposal) throw Error("Missing proposal");
+  await store.reviewJobAi(actor, {
+    id: detail.proposal.id,
+    revision: 0,
+    decision: "Accepted",
+    acknowledgeRemovedAssociations: false,
+    idempotencyKey: "accept-no-false-stale",
+  });
+  expect((await store.inspectJobAi(actor.id, started.id)).staleReasons).toEqual([]);
+  expect((await store.inspectJob(actor.id, { id: created.id })).job.revision).toBe(2);
+});
+it("applies selected requirements atomically without losing current unselected requirements", async () => {
+  const { store, actor, created, request, output, fields } = await fixture();
+  const started = await store.startJobAi(actor, request, profile);
+  if (!started.revisionId) throw Error("Missing operation");
+  await store.publishJobAi(actor.id, started.id, started.revisionId, {
+    ...output,
+    requirements: [
+      ...output.requirements,
+      { ...fields, existingId: null, text: "Second qualification" },
+    ],
+  });
+  const detail = await store.inspectJobAi(actor.id, started.id);
+  if (detail.proposal?.payload?.type !== "requirements") throw Error("Missing result");
+  const chosen = detail.proposal.payload.requirements[1];
+  if (!chosen) throw Error("Missing choice");
+  const review = {
+    id: detail.proposal.id,
+    revision: 0,
+    decision: "Accepted" as const,
+    acknowledgeRemovedAssociations: false,
+    requirementIds: [chosen.id],
+    idempotencyKey: "selected",
+  };
+  const outcome = await store.reviewJobAi(actor, review);
+  expect(await store.reviewJobAi(actor, review)).toEqual(outcome);
+  expect(
+    (await store.inspectJob(actor.id, { id: created.id })).workspace.data.requirements,
+  ).toEqual([chosen]);
+});
+it("uses all evidence matches atomically while eligibility and unrelated evidence metadata stay outside ranking staleness", async () => {
+  const { store, actor, created, request, fields, current } = await fixture();
+  await store.runJobCommand(actor, {
+    type: "requirement",
+    id: created.id,
+    revision: 0,
+    snapshotId: current.snapshot.id,
+    requirementId: null,
+    fields: { ...fields, kind: "Qualification" },
+    idempotencyKey: "qualification",
+  });
+  await store.runJobCommand(actor, {
+    type: "requirement",
+    id: created.id,
+    revision: 1,
+    snapshotId: current.snapshot.id,
+    requirementId: null,
+    fields: { ...fields, text: "Posting eligibility", kind: "Eligibility" },
+    idempotencyKey: "eligibility",
+  });
+  const job = await store.inspectJob(actor.id, { id: created.id });
+  const qualification = job.workspace.data.requirements[0],
+    eligibility = job.workspace.data.requirements[1];
+  if (!qualification || !eligibility) throw Error("Missing requirements");
+  const material = { assertion: "TypeScript applications", citations: [], contexts: [] };
+  const evidence = await store.createEvidence(
+    actor,
+    {
+      material,
+      metadata: { label: "TypeScript", tags: ["TypeScript"], notes: "" },
+      idempotencyKey: "evidence",
+    },
+    material,
+  );
+  if (!evidence.revisionId) throw Error("Missing evidence");
+  const task = await store.startJobAi(
+    actor,
+    { ...request, revision: 2, task: "rank-evidence", idempotencyKey: "rank" },
+    { ...profile, contract: "river-job-analysis-v3" },
+  );
+  if (!task.revisionId) throw Error("Missing operation");
+  const ranked = {
+    results: [
+      {
+        claimId: evidence.id,
+        evidenceRevisionId: evidence.revisionId,
+        requirementId: qualification.id,
+        support: "Positive support",
+        explanation: "Direct TypeScript evidence",
+      },
+    ],
+    gaps: [],
+    explanation: "Only qualification matching.",
+  };
+  const proposalId = await store.publishJobAi(actor.id, task.id, task.revisionId, ranked);
+  if (!proposalId) throw Error("Missing result");
+  await store.runJobCommand(actor, {
+    type: "requirement",
+    id: created.id,
+    revision: 2,
+    snapshotId: current.snapshot.id,
+    requirementId: eligibility.id,
+    fields: { ...eligibility, text: "Updated posting eligibility" },
+    idempotencyKey: "edit-eligibility",
+  });
+  await store.db
+    .update(schema.claims)
+    .set({ revision: evidence.revision + 1 })
+    .where(eq(schema.claims.id, evidence.id));
+  expect((await store.inspectJobAi(actor.id, task.id)).staleReasons).toEqual([]);
+  const review = {
+    id: proposalId,
+    revision: 0,
+    decision: "Accepted" as const,
+    acknowledgeRemovedAssociations: false,
+    selections: ranked.results.map(({ claimId, evidenceRevisionId, requirementId }) => ({
+      claimId,
+      evidenceRevisionId,
+      requirementId,
+    })),
+    idempotencyKey: "use-all",
+  };
+  const outcome = await store.reviewJobAi(actor, review);
+  expect(await store.reviewJobAi(actor, review)).toEqual(outcome);
+  expect((await store.inspectJob(actor.id, { id: created.id })).workspace.data.selections).toEqual(
+    review.selections,
+  );
+  expect((await store.inspectJobAi(actor.id, task.id)).staleReasons).toEqual([]);
 });

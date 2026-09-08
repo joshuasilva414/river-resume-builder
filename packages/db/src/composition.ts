@@ -799,7 +799,8 @@ export function createCompositionRepository(db: Database) {
       owner(actor);
       return commands.commit(actor, "preview-resume", input.idempotencyKey, input, async () => {
         const draft = await observe(actor, input.id, input.revision);
-        const template = await templates.compositionTemplate(actor.ownerId, draft.data, draft.data);
+        const data = input.data ?? draft.data;
+        const template = await templates.compositionTemplate(actor.ownerId, data, draft.data);
         const templateIdentity = draft.data.template
           ? template.identity
           : (requestedTemplateIdentity ?? template.identity);
@@ -813,6 +814,7 @@ export function createCompositionRepository(db: Database) {
             )[0]
           : undefined;
         if (
+          !input.data &&
           previous &&
           "document" in previous.input &&
           previous.input.preview?.revision === draft.revision &&
@@ -847,8 +849,8 @@ export function createCompositionRepository(db: Database) {
             });
         };
         await checkActive();
-        const validated = await validate(actor, draft.data),
-          document = renderComposition(draft.data, validated.graph),
+        const validated = await validate(actor, data),
+          document = renderComposition(data, validated.graph),
           id = newId(),
           now = Date.now();
         return {
@@ -875,8 +877,8 @@ export function createCompositionRepository(db: Database) {
               ownerId: actor.ownerId,
               input: {
                 document,
-                theme: draft.data.theme,
-                preview: { draftId: draft.id, revision: draft.revision },
+                theme: data.theme,
+                ...(input.data ? {} : { preview: { draftId: draft.id, revision: draft.revision } }),
                 templateIdentity,
                 ...(template.graph ? { templateGraph: template.graph } : {}),
               },
@@ -886,10 +888,14 @@ export function createCompositionRepository(db: Database) {
               updatedAt: now,
             }),
             db.insert(s.dispatches).values({ operationId: id }),
-            db
-              .update(s.resumeDrafts)
-              .set({ previewRequestId: id })
-              .where(eq(s.resumeDrafts.id, draft.id)),
+            ...(input.data
+              ? []
+              : [
+                  db
+                    .update(s.resumeDrafts)
+                    .set({ previewRequestId: id })
+                    .where(eq(s.resumeDrafts.id, draft.id)),
+                ]),
           ],
           history: [
             { entityId: draft.id, after: { previewOperationId: id, revision: draft.revision } },

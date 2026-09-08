@@ -11,24 +11,41 @@ import { RecordId } from "./evidence";
 import { AiEvidenceCandidate } from "./job-ai";
 import { JobDetails, PostingPassage } from "./jobs";
 import { BlockFieldKey, ContentData, EvidenceReference, LibraryReference } from "./library";
+import {
+  captureStructuredWordingTarget,
+  replaceStructuredWording,
+  StructuredWordingPath,
+  StructuredWordingTarget,
+} from "./wording-structured";
 
-export const WordingPath = Schema.Struct({
+export {
+  replaceStructuredWording,
+  StructuredWordingPath,
+  StructuredWordingTarget,
+  structuredWordingPaths,
+} from "./wording-structured";
+
+const LegacyWordingPath = Schema.Struct({
   sectionId: RecordId,
   blockId: RecordId,
   contentId: RecordId,
 });
+export const WordingPath = Schema.Union([StructuredWordingPath, LegacyWordingPath]);
 export type WordingPath = typeof WordingPath.Type;
-export const WordingTarget = Schema.Struct({
-  scope: Schema.Literal("content-placement-v1"),
-  path: WordingPath,
-  sectionType: ContentType,
-  blockType: ContentType,
-  field: BlockFieldKey,
-  sectionReference: LibraryReference,
-  blockReference: LibraryReference,
-  placement: ContentPlacement,
-  content: ContentData,
-});
+export const WordingTarget = Schema.Union([
+  StructuredWordingTarget,
+  Schema.Struct({
+    scope: Schema.Literal("content-placement-v1"),
+    path: LegacyWordingPath,
+    sectionType: ContentType,
+    blockType: ContentType,
+    field: BlockFieldKey,
+    sectionReference: LibraryReference,
+    blockReference: LibraryReference,
+    placement: ContentPlacement,
+    content: ContentData,
+  }),
+]);
 export type WordingTarget = typeof WordingTarget.Type;
 export const WordingEvidence = Schema.Struct({
   ...AiEvidenceCandidate.fields,
@@ -39,7 +56,7 @@ export type WordingEvidence = typeof WordingEvidence.Type;
 export const WordingProfile = Schema.Struct({
   ...AiExecutionFields,
   model: AiModel,
-  contract: Schema.Literal("river-wording-v1"),
+  contract: Schema.Literals(["river-wording-v1", "river-wording-v2"]),
   maxInputCharacters: Schema.Literal(160000),
   maxOutputTokens: Schema.Literal(12000),
   timeoutMs: Schema.Literal(60000),
@@ -52,12 +69,12 @@ export const WordingInput = Schema.Struct({
   targetDigest: Schema.String,
   goal: Schema.NonEmptyString.check(Schema.isMaxLength(2000)),
   snapshot: Schema.Struct({ id: RecordId, text: Schema.String, details: JobDetails }),
-  evidence: Schema.Array(WordingEvidence).check(Schema.isMaxLength(20)),
+  evidence: Schema.Array(WordingEvidence).check(Schema.isMaxLength(200)),
 });
 export type WordingInput = typeof WordingInput.Type;
 export const WordingProposal = Schema.Struct({
   wording: Schema.NonEmptyString.check(Schema.isMaxLength(10000)),
-  evidence: Schema.Array(EvidenceReference).check(Schema.isMaxLength(20)),
+  evidence: Schema.Array(EvidenceReference).check(Schema.isMaxLength(200)),
   reason: Schema.NonEmptyString.check(Schema.isMaxLength(4000)),
   meaning: Schema.Struct({
     assessment: Schema.Literals(["Preserved", "Changed", "Uncertain"]),
@@ -73,6 +90,7 @@ export function captureWordingTarget(
   graph: readonly LibraryGraphNode[],
   path: WordingPath,
 ): WordingTarget {
+  if ("kind" in path) return captureStructuredWordingTarget(data, path);
   const section = data.sections.find((item) => item.id === path.sectionId);
   const block = section?.blocks.find((item) => item.id === path.blockId);
   const field = block?.fields.find((item) =>
@@ -136,6 +154,15 @@ export function applyWordingProposal(
   path: WordingPath,
   proposal: WordingProposal,
 ): Composition {
+  if ("kind" in path) {
+    const target = captureStructuredWordingTarget(data, path);
+    const evidence = [
+      ...new Map(
+        [...target.content.evidence, ...proposal.evidence].map((item) => [item.claimId, item]),
+      ).values(),
+    ];
+    return replaceStructuredWording(data, path, proposal.wording, evidence);
+  }
   return {
     ...data,
     sections: data.sections.map((section) =>
@@ -182,6 +209,21 @@ export function undoAcceptedWording(
     current = captureWordingTarget(data, graph, original.path);
   } catch {
     return null;
+  }
+  if (original.scope === "structured-field-v1") {
+    const evidence = [
+      ...new Map(
+        [...original.content.evidence, ...proposal.evidence].map((item) => [item.claimId, item]),
+      ).values(),
+    ];
+    const expected = { ...original, content: { wording: proposal.wording, evidence } };
+    if (canonicalJson(current) !== canonicalJson(expected)) return null;
+    return replaceStructuredWording(
+      data,
+      original.path,
+      original.content.wording,
+      original.content.evidence,
+    );
   }
   const expected = {
     ...original,

@@ -1,6 +1,6 @@
 import type { RetryJobAiRequest, ReviewJobAiRequest, StartJobAiRequest } from "@river/contracts";
 import type { AiSelection } from "@river/domain";
-import { canonicalJson, type JobAiTask } from "@river/domain";
+import { canonicalJson, isQualification, type JobAiTask, selectionIdentity } from "@river/domain";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { AiSelector } from "~/components/ai-selection";
@@ -33,7 +33,7 @@ type Action =
   | { type: "cancel"; data: { operationId: string } };
 const active = (state?: string) => state === "Pending" || state === "Running";
 const title = (task: JobAiTask) =>
-  task === "extract-requirements" ? "Requirement extraction" : "Evidence ranking";
+  task === "extract-requirements" ? "Analyze job" : "Find evidence matches";
 
 /** Keep one key for an unchanged command after a lost response. Review receipts contain no generated text. */
 function useAiAction(onSaved?: (id: string) => void) {
@@ -115,7 +115,7 @@ export function JobAiPanel({
             disabled={busy}
             onClick={() => setView({ type: "launch", task: "extract-requirements", detail })}
           >
-            Extract requirements
+            Analyze job
           </Button>
         )}
         {!readOnly &&
@@ -126,12 +126,12 @@ export function JobAiPanel({
               disabled={busy}
               onClick={() => setView({ type: "launch", task: "rank-evidence", detail })}
             >
-              Rank evidence
+              Find evidence matches
             </Button>
           )}
         {Boolean(list.data?.items.length || offset) && (
           <Button variant="outline" onClick={() => setView({ type: "queue" })}>
-            Proposals
+            Results
           </Button>
         )}
         {list.error && (
@@ -151,7 +151,7 @@ export function JobAiPanel({
       )}
       {view?.type === "queue" && (
         <EvidenceDialog
-          title="Job proposals"
+          title="Job results"
           description="Generation and review are separate. Saved proposals remain here when AI is unavailable."
           onClose={close}
         >
@@ -266,7 +266,7 @@ function Launch({
                 onChange={(event) => setScope(event.target.value)}
               >
                 <option value="">All requirements and general relevance</option>
-                {detail.workspace.data.requirements.map((item) => (
+                {detail.workspace.data.requirements.filter(isQualification).map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.text}
                   </option>
@@ -274,8 +274,8 @@ function Launch({
               </select>
             </FormField>
             <p className="text-sm">
-              Uses up to 30 matching claims from your evidence bank. Review each suggestion before
-              selecting it. Missing qualifications remain visible as gaps.
+              Uses up to 30 matching evidence items from your evidence bank. Review each suggestion
+              before selecting it. Missing qualifications remain visible as gaps.
             </p>
           </>
         )}
@@ -308,7 +308,7 @@ function Launch({
               })
             }
           >
-            {action.isPending ? "Saving task…" : "Generate proposal"}
+            {action.isPending ? "Saving task…" : "Analyze job"}
           </Button>
         </div>
       </div>
@@ -345,6 +345,7 @@ function TaskReview({
   const action = useAiAction();
   const [rejecting, setRejecting] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
+  const [selection, setSelection] = useState<ReadonlySet<string> | null>(null);
   const saved = query.data;
   const proposal = saved?.proposal,
     payload = proposal?.payload;
@@ -356,18 +357,30 @@ function TaskReview({
             !payload.requirements.some((item) => item.id === selection.requirementId),
         )
       : [];
+  const available =
+    payload?.type === "requirements"
+      ? payload.requirements.map((item) => item.id)
+      : (payload?.results.map(selectionIdentity) ?? []);
+  const selected = selection ?? new Set(available);
+  const onSelection = (id: string, checked: boolean) =>
+    setSelection((previous) => {
+      const next = new Set(previous ?? available);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   const disabled = action.isPending || busy;
   return (
     <EvidenceDialog
       title={saved ? title(saved.task.input.task) : "Job analysis"}
-      description="Inspect the captured inputs, execution result, and review decision."
+      description="Review the results and choose what to use."
       onClose={onClose}
       pending={disabled}
       wide
     >
       <div className="space-y-5">
         <Button variant="link" className="px-0" disabled={disabled} onClick={onBack}>
-          ← Proposals
+          ← Results
         </Button>
         <Failure error={query.error} />
         {query.error && (
@@ -433,8 +446,26 @@ function TaskReview({
             {payload && (
               <>
                 <p className="text-sm whitespace-pre-wrap break-words">{payload.explanation}</p>
+                {proposal?.state === "Pending" && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span>
+                      {selected.size} of {available.length} selected
+                    </span>
+                    <Button variant="outline" onClick={() => setSelection(new Set(available))}>
+                      Select all {available.length}
+                    </Button>
+                    <Button variant="ghost" onClick={() => setSelection(new Set())}>
+                      Clear selection
+                    </Button>
+                  </div>
+                )}
                 {payload.type === "requirements" ? (
-                  <RequirementComparison input={saved.task.input} proposal={payload} />
+                  <RequirementComparison
+                    input={saved.task.input}
+                    proposal={payload}
+                    selected={selected}
+                    onSelection={proposal?.state === "Pending" ? onSelection : undefined}
+                  />
                 ) : (
                   <RankingReview
                     input={saved.task.input}
@@ -443,6 +474,8 @@ function TaskReview({
                     readOnly={readOnly}
                     busy={disabled}
                     onChoose={onChoose}
+                    selected={selected}
+                    onSelection={proposal?.state === "Pending" ? onSelection : undefined}
                   />
                 )}
               </>
@@ -452,6 +485,43 @@ function TaskReview({
                 The generated proposal content was removed from live storage. The task and minimal
                 review record remain.
               </p>
+            )}
+            {proposal?.state === "Pending" && payload?.type === "ranking" && (
+              <div className="flex flex-wrap gap-3">
+                {[false, true].map((all) => (
+                  <Button
+                    key={String(all)}
+                    disabled={
+                      disabled ||
+                      readOnly ||
+                      saved.staleReasons.length > 0 ||
+                      !(all ? available.length : selected.size)
+                    }
+                    onClick={() =>
+                      action.mutate({
+                        type: "review",
+                        data: {
+                          id: proposal.id,
+                          revision: proposal.revision,
+                          decision: "Accepted",
+                          acknowledgeRemovedAssociations: false,
+                          selections: payload.results
+                            .filter((item) => all || selected.has(selectionIdentity(item)))
+                            .map(({ claimId, evidenceRevisionId, requirementId }) => ({
+                              claimId,
+                              evidenceRevisionId,
+                              requirementId,
+                            })),
+                        },
+                      })
+                    }
+                  >
+                    {all
+                      ? `Use all ${available.length} matches`
+                      : `Use selected (${selected.size})`}
+                  </Button>
+                ))}
+              </div>
             )}
             {proposal?.state === "Pending" && payload?.type === "requirements" && (
               <section className="space-y-4 rounded-sm border border-highlight bg-highlight/10 p-5">
@@ -542,6 +612,28 @@ function TaskReview({
                     </Button>
                     {payload.type === "requirements" && (
                       <Button
+                        variant="outline"
+                        disabled={
+                          disabled || readOnly || saved.staleReasons.length > 0 || !selected.size
+                        }
+                        onClick={() =>
+                          action.mutate({
+                            type: "review",
+                            data: {
+                              id: proposal.id,
+                              revision: proposal.revision,
+                              decision: "Accepted",
+                              acknowledgeRemovedAssociations: true,
+                              requirementIds: [...selected],
+                            },
+                          })
+                        }
+                      >
+                        Use selected ({selected.size})
+                      </Button>
+                    )}
+                    {payload.type === "requirements" && (
+                      <Button
                         disabled={
                           disabled ||
                           readOnly ||
@@ -561,7 +653,7 @@ function TaskReview({
                         }
                       >
                         {payload.type === "requirements"
-                          ? "Accept complete map"
+                          ? `Use all ${payload.requirements.length} requirements`
                           : "Accept ranking review"}
                       </Button>
                     )}

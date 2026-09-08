@@ -2,140 +2,106 @@ import { type Guide, GuideLink } from "../shared";
 
 export const evidence = {
   slug: "evidence",
-  title: "Create and review claims",
-  description:
-    "Cite a factual statement, record your review decision, and manage claims you no longer need.",
+  title: "Build your evidence library",
+  description: "Save facts and skills directly, or add reviewed items from a source.",
   group: "How-to guides",
   sections: [
     {
       id: "claims",
-      title: "Create a claim",
+      title: "Add evidence",
       body: (
         <>
-          <p>Start with a source whose extraction contains the passage you want to cite.</p>
           <ol>
             <li>
-              Open <strong>Evidence bank → New claim</strong>.
+              Open <strong>Evidence</strong> and select <strong>Add evidence</strong>.
             </li>
             <li>
-              Enter one factual statement in <strong>Assertion</strong>.
+              Choose a type: <strong>Skill</strong>, <strong>Achievement</strong>,{" "}
+              <strong>Experience</strong>, <strong>Education</strong>, <strong>Credential</strong>,
+              or <strong>Other</strong>.
             </li>
-            <li>
-              Select <strong>Add citation</strong>.
-            </li>
-            <li>Choose the source and its extraction.</li>
-            <li>
-              Select a supporting passage or paste the passage into <strong>Exact quote</strong>.
-            </li>
-            <li>If the passage appears more than once, select the correct occurrence.</li>
-            <li>
-              Select <strong>Add citation</strong>.
-            </li>
-            <li>
-              If the claim needs context, select a context revision or use{" "}
-              <strong>New context</strong>.
-            </li>
-            <li>
-              Select <strong>Create claim</strong>.
-            </li>
+            <li>Enter the evidence text. Add keywords that help you find it later.</li>
+            <li>Optionally link sources.</li>
+            <li>Save the item.</li>
           </ol>
+          <p>
+            Use a skill name for Skill evidence. For other types, describe what you did or earned.
+            For example, “Built input validation for a React booking form.” Include numbers only
+            when you can support them.
+          </p>
         </>
       ),
     },
     {
       id: "review-states",
-      title: "Record a review decision",
+      title: "Use saved evidence",
       body: (
         <>
           <p>
-            Before verifying a claim, inspect each citation and confirm that the source supports the
-            entire assertion.
+            Evidence is usable as soon as you save it. You can select it for job requirements, use
+            it to fill content fields, or draw on it while writing.
           </p>
-          <ol>
-            <li>Select the claim.</li>
-            <li>
-              Select <strong>Review claim</strong>.
-            </li>
-            <li>
-              If the assertion is supported, select <strong>Verified</strong>. If a detail needs
-              resolution, select <strong>Needs clarification</strong>. Otherwise, keep{" "}
-              <strong>Draft</strong>.
-            </li>
-            <li>
-              Enter the reason for your decision in <strong>Rationale</strong>.
-            </li>
-            <li>
-              Select <strong>Record decision</strong>.
-            </li>
-          </ol>
           <p>
-            For the meaning of each decision, see{" "}
-            <GuideLink slug="review-states">Review states and export checks</GuideLink>.
+            From a source, edit the extracted items and use <strong>Add selected</strong> or{" "}
+            <strong>Add all</strong> once. You do not need a second verification step. Older Draft,
+            Needs clarification, or Verified decisions remain historical information; they do not
+            control current use or export.
           </p>
         </>
       ),
     },
     {
       id: "changes",
-      title: "Correct a claim",
+      title: "Correct an item",
       body: (
         <>
-          <p>
-            A material edit creates a new Draft revision. To correct the claim, follow these steps.
-          </p>
           <ol>
-            <li>Open the claim's edit form.</li>
-            <li>Correct the assertion, citations, or context references.</li>
             <li>
-              Select <strong>Save new revision</strong>.
+              Open the evidence item and edit its text, type, keywords, or optional source links.
             </li>
-            <li>Review the new revision before verifying it.</li>
+            <li>Save the changes together.</li>
+            <li>
+              Review any résumé wording or pending AI results that rely on the changed information.
+            </li>
           </ol>
-          <p>For a label, tag, or private note, use the metadata form instead.</p>
+          <p>
+            A correction does not silently rewrite earlier saved résumés. See{" "}
+            <GuideLink slug="saved-versions">Saved versions and local changes</GuideLink>.
+          </p>
         </>
       ),
     },
     {
       id: "organize",
-      title: "Find or archive a claim",
+      title: "Find, delete, or restore evidence",
       body: (
         <>
           <p>
-            To find a claim, search the evidence bank. Narrow the results with the{" "}
-            <strong>Status</strong>, <strong>Context</strong>, or <strong>Lifecycle</strong> filter.
+            Search by text or keywords and filter by type. Active Skill items also appear in content
+            skill selectors.
           </p>
           <p>
-            To hide a claim from active lists, use the claim's archive action and record a reason.
-          </p>
-          <p>
-            To restore a claim, include archived claims in <strong>Lifecycle</strong>. Open the
-            claim and use its restore action.
+            Use <strong>Delete</strong> to move an item to Trash without a reason. Use{" "}
+            <strong>Restore</strong> in Trash to make it available again. Saved résumés and history
+            retain their earlier references.
           </p>
         </>
       ),
     },
     {
       id: "duplicates",
-      title: "Review possible duplicates",
+      title: "Handle repeated information",
       body: (
         <>
           <p>
-            Before a merge, compare both assertions and their citations. A merge archives one claim
-            and creates a new Draft revision of the kept claim.
+            Before adding extracted items, compare repeated facts and select the versions you want
+            to keep. The count on <strong>Add all</strong> covers every result page.
           </p>
-          <ol>
-            <li>Open a duplicate comparison from the evidence bank.</li>
-            <li>Inspect both claims.</li>
-            <li>
-              If both claims belong together, review the resulting assertion and enter a merge
-              rationale.
-            </li>
-            <li>
-              Select <strong>Merge into kept claim</strong>.
-            </li>
-            <li>Review the new Draft revision.</li>
-          </ol>
-          <p>If the claims describe different facts, choose the option to keep them separate.</p>
+          <p>
+            If you already saved duplicates, keep the clearest item and move unwanted copies to
+            Trash. Repeating an import command after a connection interruption does not add the same
+            batch twice.
+          </p>
         </>
       ),
     },
