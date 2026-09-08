@@ -19,7 +19,7 @@ import type { TemplateBase } from "@river/templates";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect, useBlocker } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, Redo2, Undo2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CaptureCheckpoint, CheckpointHistory } from "~/components/composition/checkpoints";
 import { CopyDialog } from "~/components/composition/copy";
 import { DraftPreview } from "~/components/composition/preview";
@@ -40,7 +40,7 @@ import {
   unwrap,
 } from "~/components/evidence/shared";
 import { LibraryEditor } from "~/components/library/editor";
-import { EditorDisclosure } from "~/components/library/editor-disclosure";
+import { EditorDisclosure, revealEditorErrors } from "~/components/library/editor-disclosure";
 import { EvidenceLinks } from "~/components/library/evidence-links";
 import { LibraryPicker } from "~/components/library/picker";
 import { recordTitle, StructuredFields } from "~/components/library/schema-fields";
@@ -97,6 +97,7 @@ function sectionSummary(content: StructuredContent) {
 }
 function Editor({ detail }: { detail: ResumeDetail }) {
   const navigationAllowed = useRef(false);
+  const fields = useRef<HTMLElement>(null);
   const initialPlacements = useRef(
     new Set(
       detail.draft.data.sections.flatMap((section) => [
@@ -110,6 +111,14 @@ function Editor({ detail }: { detail: ResumeDetail }) {
   const session = useDraft(detail),
     navigate = Route.useNavigate(),
     client = useQueryClient();
+  useEffect(() => {
+    if (
+      fields.current &&
+      session.error instanceof RequestFailure &&
+      session.error.problem.code === "InvalidInput"
+    )
+      revealEditorErrors(fields.current);
+  }, [session.error]);
   const [graph, setGraph] = useState<readonly LibraryNode[]>(detail.graph),
     [picker, setPicker] = useState<(Destination & { reference?: LibraryReference }) | null>(null),
     [creating, setCreating] = useState<Destination | null>(null);
@@ -387,7 +396,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
         here.
       </div>
       <div className="grid flex-1 gap-8 px-5 md:px-8 xl:min-h-0 xl:overflow-hidden xl:px-10 xl:grid-cols-[minmax(360px,540px)_minmax(0,1fr)]">
-        <section className="hidden min-w-0 lg:block xl:overflow-y-auto">
+        <section ref={fields} className="hidden min-w-0 lg:block xl:overflow-y-auto">
           <div className="flex flex-wrap items-center gap-2 py-4">
             <Button
               variant="ghost"

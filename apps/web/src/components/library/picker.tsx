@@ -12,12 +12,13 @@ import {
 } from "@river/domain";
 import type { TemplateGraph } from "@river/templates";
 import { useQuery } from "@tanstack/react-query";
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { EvidenceDialog, Failure, FormField, unwrap } from "~/components/evidence/shared";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { getLibrary } from "~/server/library-functions";
 import { DraftPreview } from "../composition/preview";
+import { revealEditorErrors } from "./editor-disclosure";
 import { EvidenceLinks } from "./evidence-links";
 import { StructuredFields } from "./schema-fields";
 import { kindLabels, LibraryDataView, type LibraryDetail, useLibraryDetail } from "./shared";
@@ -48,6 +49,7 @@ export function LibraryPicker({
     sectionId?: string;
   };
 }) {
+  const fields = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const query = useDeferredValue(search);
   const [offset, setOffset] = useState(0);
@@ -118,6 +120,9 @@ export function LibraryPicker({
       validation = error instanceof Error ? error.message : "Check the content fields.";
     }
   }
+  useEffect(() => {
+    if (validation && fields.current) revealEditorErrors(fields.current);
+  }, [validation]);
   return (
     <EvidenceDialog
       title={`Choose ${kindLabels[kind].toLowerCase()}`}
@@ -125,7 +130,7 @@ export function LibraryPicker({
       onClose={onClose}
       wide
     >
-      <div className="space-y-5">
+      <div ref={fields} className="space-y-5">
         <FormField label="Search library">
           <Input
             value={search}

@@ -44,7 +44,7 @@ export function EditorDisclosure({
 }
 
 /** Native validation reveals the failing field; structural failures reveal the editor for correction. */
-export function revealEditorErrors(form: HTMLFormElement) {
+export function revealEditorErrors(form: HTMLElement) {
   const invalid = form.querySelector<HTMLElement>(":invalid");
   const details = invalid
     ? Array.from(form.querySelectorAll("details")).filter((item) => item.contains(invalid))
