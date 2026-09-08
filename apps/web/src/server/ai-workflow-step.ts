@@ -6,7 +6,7 @@ import { AiProviderFailure } from "./ai-failure";
 export async function runAiWorkflowStep(
   step: WorkflowStep,
   run: () => Promise<void>,
-  timeout: "90 seconds" | "10 minutes" = "90 seconds",
+  timeout: "90 seconds" | "3 minutes" | "10 minutes" = "90 seconds",
 ) {
   const result = await step.do(
     "generate-validate-persist",

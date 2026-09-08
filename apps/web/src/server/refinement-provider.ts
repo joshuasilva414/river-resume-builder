@@ -16,7 +16,7 @@ export function sourceRefinementProfile(
         contract: "river-source-refinement-v1",
         maxInputCharacters: 160000,
         maxOutputTokens: 24000,
-        timeoutMs: 60000,
+        timeoutMs: 150000,
       }
     : null;
 }
