@@ -1,6 +1,7 @@
 import type {
   ApproveTemplateRequest,
   MixTemplateRequest,
+  PreviewWorkingTemplateRequest,
   RetireTemplateRequest,
   SaveTemplateRequest,
   StartTemplateValidationRequest,
@@ -22,6 +23,7 @@ import {
   GRAPH_VALIDATOR_VERSION,
   graphInventory,
   replaceTemplate,
+  schemaSampleDocument,
   scopedTemplate,
   type TemplateBase,
   type TemplateGraph,
@@ -31,7 +33,7 @@ import {
   templateInventory,
   validateGraph,
 } from "@river/templates";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { conditionGuard, createCommands, type Guard, type Write } from "./commands";
 import type { Database } from "./index";
 import * as s from "./schema";
@@ -75,13 +77,18 @@ export function createTemplateRepository(db: Database) {
   const designGuard = (id: string, revision: number) =>
     conditionGuard(
       db,
-      sql`EXISTS (SELECT 1 FROM template_designs WHERE id=${id} AND revision=${revision})`,
+      sql`EXISTS (SELECT 1 FROM template_designs WHERE id=${id} AND revision=${revision} AND archived_at IS NULL)`,
       "The template design changed. Compare the latest revision before saving.",
     );
   async function resolveBase(ownerId: string, base: TemplateBase, approved = false) {
     if (base.kind === "fixed")
       return { graph: validateGraph(fixedPack(base.theme)), guards: [] as Guard[] };
     const row = await revisionById(ownerId, base.revisionId);
+    if (row.design.archivedAt !== null)
+      throw new ApplicationError({
+        code: "Conflict",
+        message: "Restore this template from Trash before using it for new work.",
+      });
     if (approved && row.revision.state !== "Approved")
       throw new ApplicationError({
         code: "Conflict",
@@ -90,6 +97,11 @@ export function createTemplateRepository(db: Database) {
     return {
       graph: row.revision.graph,
       guards: [
+        conditionGuard(
+          db,
+          sql`EXISTS (SELECT 1 FROM template_designs WHERE id=${row.design.id} AND archived_at IS NULL)`,
+          "This template was deleted. Restore it before continuing.",
+        ),
         lifecycleGuard(
           row.revision.id,
           row.revision.reviewRevision,
@@ -131,6 +143,11 @@ export function createTemplateRepository(db: Database) {
       )[0];
       if (!previous)
         throw new ApplicationError({ code: "NotFound", message: "Template design not found." });
+      if (previous.archivedAt !== null)
+        throw new ApplicationError({
+          code: "Conflict",
+          message: "Restore this template from Trash before editing it.",
+        });
       if (
         previous.revision !== input.revision ||
         canonicalJson(previous.scope) !== canonicalJson(input.scope)
@@ -250,6 +267,41 @@ export function createTemplateRepository(db: Database) {
     resolveTemplateBase: resolveBase,
     templateLifecycleGuard: lifecycleGuard,
     prepareTemplateRevision: revisionPlan,
+    async previewWorkingTemplate(actor: Principal, input: PreviewWorkingTemplateRequest) {
+      requireTemplateOwner(actor);
+      return commands.commit(
+        actor,
+        "preview-working-template",
+        input.idempotencyKey,
+        input,
+        async () => {
+          const graph = validateGraph(input.graph),
+            id = newId(),
+            now = Date.now();
+          return {
+            result: { id, revision: 0, revisionId: null },
+            writes: [
+              db.insert(s.operations).values({
+                id,
+                ownerId: actor.ownerId,
+                input: {
+                  document: schemaSampleDocument(graph),
+                  theme: graph.theme,
+                  templateGraph: graph,
+                  templateIdentity: canonicalJson(graphInventory(graph)),
+                },
+                state: "Pending",
+                stage: "Rendering sample content",
+                createdAt: now,
+                updatedAt: now,
+              }),
+              db.insert(s.dispatches).values({ operationId: id }),
+            ],
+            history: [{ entityId: id, after: { samplePreview: true } }],
+          };
+        },
+      );
+    },
     async saveTemplate(actor: Principal, input: SaveTemplateRequest) {
       requireTemplateOwner(actor);
       return commands.commit(
@@ -263,7 +315,14 @@ export function createTemplateRepository(db: Database) {
             actor,
             input,
             (id, version) =>
-              editedGraph(base.graph, input.scope, id, version, input.source, input.overrides),
+              editedGraph(
+                input.workingGraph ? validateGraph(input.workingGraph) : base.graph,
+                input.scope,
+                id,
+                version,
+                input.source,
+                input.overrides,
+              ),
             [await origin(input.base, input.scope, base.graph)],
           );
           return { ...plan, guards: [...plan.guards, ...base.guards] };
@@ -318,6 +377,8 @@ export function createTemplateRepository(db: Database) {
       const rows = await db
         .select({
           id: s.templateDesigns.id,
+          designRevision: s.templateDesigns.revision,
+          archivedAt: s.templateDesigns.archivedAt,
           name: s.templateDesigns.name,
           scope: s.templateDesigns.scope,
           revisionId: s.templateRevisions.id,
@@ -332,6 +393,9 @@ export function createTemplateRepository(db: Database) {
         .where(
           and(
             eq(s.templateDesigns.ownerId, ownerId),
+            input.archived
+              ? isNotNull(s.templateDesigns.archivedAt)
+              : isNull(s.templateDesigns.archivedAt),
             input.state ? eq(s.templateRevisions.state, input.state) : undefined,
           ),
         )
@@ -427,6 +491,7 @@ export function createTemplateRepository(db: Database) {
             }),
             db.insert(s.dispatches).values({ operationId }),
             db.insert(s.templateValidations).values({
+              approveOnSuccess: input.approveOnSuccess ?? false,
               id,
               revisionId: revision.id,
               operationId,
@@ -594,7 +659,7 @@ export function createTemplateRepository(db: Database) {
         db
           .update(s.templateRevisions)
           .set({
-            state: passed ? "Validated" : "Draft",
+            state: passed ? (validation.approveOnSuccess ? "Approved" : "Validated") : "Draft",
             reviewRevision: revision.reviewRevision + 1,
           })
           .where(eq(s.templateRevisions.id, revision.id)),
@@ -603,7 +668,9 @@ export function createTemplateRepository(db: Database) {
           .set({
             state: passed ? "Succeeded" : "Failed",
             stage: passed
-              ? "Synthetic fixtures passed; visual review required"
+              ? validation.approveOnSuccess
+                ? "Template saved"
+                : "Synthetic fixtures passed; visual review required"
               : "Template fixture validation failed",
             failure: passed
               ? null

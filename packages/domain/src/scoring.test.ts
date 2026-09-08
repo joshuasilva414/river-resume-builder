@@ -5,6 +5,7 @@ import {
   type ScoringIdentity,
   scoringPlatforms,
   scoringPreflight,
+  scoringUsageWindow,
   validateScoringResponse,
 } from "./scoring";
 
@@ -152,4 +153,15 @@ it("compares reported identities only for the same provider, adapter and job sna
     expect(compared.deltas).toBeNull();
     expect(compared.reasons.length).toBeGreaterThan(0);
   }
+});
+
+it("uses UTC boundaries for scoring allowance across month and year changes", () => {
+  expect(scoringUsageWindow(Date.parse("2026-12-31T23:59:59.999Z"))).toEqual({
+    day: "2026-12-31",
+    resetsAt: "2027-01-01T00:00:00.000Z",
+  });
+  expect(scoringUsageWindow(Date.parse("2027-01-01T00:00:00.000Z"))).toEqual({
+    day: "2027-01-01",
+    resetsAt: "2027-01-02T00:00:00.000Z",
+  });
 });

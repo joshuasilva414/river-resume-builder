@@ -5,6 +5,7 @@ import { loadAiCredential } from "./ai-settings";
 import { runAiWorkflowStep } from "./ai-workflow-step";
 import type { Env } from "./env";
 import { generateJobProposal } from "./job-ai-provider";
+import { runJobImport } from "./job-import-workflow";
 
 export class JobAiWorkflow extends WorkflowEntrypoint<Env, { operationId: string }> {
   async run(event: WorkflowEvent<{ operationId: string }>, step: WorkflowStep) {
@@ -14,6 +15,15 @@ export class JobAiWorkflow extends WorkflowEntrypoint<Env, { operationId: string
       // Generated output is never a Workflow step result. Rejection can remove its sole durable payload from D1.
       await runAiWorkflowStep(step, async () => {
         const operation = await repository.getOperation(id);
+        if (
+          operation &&
+          "type" in operation.input &&
+          operation.input.type === "job-import" &&
+          ["Pending", "Running"].includes(operation.state)
+        ) {
+          await runJobImport(this.env, repository, id, operation.ownerId, operation.input.importId);
+          return;
+        }
         if (
           !operation ||
           !("type" in operation.input) ||
@@ -53,7 +63,8 @@ export class JobAiWorkflow extends WorkflowEntrypoint<Env, { operationId: string
           state: "Failed",
           stage: "Job analysis failed",
           failure:
-            error instanceof ApplicationError && error.code === "Unavailable"
+            error instanceof ApplicationError &&
+            ["Unavailable", "InvalidInput"].includes(error.code)
               ? error.message
               : "The configured provider, output validation, or proposal save failed. No proposal was applied. Continue manually or retry within this task's three-attempt limit.",
         }),

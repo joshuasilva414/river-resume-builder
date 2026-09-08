@@ -17,11 +17,8 @@ import {
   unwrap,
 } from "~/components/evidence/shared";
 import { PdfPreview } from "~/components/pdf-preview";
-import { TemplateAiBrief } from "~/components/templates/ai-brief";
-import { TemplateAiConversation } from "~/components/templates/ai-conversation";
 import { TemplateAiQueue } from "~/components/templates/ai-queue";
 import { TemplateAiReview } from "~/components/templates/ai-review";
-import { TemplateEditor } from "~/components/templates/editor";
 import { TemplateMixer } from "~/components/templates/mix";
 import { TemplateScoring } from "~/components/templates/scoring";
 import {
@@ -32,6 +29,8 @@ import {
   useTemplate,
 } from "~/components/templates/shared";
 import { TemplateValidation } from "~/components/templates/validation";
+import { TemplateEditor } from "~/components/templates/working-editor";
+import { TrashAction } from "~/components/trash/actions";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -71,7 +70,6 @@ function TemplatesPage() {
     ),
     [mixer, setMixer] = useState(false),
     [builtin, setBuiltin] = useState<Theme | null>(null);
-  const [brief, setBrief] = useState<{ base: TemplateBase; detail?: TemplateDetail } | null>(null);
   const ai = useQuery({
     queryKey: ["templates", "ai", "capabilities"],
     queryFn: async () =>
@@ -116,7 +114,6 @@ function TemplatesPage() {
   const saved = (id: string) => {
     setEditor(null);
     setMixer(false);
-    setBrief(null);
     select(id);
   };
   return (
@@ -136,12 +133,12 @@ function TemplatesPage() {
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
               {search.conversationId
-                ? "Request design changes and review each proposal before accepting it."
+                ? "Describe changes, inspect the sample PDF, and save when ready."
                 : search.proposals
                   ? "Review proposed template changes and your previous decisions."
                   : search.revisionId
-                    ? "Review this template revision and its test results."
-                    : "Use a reviewed template pack or create your own."}
+                    ? "Preview the design and edit its fields or layout."
+                    : "Choose a design or create one for your résumé."}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -165,22 +162,26 @@ function TemplatesPage() {
         </div>
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" onClick={() => proposals(detail.data?.design.id)}>
-            Saved proposals
+            Earlier proposals
           </Button>
           {detail.data && !search.conversationId && (
             <Button
               variant="outline"
               onClick={() => {
-                if (detail.data) conversation(detail.data.design.id, detail.data.revision.id);
+                if (detail.data)
+                  setEditor({
+                    base: { kind: "saved", revisionId: detail.data.revision.id },
+                    detail: detail.data,
+                  });
               }}
             >
-              Open refinement conversation
+              Edit template
             </Button>
           )}
           {ai.data?.configured && !search.conversationId && !detail.data && (
             <Button
               variant="outline"
-              onClick={() => setBrief({ base: { kind: "fixed", theme: "classic" } })}
+              onClick={() => setEditor({ base: { kind: "fixed", theme: "classic" } })}
             >
               Describe a template
             </Button>
@@ -188,13 +189,16 @@ function TemplatesPage() {
         </div>
       </header>
       {search.conversationId ? (
-        <TemplateAiConversation
+        <TemplateEditor
           key={search.conversationId}
-          id={search.conversationId}
           initialBase={
-            search.revisionId ? { kind: "saved", revisionId: search.revisionId } : undefined
+            search.revisionId
+              ? { kind: "saved", revisionId: search.revisionId }
+              : { kind: "fixed", theme: "classic" }
           }
-          onDraft={select}
+          detail={detail.data}
+          onClose={() => select(search.revisionId)}
+          onSaved={saved}
         />
       ) : search.proposals ? (
         <TemplateAiQueue
@@ -239,20 +243,42 @@ function TemplatesPage() {
                       });
                   }}
                 >
-                  Edit into new Draft revision
+                  Edit template
                 </Button>
-                <GraphView graph={detail.data.revision.graph} />
+                <TrashAction
+                  item={{
+                    id: detail.data.design.id,
+                    kind: "template",
+                    label: detail.data.design.name,
+                    revision: detail.data.design.revision,
+                    archivedAt: detail.data.design.archivedAt,
+                  }}
+                  onChanged={() => select()}
+                />
+                <details className="rounded-md border p-4">
+                  <summary className="cursor-pointer text-sm font-semibold">
+                    Template structure
+                  </summary>
+                  <div className="mt-4">
+                    <GraphView graph={detail.data.revision.graph} />
+                  </div>
+                </details>
               </section>
               <aside className="min-w-0 space-y-5 xl:border-l xl:pl-7">
-                <CodePayload
-                  label="Exact graph identity"
-                  value={{
-                    revisionId: detail.data.revision.id,
-                    digest: detail.data.revision.digest,
-                    scope: detail.data.design.scope,
-                  }}
-                />
-                <TemplateValidation detail={detail.data} />
+                <details className="space-y-4">
+                  <summary className="cursor-pointer text-sm font-semibold">
+                    Sample checks and history
+                  </summary>
+                  <CodePayload
+                    label="Exact graph identity"
+                    value={{
+                      revisionId: detail.data.revision.id,
+                      digest: detail.data.revision.digest,
+                      scope: detail.data.design.scope,
+                    }}
+                  />
+                  <TemplateValidation detail={detail.data} />
+                </details>
                 <TemplateScoring
                   key={detail.data.revision.id}
                   base={{ kind: "saved", revisionId: detail.data.revision.id }}
@@ -300,9 +326,9 @@ function TemplatesPage() {
               }}
             >
               <TabsList variant="line">
-                <TabsTrigger value="Approved">Approved</TabsTrigger>
+                <TabsTrigger value="Approved">Ready to use</TabsTrigger>
                 <TabsTrigger value="Draft">Drafts</TabsTrigger>
-                <TabsTrigger value="Validated">Validated</TabsTrigger>
+                <TabsTrigger value="Validated">Earlier sample checks</TabsTrigger>
                 <TabsTrigger value="Retired">Retired</TabsTrigger>
                 <TabsTrigger value="all">All</TabsTrigger>
               </TabsList>
@@ -329,7 +355,7 @@ function TemplatesPage() {
                     <div className="flex flex-wrap items-center justify-between gap-3 p-5">
                       <p className="eyebrow">Fixed revision 1</p>
                       <Button variant="outline" onClick={() => setBuiltin(theme)}>
-                        Inspect pack
+                        Preview template
                       </Button>
                     </div>
                   </article>
@@ -347,7 +373,7 @@ function TemplatesPage() {
                     Saved template · revision {item.version}
                   </p>
                   <Button variant="outline" onClick={() => select(item.revisionId)}>
-                    Inspect revision
+                    Open template
                   </Button>
                 </article>
               ))}
@@ -387,25 +413,6 @@ function TemplatesPage() {
         />
       )}
       {mixer && <TemplateMixer onClose={() => setMixer(false)} onSaved={saved} />}
-      {brief && (
-        <TemplateAiBrief
-          initialBase={brief.base}
-          detail={brief.detail}
-          onClose={() => setBrief(null)}
-          onStarted={(id) => {
-            setBrief(null);
-            void navigate({
-              search: {
-                proposals: true,
-                proposalId: id,
-                revisionId: undefined,
-                designId: brief.detail?.design.id,
-                conversationId: undefined,
-              },
-            });
-          }}
-        />
-      )}
       {search.proposalId && (
         <TemplateAiReview id={search.proposalId} onClose={() => proposal()} onDraft={select} />
       )}
@@ -430,7 +437,7 @@ function TemplatesPage() {
                 setBuiltin(null);
               }}
             >
-              Create Draft from this pack
+              Use as a starting design
             </Button>
           </div>
         </EvidenceDialog>

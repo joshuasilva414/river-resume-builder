@@ -1,14 +1,18 @@
 import {
+  adaptCompositionSection,
   type BlockPlacement,
   blockDefinitions,
   type Composition,
   type ContentPlacement,
   type ContentType,
   contentValue,
+  type LibraryReference,
   placeBlock,
   placeContent,
   placeSection,
   type SectionPlacement,
+  type StructuredContent,
+  type StructuredWordingPath,
   undoAcceptedWording,
 } from "@river/domain";
 import type { TemplateBase } from "@river/templates";
@@ -20,6 +24,10 @@ import { CaptureCheckpoint, CheckpointHistory } from "~/components/composition/c
 import { CopyDialog } from "~/components/composition/copy";
 import { DraftPreview } from "~/components/composition/preview";
 import { type PlacementPath, ReuseDialog } from "~/components/composition/reuse";
+import {
+  StructuredWording,
+  StructuredWordingEditor,
+} from "~/components/composition/structured-wording";
 import { type ResumeDetail, useDraft, useResume } from "~/components/composition/use-draft";
 import { CompositionView } from "~/components/composition/view";
 import { useWordingAssistance } from "~/components/composition/wording-ai";
@@ -34,6 +42,7 @@ import {
 import { LibraryEditor } from "~/components/library/editor";
 import { EvidenceLinks } from "~/components/library/evidence-links";
 import { LibraryPicker } from "~/components/library/picker";
+import { StructuredFields } from "~/components/library/schema-fields";
 import type { LibraryNode } from "~/components/library/shared";
 import { BindingInspection, compositionBase, TemplateLayout } from "~/components/templates/binding";
 import { BasePicker, useTemplateBase } from "~/components/templates/shared";
@@ -80,8 +89,9 @@ function Editor({ detail }: { detail: ResumeDetail }) {
     navigate = Route.useNavigate(),
     client = useQueryClient();
   const [graph, setGraph] = useState<readonly LibraryNode[]>(detail.graph),
-    [picker, setPicker] = useState<Destination | null>(null),
+    [picker, setPicker] = useState<(Destination & { reference?: LibraryReference }) | null>(null),
     [creating, setCreating] = useState<Destination | null>(null);
+  const [structuredWording, setStructuredWording] = useState<StructuredWordingPath | null>(null);
   const [wording, setWording] = useState<{
       sectionId: string;
       blockId: string;
@@ -178,17 +188,34 @@ function Editor({ detail }: { detail: ResumeDetail }) {
     destination: Destination,
     selected: ResumeDetail["graph"][number],
     nodes: readonly LibraryNode[],
+    position?: number,
+    structured?: StructuredContent,
   ) => {
     const reference = { itemId: selected.item.id, revisionId: selected.revision.id };
     setGraph([...mergedGraph, ...nodes]);
     if (destination.kind === "section") {
-      const section = placeSection(reference, nodes);
+      const placed = placeSection(reference, nodes);
+      const section = structured
+        ? {
+            ...placed,
+            structured,
+            heading:
+              typeof structured.record.values.heading === "string"
+                ? structured.record.values.heading
+                : placed.heading,
+            reason: "Added to this résumé",
+          }
+        : placed;
       change({
         ...session.data,
         sections:
           section.type === "contact"
             ? [section, ...session.data.sections]
-            : [...session.data.sections, section],
+            : [
+                ...session.data.sections.slice(0, position ?? session.data.sections.length),
+                section,
+                ...session.data.sections.slice(position ?? session.data.sections.length),
+              ],
       });
     } else {
       const section = session.data.sections.find((section) => section.id === destination.sectionId);
@@ -197,7 +224,14 @@ function Editor({ detail }: { detail: ResumeDetail }) {
         changeSection({
           ...section,
           reason: "Added a Block for this résumé.",
-          blocks: [...section.blocks, placeBlock(reference, nodes)],
+          blocks: [
+            ...section.blocks.slice(0, position ?? section.blocks.length),
+            {
+              ...placeBlock(reference, nodes),
+              ...(structured ? { structured, reason: "Added to this résumé" } : {}),
+            },
+            ...section.blocks.slice(position ?? section.blocks.length),
+          ],
         });
       else {
         const block = section.blocks.find((block) => block.id === destination.blockId);
@@ -236,7 +270,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
         ? "Save failed"
         : session.dirty
           ? "Unsaved changes"
-          : `Saved · revision ${session.ack.revision}`;
+          : "All changes saved";
   const shift = <T,>(values: readonly T[], index: number, direction: number) => {
     const next = [...values],
       value = next[index];
@@ -250,6 +284,10 @@ function Editor({ detail }: { detail: ResumeDetail }) {
     detail,
     session.dirty || session.pending || !!session.error || outdated,
     (path) => {
+      if ("kind" in path) {
+        setStructuredWording(path);
+        return;
+      }
       const content = session.data.sections
         .find((section) => section.id === path.sectionId)
         ?.blocks.find((block) => block.id === path.blockId)
@@ -268,6 +306,14 @@ function Editor({ detail }: { detail: ResumeDetail }) {
           undo: undoAcceptedWording(current.draft.data, current.graph, input.target, proposal),
         };
       }),
+    (perform) =>
+      session.applyExternalEdit(async () => {
+        const before = session.data;
+        const id = await perform();
+        const current = unwrap(await getResume({ data: { id: detail.draft.id } }));
+        setGraph(current.graph);
+        return { id, detail: current, undo: before };
+      }),
   );
   return (
     <>
@@ -282,7 +328,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
         <div className="flex flex-wrap items-center gap-4">
           <h1 className="page-heading">{session.data.name}</h1>
           <Button variant="outline" onClick={() => setReview(true)}>
-            Review draft
+            Review résumé
           </Button>
           <Button variant="outline" onClick={() => setHistory(true)}>
             History
@@ -348,7 +394,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
             </Button>
           </div>
           <div className="space-y-6 p-6">
-            <FormField label="Draft name">
+            <FormField label="Résumé name">
               <Input
                 value={session.data.name}
                 maxLength={160}
@@ -431,7 +477,47 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                 <p className="eyebrow">
                   {section.reason ? "Changed for this résumé" : "Saved from your library"}
                 </p>
-                {section.type !== "contact" && (
+                {!section.structured && (
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      changeSection({
+                        ...section,
+                        structured: adaptCompositionSection(section, mergedGraph),
+                        blocks: [],
+                        reason: "Edited this résumé",
+                      })
+                    }
+                  >
+                    Edit section fields
+                  </Button>
+                )}
+                {section.structured && (
+                  <StructuredFields
+                    content={section.structured}
+                    onChange={(structured) =>
+                      changeSection({
+                        ...section,
+                        structured,
+                        heading:
+                          typeof structured.record.values.heading === "string"
+                            ? structured.record.values.heading
+                            : section.heading,
+                        reason: "Edited this résumé",
+                      })
+                    }
+                  />
+                )}
+                {section.structured && assistance.configured && (
+                  <StructuredWording
+                    content={section.structured}
+                    sectionId={section.id}
+                    disabled={session.dirty || session.pending || !!session.error || outdated}
+                    onSuggest={assistance.launch}
+                    inlineFor={assistance.inlineFor}
+                  />
+                )}
+                {!section.structured && section.type !== "contact" && (
                   <FormField label="Printed section heading">
                     <Input
                       value={section.heading}
@@ -516,182 +602,207 @@ function Editor({ detail }: { detail: ResumeDetail }) {
                     {block.reason && (
                       <p className="text-xs text-primary">Local composition · {block.reason}</p>
                     )}
-                    {blockDefinitions[block.type].fields.map((field) => {
-                      const contents =
-                        block.fields.find((value) => value.key === field.key)?.contents ?? [];
-                      return (
-                        <section key={field.key} className="space-y-3">
-                          <h4 className="font-sans text-sm font-semibold">{field.label}</h4>
-                          {contents.map((content, contentIndex) => {
-                            const value = contentValue(content, mergedGraph);
-                            return (
-                              <div
-                                key={content.id}
-                                className={`space-y-3 border-l-2 pl-3 ${assistance.path?.contentId === content.id ? "border-primary" : ""}`}
-                              >
-                                {assistance.path?.contentId === content.id && (
-                                  <p className="eyebrow text-primary">Selected wording placement</p>
-                                )}
-                                <p className="whitespace-pre-wrap text-[15px] leading-6 break-words">
-                                  {value.wording}
-                                </p>
-                                <p className="eyebrow">
-                                  {content.override ? "Wording changed here" : "Saved wording"} ·{" "}
-                                  {value.evidence.length} evidence links
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                  <Button
-                                    variant="outline"
-                                    onClick={() =>
-                                      setWording({
-                                        sectionId: section.id,
-                                        blockId: block.id,
-                                        content,
-                                      })
-                                    }
-                                  >
-                                    Edit wording
-                                  </Button>
-                                  {assistance.configured && (
+                    {block.structured && (
+                      <StructuredFields
+                        content={block.structured}
+                        onChange={(structured) =>
+                          changeBlock(section.id, {
+                            ...block,
+                            structured,
+                            reason: "Edited this résumé",
+                          })
+                        }
+                      />
+                    )}
+                    {block.structured && assistance.configured && (
+                      <StructuredWording
+                        content={block.structured}
+                        sectionId={section.id}
+                        blockId={block.id}
+                        disabled={session.dirty || session.pending || !!session.error || outdated}
+                        onSuggest={assistance.launch}
+                        inlineFor={assistance.inlineFor}
+                      />
+                    )}
+                    {!block.structured &&
+                      blockDefinitions[block.type].fields.map((field) => {
+                        const contents =
+                          block.fields.find((value) => value.key === field.key)?.contents ?? [];
+                        return (
+                          <section key={field.key} className="space-y-3">
+                            <h4 className="font-sans text-sm font-semibold">{field.label}</h4>
+                            {contents.map((content, contentIndex) => {
+                              const value = contentValue(content, mergedGraph);
+                              return (
+                                <div
+                                  key={content.id}
+                                  className={`space-y-3 border-l-2 pl-3 ${assistance.contentId === content.id ? "border-primary" : ""}`}
+                                >
+                                  {assistance.contentId === content.id && (
+                                    <p className="eyebrow text-primary">
+                                      Selected wording placement
+                                    </p>
+                                  )}
+                                  <p className="whitespace-pre-wrap text-[15px] leading-6 break-words">
+                                    {value.wording}
+                                  </p>
+                                  <p className="eyebrow">
+                                    {content.override ? "Wording changed here" : "Saved wording"} ·{" "}
+                                    {value.evidence.length} evidence links
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
                                     <Button
                                       variant="outline"
-                                      disabled={
-                                        session.dirty ||
-                                        session.pending ||
-                                        !!session.error ||
-                                        outdated
-                                      }
                                       onClick={() =>
-                                        assistance.launch({
+                                        setWording({
+                                          sectionId: section.id,
+                                          blockId: block.id,
+                                          content,
+                                        })
+                                      }
+                                    >
+                                      Edit wording
+                                    </Button>
+                                    {assistance.configured && (
+                                      <Button
+                                        variant="outline"
+                                        disabled={
+                                          session.dirty ||
+                                          session.pending ||
+                                          !!session.error ||
+                                          outdated
+                                        }
+                                        onClick={() =>
+                                          assistance.launch({
+                                            sectionId: section.id,
+                                            blockId: block.id,
+                                            contentId: content.id,
+                                          })
+                                        }
+                                      >
+                                        Suggest wording
+                                      </Button>
+                                    )}
+                                    <Button variant="ghost" onClick={() => setInspect(content)}>
+                                      Inspect evidence
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      disabled={session.dirty || session.pending || outdated}
+                                      onClick={() =>
+                                        setReuse({
                                           sectionId: section.id,
                                           blockId: block.id,
                                           contentId: content.id,
                                         })
                                       }
                                     >
-                                      Suggest wording
+                                      Inspect wording reuse
                                     </Button>
-                                  )}
-                                  <Button variant="ghost" onClick={() => setInspect(content)}>
-                                    Inspect evidence
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    disabled={session.dirty || session.pending || outdated}
-                                    onClick={() =>
-                                      setReuse({
-                                        sectionId: section.id,
-                                        blockId: block.id,
-                                        contentId: content.id,
-                                      })
-                                    }
-                                  >
-                                    Inspect wording reuse
-                                  </Button>
-                                  {contents.length > 1 && (
-                                    <>
+                                    {contents.length > 1 && (
+                                      <>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          aria-label={`Move ${field.label} item ${contentIndex + 1} up`}
+                                          disabled={contentIndex === 0}
+                                          onClick={() =>
+                                            changeBlock(section.id, {
+                                              ...block,
+                                              reason: "Reordered wording for this résumé.",
+                                              fields: block.fields.map((item) =>
+                                                item.key === field.key
+                                                  ? {
+                                                      ...item,
+                                                      contents: shift(contents, contentIndex, -1),
+                                                    }
+                                                  : item,
+                                              ),
+                                            })
+                                          }
+                                        >
+                                          <ArrowUp />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          aria-label={`Move ${field.label} item ${contentIndex + 1} down`}
+                                          disabled={contentIndex === contents.length - 1}
+                                          onClick={() =>
+                                            changeBlock(section.id, {
+                                              ...block,
+                                              reason: "Reordered wording for this résumé.",
+                                              fields: block.fields.map((item) =>
+                                                item.key === field.key
+                                                  ? {
+                                                      ...item,
+                                                      contents: shift(contents, contentIndex, 1),
+                                                    }
+                                                  : item,
+                                              ),
+                                            })
+                                          }
+                                        >
+                                          <ArrowDown />
+                                        </Button>
+                                      </>
+                                    )}
+                                    {contents.length > field.min && (
                                       <Button
                                         variant="ghost"
-                                        size="icon"
-                                        aria-label={`Move ${field.label} item ${contentIndex + 1} up`}
-                                        disabled={contentIndex === 0}
                                         onClick={() =>
                                           changeBlock(section.id, {
                                             ...block,
-                                            reason: "Reordered wording for this résumé.",
+                                            reason: "Removed a wording binding.",
                                             fields: block.fields.map((item) =>
                                               item.key === field.key
                                                 ? {
                                                     ...item,
-                                                    contents: shift(contents, contentIndex, -1),
+                                                    contents: contents.filter(
+                                                      (value) => value.id !== content.id,
+                                                    ),
                                                   }
                                                 : item,
                                             ),
                                           })
                                         }
                                       >
-                                        <ArrowUp />
+                                        Remove wording
                                       </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label={`Move ${field.label} item ${contentIndex + 1} down`}
-                                        disabled={contentIndex === contents.length - 1}
-                                        onClick={() =>
-                                          changeBlock(section.id, {
-                                            ...block,
-                                            reason: "Reordered wording for this résumé.",
-                                            fields: block.fields.map((item) =>
-                                              item.key === field.key
-                                                ? {
-                                                    ...item,
-                                                    contents: shift(contents, contentIndex, 1),
-                                                  }
-                                                : item,
-                                            ),
-                                          })
-                                        }
-                                      >
-                                        <ArrowDown />
-                                      </Button>
-                                    </>
-                                  )}
-                                  {contents.length > field.min && (
-                                    <Button
-                                      variant="ghost"
-                                      onClick={() =>
-                                        changeBlock(section.id, {
-                                          ...block,
-                                          reason: "Removed a wording binding.",
-                                          fields: block.fields.map((item) =>
-                                            item.key === field.key
-                                              ? {
-                                                  ...item,
-                                                  contents: contents.filter(
-                                                    (value) => value.id !== content.id,
-                                                  ),
-                                                }
-                                              : item,
-                                          ),
-                                        })
-                                      }
-                                    >
-                                      Remove wording
-                                    </Button>
-                                  )}
+                                    )}
+                                  </div>
+                                  {assistance.inlineFor({
+                                    sectionId: section.id,
+                                    blockId: block.id,
+                                    contentId: content.id,
+                                  })}
                                 </div>
-                                {assistance.inlineFor({
-                                  sectionId: section.id,
-                                  blockId: block.id,
-                                  contentId: content.id,
-                                })}
-                              </div>
-                            );
-                          })}
-                          {(contents.length < field.max || field.max === 1) && (
-                            <Button
-                              variant="outline"
-                              onClick={() =>
-                                setPicker({
-                                  kind: "content",
-                                  type: block.type,
-                                  sectionId: section.id,
-                                  blockId: block.id,
-                                  field: field.key,
-                                })
-                              }
-                            >
-                              {field.max === 1 && contents.length
-                                ? "Replace from library"
-                                : "Add wording"}
-                            </Button>
-                          )}
-                        </section>
-                      );
-                    })}
+                              );
+                            })}
+                            {(contents.length < field.max || field.max === 1) && (
+                              <Button
+                                variant="outline"
+                                onClick={() =>
+                                  setPicker({
+                                    kind: "content",
+                                    type: block.type,
+                                    sectionId: section.id,
+                                    blockId: block.id,
+                                    field: field.key,
+                                  })
+                                }
+                              >
+                                {field.max === 1 && contents.length
+                                  ? "Replace from library"
+                                  : "Add wording"}
+                              </Button>
+                            )}
+                          </section>
+                        );
+                      })}
                   </article>
                 ))}
-                {(section.type !== "contact" || !section.blocks.length) && (
+                {!section.structured && (section.type !== "contact" || !section.blocks.length) && (
                   <div className="flex flex-wrap gap-3">
                     <Button
                       variant="outline"
@@ -762,12 +873,23 @@ function Editor({ detail }: { detail: ResumeDetail }) {
       )}
       {picker && (
         <LibraryPicker
+          initialReference={picker.reference}
           kind={picker.kind}
           type={picker.type}
           onClose={() => setPicker(null)}
-          onPick={(reference, selected) => {
+          preview={
+            picker.kind === "content"
+              ? undefined
+              : {
+                  id: detail.draft.id,
+                  revision: session.ack.revision,
+                  data: session.data,
+                  ...(picker.kind === "block" ? { sectionId: picker.sectionId } : {}),
+                }
+          }
+          onPick={(reference, selected, position, structured) => {
             const node = selected.graph.find((node) => node.revision.id === reference.revisionId);
-            if (node) insert(picker, node, selected.graph);
+            if (node) insert(picker, node, selected.graph, position, structured);
             setPicker(null);
           }}
         />
@@ -779,19 +901,35 @@ function Editor({ detail }: { detail: ResumeDetail }) {
           onClose={() => setCreating(null)}
           onSaved={(reference) => {
             const destination = creating;
-            void getLibraryDetail({
-              data: { id: reference.itemId, revisionId: reference.revisionId },
-            })
-              .then(unwrap)
-              .then((detail) => {
-                const node = detail.graph.find((node) => node.revision.id === reference.revisionId);
-                if (node) insert(destination, node, detail.graph);
+            setCreating(null);
+            if (destination.kind !== "content") setPicker({ ...destination, reference });
+            else
+              void getLibraryDetail({
+                data: { id: reference.itemId, revisionId: reference.revisionId },
               })
-              .catch(() => setPicker(destination));
+                .then(unwrap)
+                .then((detail) => {
+                  const node = detail.graph.find(
+                    (node) => node.revision.id === reference.revisionId,
+                  );
+                  if (node) insert(destination, node, detail.graph);
+                })
+                .catch(() => setPicker(destination));
           }}
         />
       )}
       {assistance.dialogs}
+      {structuredWording && (
+        <StructuredWordingEditor
+          data={session.data}
+          path={structuredWording}
+          onClose={() => setStructuredWording(null)}
+          onApply={(data) => {
+            change(data);
+            setStructuredWording(null);
+          }}
+        />
+      )}
       {wording && (
         <WordingEditor
           content={wording.content}
@@ -818,7 +956,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
           description={
             session.dirty
               ? "This is your visible draft, including unsaved edits. Export review follows the saved checkpoint workflow."
-              : `Saved revision ${session.ack.revision}. Inspect complete wording and evidence.`
+              : "Review the saved wording and supporting evidence."
           }
           onClose={() => setReview(false)}
           wide
@@ -846,7 +984,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
               <CompositionView data={session.data} graph={mergedGraph} provenance />
             </section>
             <section className="space-y-4">
-              <p className="eyebrow">Saved revision {detail.draft.revision}</p>
+              <p className="eyebrow">Current résumé</p>
               <CompositionView data={detail.draft.data} graph={detail.graph} provenance />
             </section>
           </div>

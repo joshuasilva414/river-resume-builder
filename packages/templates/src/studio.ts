@@ -5,6 +5,7 @@ import {
   canonicalJson,
   RecordId,
   Revision,
+  SchemaBundle,
   Theme,
 } from "@river/domain";
 import { Schema } from "effect";
@@ -54,6 +55,7 @@ export const TemplateAiProfile = Schema.Struct({
     "river-template-generation-v1",
     "river-template-generation-v2",
     "river-template-generation-v3",
+    "river-template-generation-v4",
   ]),
   maxInputCharacters: Schema.Literal(160000),
   maxOutputTokens: Schema.Literal(12000),
@@ -87,6 +89,7 @@ export interface TemplateAiInput {
   };
 }
 export const TemplateAiOutput = Schema.Struct({
+  composition: Schema.optional(Schema.NullOr(SchemaBundle)),
   source: Schema.NonEmptyString.check(Schema.isMaxLength(32768)),
   overrides: Schema.Struct({
     font: Schema.NullOr(StyleTokens.fields.font),
@@ -152,7 +155,9 @@ export function templateCandidate(input: TemplateAiInput, output: unknown): Temp
   };
   return {
     graph: editedGraph(
-      input.baseGraph,
+      candidate.composition
+        ? { ...input.baseGraph, composition: candidate.composition }
+        : input.baseGraph,
       input.scope,
       input.destination.id,
       input.destination.manifestRevision,

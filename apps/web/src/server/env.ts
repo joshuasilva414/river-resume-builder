@@ -24,6 +24,7 @@ export type Configuration = typeof Configuration.Type;
 
 export interface Env extends Configuration {
   DB: D1Database;
+  BROWSER?: BrowserRun;
   ARTIFACTS: R2Bucket;
   DOCUMENT_WORKFLOW: Workflow<{ operationId: string }>;
   JOB_AI_WORKFLOW?: Workflow<{ operationId: string }>;

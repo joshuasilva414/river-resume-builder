@@ -3,6 +3,7 @@ import { ApplicationError, ContentType } from "./core";
 
 export { ContentType, contentTypes } from "./core";
 
+import { StructuredContent, validateStructuredContent } from "./content-schema";
 import { RecordId } from "./evidence";
 
 export const LibraryKind = Schema.Literals(["content", "block", "section"]);
@@ -39,6 +40,7 @@ export const BlockData = Schema.Struct({
   kind: Schema.Literal("block"),
   type: ContentType,
   fields: Schema.Array(BlockField).check(Schema.isMaxLength(8)),
+  structured: Schema.optional(StructuredContent),
 });
 export type BlockData = typeof BlockData.Type;
 export const SectionData = Schema.Struct({
@@ -46,10 +48,13 @@ export const SectionData = Schema.Struct({
   type: ContentType,
   heading: Schema.String.check(Schema.isMaxLength(120)),
   blocks: Schema.Array(LibraryBinding).check(Schema.isMaxLength(30)),
+  structured: Schema.optional(StructuredContent),
 });
 export type SectionData = typeof SectionData.Type;
 export const LibraryData = Schema.Union([ContentData, BlockData, SectionData]);
 export type LibraryData = typeof LibraryData.Type;
+export const libraryEvidence = (data: LibraryData) =>
+  data.kind === "content" ? data.evidence : (data.structured?.evidence ?? []);
 interface FieldDefinition {
   key: BlockFieldKey;
   label: string;
@@ -133,6 +138,19 @@ export const blockDefinitions = {
   },
 } as const satisfies Record<ContentType, BlockDefinition>;
 export function validateLibraryData(data: LibraryData): void {
+  if (data.kind !== "content" && data.structured) {
+    try {
+      validateStructuredContent(data.structured);
+      if (data.kind === "block" ? data.fields.length : data.blocks.length)
+        throw new Error("Structured content stores direct values, without legacy bindings.");
+    } catch (error) {
+      throw new ApplicationError({
+        code: "InvalidInput",
+        message: error instanceof Error ? error.message : "Check the section fields.",
+      });
+    }
+    return;
+  }
   if (data.kind === "content") {
     if (!data.wording.trim())
       throw new ApplicationError({

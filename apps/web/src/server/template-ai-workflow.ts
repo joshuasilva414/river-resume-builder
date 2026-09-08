@@ -2,7 +2,12 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloud
 import { CompiledResult } from "@river/contracts";
 import { createRepository } from "@river/db";
 import { canonicalJson, fingerprint } from "@river/domain";
-import { CUSTOM_RENDERER_VERSION, fixtureSetPayload, graphInventory } from "@river/templates";
+import {
+  CUSTOM_RENDERER_VERSION,
+  fixtureSetPayload,
+  graphInventory,
+  schemaSampleDocument,
+} from "@river/templates";
 import { Schema } from "effect";
 import { loadAiCredential } from "./ai-settings";
 import { storeCompiledArtifacts } from "./compiled-artifacts";
@@ -88,7 +93,9 @@ export class TemplateAiWorkflow extends WorkflowEntrypoint<Env, { operationId: s
             await this.env.DOCUMENTS.run({
               type: "validate-template",
               jobId: id,
-              document: detail.task.input.fixtureSet.fixtures[0].document,
+              document: graph.composition
+                ? schemaSampleDocument(graph)
+                : detail.task.input.fixtureSet.fixtures[0].document,
               theme: graph.theme,
               templateGraph: graph,
               templateIdentity: identity,

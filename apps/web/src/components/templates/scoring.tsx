@@ -1,9 +1,11 @@
 import type { StartTemplateScoringRequest } from "@river/contracts";
 import type { TemplateBase } from "@river/templates";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { EvidenceDialog, Failure, unwrap } from "~/components/evidence/shared";
 import { PdfPreview } from "~/components/pdf-preview";
+import { ScoringAllowance, useScoringAllowance } from "~/components/scoring/allowance";
 import { SavedText, ScoreDimensions } from "~/components/scoring/review";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -27,6 +29,7 @@ export function TemplateScoring({
 }) {
   const client = useQueryClient(),
     request = useRef<StartTemplateScoringRequest | null>(null);
+  const allowance = useScoringAllowance();
   const [selected, setSelected] = useState<string | null>(null);
   const query = useInfiniteQuery({
     queryKey: ["templates", "scoring", baseKey(base)],
@@ -54,6 +57,7 @@ export function TemplateScoring({
     },
     onSuccess: async (result) => {
       request.current = null;
+      await client.invalidateQueries({ queryKey: ["scoring-allowance"] });
       setSelected(result.id);
       await client.invalidateQueries({ queryKey: ["templates", "scoring"] });
     },
@@ -64,6 +68,7 @@ export function TemplateScoring({
       <p className="text-sm leading-5 text-muted-foreground">
         Each sample résumé must pass all six scoring checks. Results apply to this template version.
       </p>
+      <ScoringAllowance cost={settings?.fixtureSet.fixtures.length ?? 3} />
       <Failure error={query.error ?? start.error} />
       {query.isPending && <p role="status">Loading qualification history…</p>}
       {settings && (
@@ -80,7 +85,16 @@ export function TemplateScoring({
             <p className="text-sm">Pass the sample PDF checks before starting a score review.</p>
           )}
           {settings.configured && eligible && (
-            <Button disabled={start.isPending || active} onClick={() => start.mutate()}>
+            <Button
+              disabled={
+                start.isPending ||
+                active ||
+                (allowance.data?.remaining !== null &&
+                  (allowance.data?.remaining ?? 0) < settings.fixtureSet.fixtures.length)
+              }
+              onClick={() => start.mutate()}
+            >
+              {(start.isPending || active) && <LoaderCircle className="animate-spin" />}
               {start.isPending || active ? "Scoring in progress" : "Run scoring checks"}
             </Button>
           )}
@@ -170,7 +184,10 @@ function TemplateScoringReview({
   const retry = useTemplateCommand(
     async (input: { id: string; revision: number }, key) =>
       unwrap(await retryTemplateScoringRun({ data: { ...input, idempotencyKey: key } })),
-    (result) => setSelectedAttempt(result.revisionId ?? null),
+    (result) => {
+      setSelectedAttempt(result.revisionId ?? null);
+      void client.invalidateQueries({ queryKey: ["scoring-allowance"] });
+    },
   );
   const cancel = useMutation({
     mutationFn: async () => {
@@ -181,7 +198,10 @@ function TemplateScoringReview({
         }),
       );
     },
-    onSuccess: () => client.invalidateQueries({ queryKey: ["templates", "scoring"] }),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: ["templates", "scoring"] });
+      await client.invalidateQueries({ queryKey: ["scoring-allowance"] });
+    },
   });
   const selected = detail?.attempts.find(
       (a) => a.attempt.operationId === (selectedAttempt ?? detail.operation.id),

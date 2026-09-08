@@ -6,10 +6,19 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { Button } from "./ui/button";
 
 /** Each page is rendered from the authoritative PDF. Zoom never recomposes résumé content. */
-export function PdfPreview({ url }: { url: string }) {
+export function PdfPreview({
+  url,
+  onDisplayChange,
+}: {
+  url: string;
+  onDisplayChange?: (url: string, displayed: boolean) => void;
+}) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const container = useRef<HTMLDivElement>(null);
-  const [document, setDocument] = useState<PDFDocumentProxy | null>(null);
+  const [loaded, setLoaded] = useState<{ document: PDFDocumentProxy; url: string } | null>(null);
+  const document = loaded?.document ?? null;
+  const displayChange = useRef(onDisplayChange);
+  displayChange.current = onDisplayChange;
   const [pageNumber, setPageNumber] = useState(1);
   const [zoom, setZoom] = useState("fit");
   const [width, setWidth] = useState(600);
@@ -30,7 +39,8 @@ export function PdfPreview({ url }: { url: string }) {
     let disposed = false;
     let cleanup: (() => Promise<void>) | undefined;
     setState("loading");
-    setDocument(null);
+    displayChange.current?.(url, false);
+    setLoaded(null);
     setPageNumber(1);
     void (async () => {
       const pdfjs = await import("pdfjs-dist");
@@ -39,7 +49,7 @@ export function PdfPreview({ url }: { url: string }) {
       const task = pdfjs.getDocument({ url, withCredentials: true });
       cleanup = () => task.destroy();
       const result = await task.promise;
-      if (!disposed) setDocument(result);
+      if (!disposed) setLoaded({ document: result, url });
     })().catch(() => {
       if (!disposed) setState("error");
     });
@@ -49,9 +59,11 @@ export function PdfPreview({ url }: { url: string }) {
     };
   }, [url, attempt]);
   useEffect(() => {
-    if (!document) return;
+    if (!loaded) return;
+    const { document, url: renderedUrl } = loaded;
     let disposed = false;
     setState("loading");
+    displayChange.current?.(renderedUrl, false);
     void (async () => {
       const page = await document.getPage(pageNumber);
       const natural = page.getViewport({ scale: 1 });
@@ -69,16 +81,19 @@ export function PdfPreview({ url }: { url: string }) {
       target.height = buffer.height;
       target.style.width = `${viewport.width / density}px`;
       target.style.height = `${viewport.height / density}px`;
-      target.getContext("2d")?.drawImage(buffer, 0, 0);
+      const context = target.getContext("2d");
+      if (!context) throw new Error("PDF canvas is unavailable.");
+      context.drawImage(buffer, 0, 0);
       setHasPreview(true);
       setState("ready");
+      displayChange.current?.(renderedUrl, true);
     })().catch(() => {
       if (!disposed) setState("error");
     });
     return () => {
       disposed = true;
     };
-  }, [document, pageNumber, width, zoom]);
+  }, [loaded, pageNumber, width, zoom]);
   return (
     <div className="space-y-3" ref={container}>
       <fieldset className="flex min-w-0 flex-wrap items-center gap-2" aria-label="PDF controls">

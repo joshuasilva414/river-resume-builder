@@ -337,3 +337,11 @@ export function scoringProfile(origin: string) {
   } as const;
 }
 export type ScoringProfile = ReturnType<typeof scoringProfile>;
+
+/** Successful retained results reset by UTC day. Pending reservations remain reserved across midnight. */
+export function scoringUsageWindow(now = Date.now()) {
+  const instant = new Date(now),
+    reset = new Date(now);
+  reset.setUTCHours(24, 0, 0, 0);
+  return { day: instant.toISOString().slice(0, 10), resetsAt: reset.toISOString() };
+}

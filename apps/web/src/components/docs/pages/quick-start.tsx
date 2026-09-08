@@ -1,297 +1,169 @@
-import { type Guide, GuideLink, Note } from "../shared";
+import { type Guide, GuideLink } from "../shared";
 
 export const quickStart = {
   slug: "quick-start",
   title: "Create a practice résumé",
-  description: "Build a short résumé for a fictional project, then export a PDF.",
+  description:
+    "Build and export a small résumé with fictional details. No AI connection is required.",
   group: "Tutorials",
   sections: [
     {
       id: "before-you-start",
-      title: "Before you start",
+      title: "Prepare a practice workspace",
       body: (
         <>
           <p>
-            We will build a practice résumé for Alex Example, who built a booking form with React.
-            The finished PDF contains a name and a Projects section.
+            Sign in to River. This tutorial uses Alex Example and a fictional booking-form project.
+            Keep these details in a practice résumé; replace them with your own facts before
+            applying for a job.
           </p>
           <p>
-            Use a desktop browser and an account that can sign in to River. For account setup,
-            follow <GuideLink slug="account">Access your workspace</GuideLink>.
+            You will save evidence, add a job, create a Summary and an Experience section, then
+            review the PDF. Sources and AI assistance are optional.
           </p>
-          <p>
-            The Getting started checklist on Job targets tracks your saved work. You can skip it and
-            reopen it in Settings. AI is optional for this tutorial.
-          </p>
-          <Note>
-            This example is fictional. Keep the practice claim in Draft. Do not verify the claim or
-            submit the practice PDF for a job application.
-          </Note>
         </>
       ),
     },
     {
       id: "add-sources",
-      title: "Save the practice source",
+      title: "Choose the practice facts",
       body: (
         <>
-          <p>First, add the material we will cite.</p>
-          <ol>
-            <li>
-              Open <strong>Sources</strong>.
-            </li>
-            <li>
-              Select <strong>Add source</strong>.
-            </li>
-            <li>
-              Enter "Practice: Alex Example" in <strong>Title</strong>.
-            </li>
-            <li>
-              Set <strong>Source type</strong> to <strong>Pasted text</strong>.
-            </li>
-            <li>
-              Paste the following text into <strong>Source text</strong>:
-              <blockquote>
-                Fictional practice profile: Alex Example. Project: Booking form. Built a booking
-                form with React.
-              </blockquote>
-            </li>
-            <li>
-              Select <strong>Save source</strong>.
-            </li>
-          </ol>
           <p>
-            Wait until the source shows its extracted text. The text contains the practice profile
-            you pasted.
+            Use these fictional facts for the exercise: Alex Example built a booking form in a class
+            project using React and TypeScript. Alex implemented input validation and tested the
+            form with classmates. No measured improvement or employment history is provided.
+          </p>
+          <p>
+            You can enter these facts directly as evidence. To try document intake separately, paste
+            them into a source using <GuideLink slug="sources">Add source material</GuideLink>.
           </p>
         </>
       ),
     },
     {
       id: "review-evidence",
-      title: "Create a cited Draft claim",
+      title: "Save practice evidence",
       body: (
         <>
-          <p>Now, connect the project statement to its source.</p>
           <ol>
             <li>
-              Open <strong>Evidence bank</strong>.
+              Open <strong>Evidence</strong> and select <strong>Add evidence</strong>.
             </li>
             <li>
-              Select <strong>New claim</strong>.
+              Choose <strong>Experience</strong> as the type.
             </li>
             <li>
-              Enter "Built a booking form with React." in <strong>Assertion</strong>.
+              Enter: Built a class-project booking form with React and TypeScript, including input
+              validation and testing with classmates.
             </li>
+            <li>Add React and TypeScript as keywords, then save.</li>
             <li>
-              Select <strong>Add citation</strong>.
-            </li>
-            <li>
-              Choose "Practice: Alex Example" in <strong>Source</strong>.
-            </li>
-            <li>
-              Enter "Built a booking form with React." in <strong>Exact quote</strong>.
-            </li>
-            <li>
-              Confirm that River shows <strong>Exact match</strong>.
-            </li>
-            <li>
-              Select <strong>Add citation</strong>.
-            </li>
-            <li>
-              Select <strong>Create claim</strong>.
+              Add a second item with type <strong>Skill</strong> and text React. Add TypeScript as
+              another Skill item if you want to try the skill selector.
             </li>
           </ol>
-          <p>
-            The new claim appears in the evidence bank with the Draft state and its supporting
-            quotation. Leave the claim in Draft.
-          </p>
+          <p>The saved items are ready to use. Source links are optional.</p>
         </>
       ),
     },
     {
       id: "save-job",
-      title: "Create a practice job target",
+      title: "Save a practice job",
       body: (
         <>
-          <p>Use a fictional posting for this draft.</p>
           <ol>
             <li>
-              Open <strong>Job targets</strong>.
+              Open <strong>Jobs</strong> and select <strong>Import job</strong>.
             </li>
             <li>
-              Select <strong>Add job target</strong>.
+              Choose <strong>Paste text</strong> and enter: Practice frontend role. Build accessible
+              forms with React and TypeScript.
             </li>
             <li>
-              Enter "Practice frontend developer" in <strong>Role title</strong>.
+              Choose <strong>Enter details manually</strong>.
             </li>
             <li>
-              Enter "Example Company" in <strong>Company</strong>.
+              Enter Practice Frontend Developer as the role title and Example Company as the
+              company.
             </li>
-            <li>
-              Enter "Fictional practice posting. Build web forms with React." in{" "}
-              <strong>Complete posting text</strong>.
-            </li>
-            <li>
-              Select <strong>Create job target</strong>.
-            </li>
-            <li>
-              In <strong>Résumé drafts</strong>, select <strong>Create résumé draft</strong>.
-            </li>
-            <li>
-              Enter "Practice: Alex Example" in <strong>Draft name</strong>.
-            </li>
-            <li>
-              Keep the <strong>Classic</strong> template.
-            </li>
-            <li>
-              Select <strong>Create draft</strong>.
-            </li>
+            <li>Save the job. Open it and create a résumé using an available template.</li>
           </ol>
           <p>
-            The résumé editor opens with an empty draft. Next, we will add the name that the preview
-            requires.
+            For automatic details and requirement extraction, choose a connected model before
+            analyzing the posting. See <GuideLink slug="jobs">Tailor to a job posting</GuideLink>.
           </p>
         </>
       ),
     },
     {
       id: "contact",
-      title: "Add the practice name",
+      title: "Enter the practice name",
       body: (
         <>
-          <p>Use a starter to add the name without building each reusable field separately.</p>
           <ol>
-            <li>
-              Open <strong>Content library</strong> and select the <strong>Contact / header</strong>{" "}
-              starter.
-            </li>
-            <li>
-              Enter "Practice: contact" in <strong>Save as</strong> and "Alex Example" in{" "}
-              <strong>Name</strong>.
-            </li>
-            <li>
-              Select <strong>Save to library</strong>.
-            </li>
-            <li>
-              Return to the draft through Job targets, select{" "}
-              <strong>Choose library section</strong>, and choose your saved contact section.
-            </li>
+            <li>Add a Contact section to the résumé.</li>
+            <li>Enter Alex Example as the name. Leave optional contact fields empty.</li>
+            <li>Save the section and inspect the preview.</li>
           </ol>
           <p>
-            The draft now contains Alex Example as its name. The PDF preview can render this draft.
+            When preparing your own résumé, use contact information you want an employer to receive.
           </p>
         </>
       ),
     },
     {
       id: "assemble",
-      title: "Add the project",
+      title: "Add Summary and Experience",
       body: (
         <>
-          <p>Use the editor’s Back navigation to add the project and its supporting evidence.</p>
           <ol>
             <li>
-              Select <strong>Create section</strong>.
+              Create a Summary section and enter: Computer science graduate with experience building
+              and testing web forms using React and TypeScript.
+            </li>
+            <li>Preview the section in the résumé and add it.</li>
+            <li>Create an Experience section. Add an Experience Entry within the section.</li>
+            <li>
+              Enter Booking form as the title and Class project as the employer. Leave unknown dates
+              empty.
             </li>
             <li>
-              Enter "Practice: projects section" in <strong>Library label</strong>.
+              Enter the booking-form accomplishment from your saved evidence. You can also use{" "}
+              <strong>Fill from evidence</strong> and review the suggested values.
             </li>
             <li>
-              Set <strong>Section type</strong> to <strong>Projects</strong>.
-            </li>
-            <li>
-              Keep <strong>Projects</strong> as the <strong>Section heading</strong>.
-            </li>
-            <li>
-              Under <strong>Entries in reading order</strong>, select <strong>Create entry</strong>.
-            </li>
-            <li>
-              Enter "Practice: booking form block" in <strong>Library label</strong>.
-            </li>
-            <li>
-              Under <strong>Project title</strong>, select <strong>Write new wording</strong>.
-            </li>
-            <li>
-              Enter "Practice: project title" in <strong>Library label</strong>.
-            </li>
-            <li>
-              Enter "Booking form" in <strong>Wording</strong>.
-            </li>
-            <li>
-              Select <strong>Create wording</strong>.
-            </li>
-            <li>
-              Under <strong>Accomplishments</strong>, select <strong>Write new wording</strong>.
-            </li>
-            <li>
-              Enter "Practice: React accomplishment" in <strong>Library label</strong>.
-            </li>
-            <li>
-              Enter "Built a booking form with React." in <strong>Wording</strong>.
-            </li>
-            <li>
-              Select <strong>Choose evidence</strong>.
-            </li>
-            <li>Select the practice claim about the booking form.</li>
-            <li>
-              Select <strong>Link this revision</strong>.
-            </li>
-            <li>
-              Select <strong>Create wording</strong>.
-            </li>
-            <li>
-              In the block form, select <strong>Create entry</strong>.
-            </li>
-            <li>
-              In the section form, select <strong>Create section</strong>.
+              Preview the résumé with the section in its intended position, then save the section
+              and its entries together.
             </li>
           </ol>
           <p>
-            Wait for the draft to save and the PDF preview to finish. The PDF shows Alex Example,
-            Projects, Booking form, and the React accomplishment.
+            You can type directly into each field. Reusable entries are optional. If you add a
+            Skills section, select the active Skill evidence you created.
           </p>
         </>
       ),
     },
     {
       id: "export",
-      title: "Export the practice PDF",
+      title: "Review and download the practice PDF",
       body: (
         <>
-          <p>Finally, capture and review the practice document.</p>
           <ol>
             <li>
-              Wait until the draft reports <strong>All changes saved</strong>.
+              Wait for the résumé to show <strong>Saved</strong>.
             </li>
+            <li>Open its review and capture a saved version for export.</li>
             <li>
-              Select <strong>Capture &amp; review export</strong>.
+              Inspect every PDF page and read the extracted text. Confirm that Alex’s name and the
+              practice wording appear correctly.
             </li>
-            <li>Wait for the checkpoint document to finish.</li>
-            <li>Inspect the PDF and its extracted text.</li>
-            <li>Open the evidence-issue review.</li>
-            <li>
-              Inspect the Draft issue for the accomplishment and the unsupported issues for the name
-              and project title.
-            </li>
-            <li>For this fictional practice export, select each issue's acknowledgment.</li>
-            <li>
-              Select <strong>Save acknowledgments</strong>.
-            </li>
-            <li>
-              Select <strong>Export checkpoint files</strong>.
-            </li>
-            <li>
-              Select <strong>Download PDF</strong>.
-            </li>
+            <li>Correct any missing text or document error, then capture the corrected version.</li>
+            <li>Export the saved version and download its PDF.</li>
           </ol>
           <p>
-            The downloaded PDF contains the practice name and project. The source, claim, library
-            items, draft, and checkpoint remain in your workspace.
-          </p>
-          <p>
-            For a real application, continue with{" "}
-            <GuideLink slug="jobs">Tailor to a job posting</GuideLink> using your own experience.
+            Scoring is optional. For download details, see{" "}
+            <GuideLink slug="export">Export a résumé</GuideLink>.
           </p>
         </>
       ),

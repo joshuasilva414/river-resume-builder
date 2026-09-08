@@ -103,6 +103,31 @@ for (const [theme, graph] of Object.entries(fixture.fixedGraphs)) {
     });
   }
 }
+for (const candidate of fixture.composableFixtures) {
+  const result = await run({
+    type: "validate-template",
+    jobId: `composable-${candidate.id}`,
+    theme: "classic",
+    templateGraph: candidate.graph,
+    document: candidate.document,
+  });
+  assert.equal(result.status, 200, `Composable ${candidate.id}: ${JSON.stringify(result.body)}`);
+  assert.equal(result.body.validation.passed, true, JSON.stringify(result.body.validation));
+  await writeFile(
+    new URL(`composable-${candidate.id}.pdf`, output),
+    Buffer.from(result.body.pdfBase64, "base64"),
+  );
+  await writeFile(
+    new URL(`composable-${candidate.id}.json`, output),
+    JSON.stringify(result.body, null, 2),
+  );
+  measurements.push({
+    type: "composable-render",
+    fixture: candidate.id,
+    passed: true,
+    pages: result.body.validation.pageCount,
+  });
+}
 let classicFingerprint;
 for (const theme of ["classic", "classic", "minimal", "technical"]) {
   const result = await run({ ...fixture, theme, type: "validate-template" });

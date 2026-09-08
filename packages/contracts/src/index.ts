@@ -1,6 +1,7 @@
 import { AgentScope, IntendedTextManifest, ResumeDocument, Revision, Theme } from "@river/domain";
 import { TemplateGraph, ValidationReport } from "@river/templates";
 import { Schema } from "effect";
+import { AiSelectionFields } from "./ai";
 
 export * from "./feedback";
 
@@ -64,6 +65,7 @@ export type ExtractionResult = typeof ExtractionResult.Type;
 
 export const SourceMime = ExtractRequest.fields.mime;
 export const CreateSourceRequest = Schema.Struct({
+  ...AiSelectionFields,
   idempotencyKey: Schema.NonEmptyString.check(Schema.isMaxLength(128)),
   title: Schema.NonEmptyString.check(Schema.isMaxLength(200)),
   filename: Schema.NonEmptyString.check(Schema.isMaxLength(200)),
@@ -181,6 +183,7 @@ export interface ProblemDetails {
   readonly observedRevision?: number;
 }
 
+export * from "./admin";
 export * from "./ai";
 export * from "./backups";
 export * from "./checkpoints";
@@ -195,4 +198,5 @@ export * from "./scoring";
 export * from "./source-ai";
 export * from "./template-scoring";
 export * from "./template-studio";
+export * from "./trash";
 export * from "./wording";

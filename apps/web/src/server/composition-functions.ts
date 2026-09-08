@@ -8,9 +8,10 @@ import {
   ResumeSearch,
   SaveResumeRequest,
 } from "@river/contracts";
+import { ApplicationError, RecordId } from "@river/domain";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import {
   applyLibraryUpdate,
   branchResume,
@@ -22,7 +23,32 @@ import {
   searchResumes,
 } from "./composition";
 import { bindings } from "./env";
-import { dispatchPending, execute } from "./services";
+import { Actor, attempt, dispatchPending, execute, Store } from "./services";
+export const getPreviewOperation = createServerFn({ method: "GET" })
+  .validator(Schema.decodeUnknownSync(Schema.Struct({ id: RecordId })))
+  .handler(({ data }) =>
+    execute(
+      bindings(),
+      getRequestHeaders(),
+      Effect.gen(function* () {
+        const actor = yield* Actor,
+          store = yield* Store;
+        const operation = yield* attempt(() => store.getOperation(data.id));
+        if (!operation || operation.ownerId !== actor.ownerId || !("document" in operation.input))
+          return yield* Effect.fail(
+            new ApplicationError({ code: "NotFound", message: "Preview not found." }),
+          );
+        return {
+          id: operation.id,
+          state: operation.state,
+          stage: operation.stage,
+          failure: operation.failure,
+          ready: Boolean(operation.artifacts?.pdf),
+          validationPassed: operation.artifacts?.validationPassed ?? false,
+        };
+      }),
+    ),
+  );
 export const getResumes = createServerFn({ method: "GET" })
   .validator(Schema.decodeUnknownSync(ResumeSearch))
   .handler(({ data }) => execute(bindings(), getRequestHeaders(), searchResumes(data)));

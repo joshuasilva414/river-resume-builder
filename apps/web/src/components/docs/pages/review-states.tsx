@@ -1,67 +1,41 @@
-import type { Guide } from "../shared";
+import { type Guide, GuideLink } from "../shared";
 
 export const reviewStates = {
   slug: "review-states",
-  title: "Review states and export checks",
-  description: "Evidence decisions, lifecycle warnings, template states, and document checks.",
+  title: "Document checks and result status",
+  description:
+    "What blocks a document, what needs review, and how historical statuses are retained.",
   group: "Reference",
   sections: [
     {
       id: "evidence",
-      title: "Evidence review states",
+      title: "Evidence is usable when saved",
       body: (
         <>
           <p>
-            An Evidence Revision is a saved version of a claim's assertion, citations, and context
-            references. A review decision applies to that exact revision.
+            Current evidence has text, a type, keywords, and optional sources. Imported evidence
+            becomes usable after one Add selected or Add all action.
           </p>
-          <dl>
-            <dt>Draft</dt>
-            <dd>
-              The revision has not been verified. A claim can have an explicit Draft review
-              decision.
-            </dd>
-            <dt>Needs clarification</dt>
-            <dd>
-              The revision has an unresolved detail. The review rationale records the concern.
-            </dd>
-            <dt>Verified</dt>
-            <dd>
-              The reviewer decided that the revision accurately reflects its cited sources.
-              Verification requires at least one citation and a rationale.
-            </dd>
-          </dl>
           <p>
-            Verification records a review decision. It does not represent an independent fact-check
-            by River or an employer endorsement.
+            Older Draft, Needs clarification, and Verified decisions remain historical records. They
+            do not filter current evidence or block new exports. This guide keeps its earlier
+            review-states URL for saved links.
           </p>
         </>
       ),
     },
     {
       id: "warnings",
-      title: "Evidence and content warnings",
+      title: "Changed and deleted references",
       body: (
         <>
-          <p>These warnings are separate from the Evidence Revision's review state.</p>
-          <dl>
-            <dt>Stale</dt>
-            <dd>
-              A saved reference differs from a newer or changed record. The saved wording still
-              refers to the selected revision.
-            </dd>
-            <dt>Archived</dt>
-            <dd>A referenced record is archived. Existing saved references remain available.</dd>
-            <dt>Unsupported</dt>
-            <dd>A wording placement has no linked supporting evidence.</dd>
-          </dl>
           <p>
-            One placement can have several issues. Draft, Needs clarification, stale, archived, and
-            unsupported issues each require an acknowledgment when applicable to an export.
+            A résumé can retain wording linked to evidence or content that has since changed or
+            moved to Trash. The saved reference remains available for comparison.
           </p>
           <p>
-            Each saved acknowledgment belongs to the exact checkpoint and review report. An
-            acknowledgment does not verify evidence or bypass a document failure.
+            These notices are informational. They do not require an acknowledgment before export.
+            Missing source links are allowed.
           </p>
         </>
       ),
@@ -72,99 +46,81 @@ export const reviewStates = {
       body: (
         <>
           <dl>
-            <dt>Document compiles</dt>
-            <dd>The document renderer successfully produces the PDF.</dd>
-            <dt>Prohibited constructs</dt>
-            <dd>The document passes the restrictions on supported source constructs.</dd>
-            <dt>Text integrity</dt>
+            <dt>Blocking errors</dt>
             <dd>
-              The PDF contains the expected text, the expected number of occurrences, and the
-              required reading order.
+              Compilation failure, unsafe document source, missing required document content, or
+              unexpected missing or duplicated text. Correct the résumé or template before
+              exporting.
             </dd>
-            <dt>Evidence review</dt>
-            <dd>The checkpoint has saved acknowledgments for all applicable evidence issues.</dd>
+            <dt>Diagnostic findings</dt>
+            <dd>
+              Reading-order differences, layout concerns, and page-count information. Inspect the
+              PDF and extracted text to assess the result.
+            </dd>
+            <dt>Preview status</dt>
+            <dd>
+              A rendering task may be pending or failed while the previous successful PDF remains
+              visible. Check that the preview represents the current edit.
+            </dd>
           </dl>
-          <p>
-            Compilation failures, prohibited constructs, and text-integrity failures block export.
-            Page-count and layout-risk findings are warnings.
-          </p>
-          <p>A successful compilation does not establish visual quality or factual accuracy.</p>
         </>
       ),
     },
     {
       id: "templates",
-      title: "Template revision states",
+      title: "Template working copies",
       body: (
         <>
-          <dl>
-            <dt>Draft</dt>
-            <dd>A saved template revision that is not yet validated.</dd>
-            <dt>Validated</dt>
-            <dd>
-              A revision that has passed validation. Visual approval is still required before use as
-              an approved custom template.
-            </dd>
-            <dt>Approved</dt>
-            <dd>
-              A validated revision with an explicit visual review. Approval applies to that exact
-              revision.
-            </dd>
-            <dt>Retired</dt>
-            <dd>
-              A revision removed from eligibility for new draft selection. Existing saved references
-              retain their selected revision.
-            </dd>
-          </dl>
-          <p>Template approval does not verify résumé claims.</p>
+          <p>
+            Template edits and chat responses change a working copy. Undo returns to an earlier
+            edit. Save validates the completed template and its referenced schemas and layouts.
+          </p>
+          <p>
+            Earlier saved template versions and validation records remain available. Ordinary
+            editing does not require a separate proposal approval after each response.
+          </p>
         </>
       ),
     },
     {
       id: "ai",
-      title: "AI proposal review states",
+      title: "AI result status",
       body: (
         <>
           <dl>
-            <dt>Pending</dt>
-            <dd>A proposal awaiting a decision. Pending proposals persist across reloads.</dd>
-            <dt>Accepted</dt>
+            <dt>In progress</dt>
+            <dd>The task is running. Cancel prevents later publication into saved work.</dd>
+            <dt>Ready to review</dt>
+            <dd>Inspect the returned text and choices before adding or applying them.</dd>
+            <dt>Applied or added</dt>
             <dd>
-              A proposal with a recorded acceptance decision. The resulting change depends on the
-              task.
+              The chosen result has been saved. Retrying the same successful batch does not
+              duplicate it.
             </dd>
-            <dt>Rejected</dt>
+            <dt>Inputs changed</dt>
             <dd>
-              A proposal with a recorded rejection decision. Rejection discards the live generated
-              payload.
+              Relevant material changed after the result was created. Refresh the task and review
+              new results.
             </dd>
+            <dt>Failed or cancelled</dt>
+            <dd>Saved sources and résumés remain available. Use the displayed recovery action.</dd>
           </dl>
-          <p>
-            Staleness is separate from the proposal's review state. Changed inputs can prevent
-            acceptance of a Pending proposal.
-          </p>
-          <p>
-            Accepted source candidates create Draft claims. Accepted wording creates a local change.
-            Accepted requirement extraction applies the reviewed map. Accepted ranking records
-            review without selecting evidence.
-          </p>
         </>
       ),
     },
     {
       id: "scores",
-      title: "ATS feedback",
+      title: "Scoring feedback",
       body: (
         <>
           <p>
-            ATS scores are advisory simulations. They are not results from an employer's applicant
-            tracking system or predictions of hiring outcomes.
+            Scores and findings are advisory. They are separate from document validation, evidence
+            truth, and an employer’s hiring decision. A score is not required for export.
           </p>
           <p>
-            Scores and scoring failures do not block export. Comparisons require compatible job
-            snapshots and scoring identities.
+            Successful results use the scoring allowance described in{" "}
+            <GuideLink slug="scoring">Score a résumé</GuideLink>.
           </p>
-          <p>Finding decisions are separate from résumé edits and provider results.</p>
         </>
       ),
     },

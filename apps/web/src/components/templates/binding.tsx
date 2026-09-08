@@ -23,12 +23,13 @@ export function BindingInspection({ base }: { base: TemplateBase }) {
       {base.kind === "saved" && resolved.data && (
         <>
           <p className="text-sm">
-            {resolved.data.design.name} · revision {resolved.data.revision.version} ·{" "}
+            {resolved.data.design.name} · Version {resolved.data.revision.version} ·{" "}
             {resolved.data.revision.state}
           </p>
-          <p className="break-all font-mono text-xs text-muted-foreground">
-            {resolved.data.revision.id}
-          </p>
+          <details className="text-xs text-muted-foreground">
+            <summary className="cursor-pointer">Template details</summary>
+            <p className="mt-2 break-all font-mono">{resolved.data.revision.id}</p>
+          </details>
           <a
             className="inline-block text-sm text-primary underline"
             target="_blank"
@@ -78,15 +79,15 @@ export function TemplateLayout({ detail, waiting }: { detail: ResumeDetail; wait
     <section className="space-y-4 border-t pt-5">
       <h2 className="font-editorial text-2xl">Layout</h2>
       <p className="text-sm">
-        Saved draft revision {detail.draft.revision} ·{" "}
+        Current layout ·{" "}
         {current.data
-          ? `${current.data.design.name} / ${current.data.revision.version}`
-          : `${detail.draft.data.theme} / 1`}
+          ? `${current.data.design.name} · Version ${current.data.revision.version}`
+          : detail.draft.data.theme}
       </p>
       {current.data?.revision.state === "Retired" && (
         <Alert>
           <AlertDescription>
-            This draft keeps its retired template. You can still preview and export it. To change
+            This résumé keeps its retired template. You can still preview and export it. To change
             the layout, choose an approved template.
           </AlertDescription>
         </Alert>
@@ -120,12 +121,11 @@ export function TemplateLayout({ detail, waiting }: { detail: ResumeDetail; wait
         disabled={waiting || apply.isPending || !eligible || !selected.graph || unchanged}
         onClick={save}
       >
-        {apply.isPending ? "Applying…" : "Apply template to draft"}
+        {apply.isPending ? "Applying…" : "Apply template to résumé"}
       </Button>
       <p className="text-xs leading-5 text-muted-foreground">
-        Applying saves a new revision and requests a PDF preview. Wording, evidence, placements, and
-        existing checkpoints stay intact. The last successful PDF remains visible until the new
-        preview succeeds.
+        Applying updates this résumé’s layout and prepares a PDF preview. Your wording and saved
+        versions stay intact. The previous PDF stays visible while the new preview is prepared.
       </p>
     </section>
   );

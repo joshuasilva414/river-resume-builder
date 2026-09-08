@@ -1,4 +1,5 @@
 import type {
+  BulkAddSourceEvidenceRequest,
   ExtractionResult,
   RetrySourceAiRequest,
   ReviewSourceCandidateRequest,
@@ -30,7 +31,7 @@ function owner(actor: Principal) {
   if (actor.kind !== "owner")
     throw new ApplicationError({
       code: "Forbidden",
-      message: "Only the Owner can generate or review source claim proposals.",
+      message: "Only the account owner can extract or add evidence.",
     });
 }
 export function createSourceAiRepository(db: Database) {
@@ -59,7 +60,7 @@ export function createSourceAiRepository(db: Database) {
   const conditions = (ownerId: string, input: SourceAiInput) => [
     {
       reason: "The source or current processing result changed.",
-      condition: sql`EXISTS (SELECT 1 FROM sources WHERE id=${input.source.id} AND owner_id=${ownerId} AND revision=${input.source.revision} AND current_processing_id=${input.source.processingId} AND state='Ready')`,
+      condition: sql`EXISTS (SELECT 1 FROM sources WHERE id=${input.source.id} AND owner_id=${ownerId} AND revision=${input.source.revision} AND current_processing_id=${input.source.processingId} AND state='Ready' AND archived_at IS NULL)`,
     },
     {
       reason: "A selected context changed.",
@@ -82,7 +83,7 @@ export function createSourceAiRepository(db: Database) {
       ownerId,
       input: { type: "source-ai", taskId },
       state: "Pending",
-      stage: "Queued for source claim proposals",
+      stage: "Queued to extract evidence",
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }),
@@ -92,7 +93,7 @@ export function createSourceAiRepository(db: Database) {
     actor: Principal,
     request: StartSourceAiRequest,
     extraction: ExtractionResult,
-    contract: SourceAiProfile["contract"] = "river-source-claims-v2",
+    contract: SourceAiProfile["contract"] = "river-source-claims-v3",
   ) => {
     owner(actor);
     const source = await sources.getSource(actor.ownerId, request.sourceId),
@@ -108,10 +109,11 @@ export function createSourceAiRepository(db: Database) {
       });
     if (
       source.state !== "Ready" ||
+      source.archivedAt !== null ||
       source.revision !== request.revision ||
       source.currentProcessingId !== request.processingId
     )
-      conflict("Select the current ready extraction before generating claims.");
+      conflict("Select the current processed source before extracting evidence.");
     if (
       extraction.parser !== processing.parser ||
       extraction.parserVersion !== processing.parserVersion ||
@@ -142,7 +144,7 @@ export function createSourceAiRepository(db: Database) {
           message: "A selected context is unavailable.",
         });
       if (current.revision.id !== ref.revisionId)
-        conflict("Select the current context revision before generating claims.");
+        conflict("Select the current context before extracting evidence.");
       contexts.push({
         id: ref.id,
         revisionId: ref.revisionId,
@@ -172,7 +174,7 @@ export function createSourceAiRepository(db: Database) {
         })),
       },
       contexts,
-      ...(contract === "river-source-claims-v2"
+      ...(contract !== "river-source-claims-v1"
         ? { sourceAnchors: indexSourcePassages(extraction.text, source.id, processing.id) }
         : {}),
     };
@@ -185,6 +187,100 @@ export function createSourceAiRepository(db: Database) {
   };
   return {
     captureSourceAiInput,
+    async addSourceEvidence(actor: Principal, request: BulkAddSourceEvidenceRequest) {
+      owner(actor);
+      return commands.commit(
+        actor,
+        "add-source-evidence",
+        request.idempotencyKey,
+        request,
+        async () => {
+          const task = await taskById(actor.ownerId, request.taskId);
+          const ids = new Set(request.items.map((item) => item.id));
+          if (
+            ids.size !== request.items.length ||
+            request.items.some((item) => !item.assertion.trim())
+          )
+            throw new ApplicationError({
+              code: "InvalidInput",
+              message: "Select each evidence item once and provide its text.",
+            });
+          const pending = await db
+            .select()
+            .from(s.sourceCandidates)
+            .where(
+              and(eq(s.sourceCandidates.taskId, task.id), eq(s.sourceCandidates.state, "Pending")),
+            )
+            .orderBy(s.sourceCandidates.ordinal);
+          if (
+            request.mode === "all" &&
+            (pending.length !== ids.size || pending.some((item) => !ids.has(item.id)))
+          )
+            conflict("The extraction results changed. Refresh the results before using Add all.");
+          const guards = inputGuards(actor.ownerId, task.input);
+          // One JSON parameter keeps the atomic guard below D1's variable limit for large imports.
+          guards.push(
+            guarded(
+              sql`NOT EXISTS (SELECT 1 FROM json_each(${JSON.stringify(request.items.map(({ id, revision, digest }) => ({ id, revision, digest })))}) expected LEFT JOIN source_ai_candidates current ON current.id=json_extract(expected.value,'$.id') AND current.task_id=${task.id} WHERE current.id IS NULL OR current.state != 'Pending' OR current.revision != json_extract(expected.value,'$.revision') OR current.digest != json_extract(expected.value,'$.digest'))`,
+              "An extraction result changed. Refresh the results; nothing was added.",
+            ),
+          );
+          if (request.mode === "all")
+            guards.push(
+              guarded(
+                sql`(SELECT count(*) FROM source_ai_candidates WHERE task_id=${task.id} AND state='Pending')=${pending.length}`,
+                "The extraction results changed. Refresh before using Add all.",
+              ),
+            );
+          const writes: Write[] = [];
+          const history: { entityId: string; after: unknown }[] = [];
+          for (const item of request.items) {
+            const candidate = pending.find((row) => row.id === item.id);
+            if (
+              !candidate?.payload ||
+              candidate.revision !== item.revision ||
+              candidate.digest !== item.digest
+            )
+              conflict(
+                "An extraction result changed or was already added. Refresh the results; nothing was added.",
+              );
+            const created = await evidence.prepareEvidenceCreate(actor, item.metadata, {
+              ...candidate.payload.material,
+              assertion: item.assertion,
+            });
+            writes.push(
+              ...created.writes,
+              db
+                .update(s.sourceCandidates)
+                .set({
+                  state: "Accepted",
+                  revision: candidate.revision + 1,
+                  reviewedAt: Date.now(),
+                  claimId: created.result.id,
+                  evidenceRevisionId: created.result.revisionId,
+                })
+                .where(eq(s.sourceCandidates.id, candidate.id)),
+            );
+            history.push(...created.history, {
+              entityId: candidate.id,
+              after: {
+                decision: "Accepted",
+                digest: candidate.digest,
+                taskId: task.id,
+                claimId: created.result.id,
+                evidenceRevisionId: created.result.revisionId,
+              },
+            });
+          }
+          return {
+            result: { id: task.id, revision: task.revision, revisionId: null },
+            guards,
+            writes,
+            history,
+          };
+        },
+      );
+    },
     async startSourceAi(
       actor: Principal,
       request: StartSourceAiRequest,
@@ -202,14 +298,14 @@ export function createSourceAiRepository(db: Database) {
             throw new ApplicationError({
               code: "Unavailable",
               message:
-                "Source claim assistance is unavailable. Create claims manually from exact passages.",
+                "Evidence extraction is unavailable. Add evidence manually or choose an active personal AI connection.",
             });
           const input = await captureSourceAiInput(actor, request, extraction, profile.contract);
           if (canonicalJson(input).length > profile.maxInputCharacters)
             throw new ApplicationError({
               code: "InvalidInput",
               message:
-                "Complete source and context exceed the 160,000-character input limit. Use a smaller source or manual claim entry; nothing was truncated.",
+                "Complete source and context exceed the 160,000-character input limit. Use a smaller source or add evidence manually; nothing was truncated.",
             });
           const id = newId(),
             operationId = newId();
@@ -305,7 +401,7 @@ export function createSourceAiRepository(db: Database) {
           if (!profile)
             throw new ApplicationError({
               code: "Unavailable",
-              message: "Source claim assistance is unavailable. Continue manually.",
+              message: "Evidence extraction is unavailable. Add evidence manually.",
             });
           if (
             request.revision !== task.revision ||
@@ -385,8 +481,8 @@ export function createSourceAiRepository(db: Database) {
             .set({
               state: "Succeeded",
               stage: candidates.length
-                ? "Claim candidates ready for individual review"
-                : "No supported claim candidates found",
+                ? `${candidates.length} evidence items ready to add`
+                : "No supported evidence found",
               failure: null,
               updatedAt: now,
             })
@@ -461,18 +557,6 @@ export function createSourceAiRepository(db: Database) {
               })),
             );
             if (!evidenceRevisionId) throw Error("Missing created Evidence Revision");
-            for (const question of candidate.payload.questions)
-              writes.push(
-                db.insert(s.clarificationRequests).values({
-                  id: newId(),
-                  ownerId: actor.ownerId,
-                  candidateId: candidate.id,
-                  claimId,
-                  evidenceRevisionId,
-                  question,
-                  createdAt: Date.now(),
-                }),
-              );
           }
           writes.push(
             db

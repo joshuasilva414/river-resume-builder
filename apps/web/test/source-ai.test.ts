@@ -16,7 +16,12 @@ import { Effect, Layer } from "effect";
 import { beforeAll, expect, it } from "vitest";
 import { runEvidenceCommand } from "../src/server/evidence";
 import { Actor, Store } from "../src/server/services";
-import { previewSourceAi } from "../src/server/source-ai";
+import {
+  previewSourceAi,
+  queueProcessedSourceEvidence,
+  retrySourceAi as retrySourceAiCommand,
+  startSourceAi as startSourceAiCommand,
+} from "../src/server/source-ai";
 import {
   generateSourceCandidates,
   sourceAiOutputSchema,
@@ -207,7 +212,7 @@ it("accepts candidates independently into Draft claims, keeps exact occurrences,
     attestation: true,
     locators: [{ line: 1 }],
   });
-  expect(await repository.listClarifications(actor.id, claimId)).toHaveLength(1);
+  expect(await repository.listClarifications(actor.id, claimId)).toHaveLength(0);
   await repository.reviewSourceCandidate(actor, {
     id: second.id,
     revision: 0,
@@ -300,6 +305,16 @@ it("allows independent manual drafts with origin audit and requires a new cited 
   const accepted = (await repository.inspectSourceAi(actor.id, task.id)).candidates[0];
   if (!accepted?.claimId || !accepted.evidenceRevisionId) throw Error("Missing accepted claim");
   expect(accepted.claimId).not.toBe(manual.id);
+  // Seed a historical clarification: v1.2 never creates new clarification workflows.
+  await repository.db.insert(schema.clarificationRequests).values({
+    id: newId(),
+    ownerId: actor.id,
+    candidateId: first.id,
+    claimId: accepted.claimId,
+    evidenceRevisionId: accepted.evidenceRevisionId,
+    question: "Historical clarification",
+    createdAt: Date.now(),
+  });
   const [question] = await repository.listClarifications(actor.id, accepted.claimId);
   if (!question) throw Error("Missing question");
   const answer = {
@@ -492,7 +507,7 @@ it("uses the anchored source schema and complete captured input in one bounded p
     model: profile.model,
   });
   if (!current) throw Error("Missing profile");
-  expect(current.contract).toBe("river-source-claims-v2");
+  expect(current.contract).toBe("river-source-claims-v3");
   const output = { candidates: [] };
   let calls = 0;
   const result = await generateSourceCandidates(
@@ -502,8 +517,9 @@ it("uses the anchored source schema and complete captured input in one bounded p
     async (_url, init) => {
       calls++;
       const body = JSON.parse(String(init?.body));
-      expect(body.input[0].content[0].text).toBe(canonicalJson(input));
-      expect(body.instructions).toContain("Do not calculate offsets");
+      expect(JSON.parse(body.input[0].content[0].text).sourceAnchors).toEqual(input.sourceAnchors);
+      expect(body.instructions).toContain("Do not invent indexes");
+      expect(body.instructions).toContain("skills throughout");
       expect(body.store).toBe(false);
       expect(body.truncation).toBe("disabled");
       const material = body.text.format.schema.properties.candidates.items.properties.material;
@@ -598,4 +614,306 @@ it("commits one competing decision, prevents cross-owner review, and rolls back 
   expect(receipts.filter((receipt) => receipt.command === "review-source-candidate")).toHaveLength(
     1,
   );
+});
+
+it("adds the edited complete extraction beyond twenty items once and atomically rejects stale batches", async () => {
+  const { repository, actor, request, extraction, candidate } = await fixture();
+  const task = await repository.startSourceAi(actor, request, profile, extraction);
+  if (!task.revisionId) throw Error("Missing operation");
+  await repository.publishSourceAi(actor.id, task.id, task.revisionId, {
+    candidates: Array.from({ length: 27 }, (_, index) => ({
+      ...candidate,
+      material: { ...candidate.material, assertion: `Supported fixture item ${index + 1}` },
+      metadata: { ...candidate.metadata, type: index === 0 ? "Skill" : "Achievement" },
+    })),
+  });
+  const detail = await repository.inspectSourceAi(actor.id, task.id);
+  const items = detail.candidates.map((item) => {
+    if (!item.payload) throw Error("Missing item");
+    return {
+      id: item.id,
+      revision: item.revision,
+      digest: item.digest,
+      assertion: item.ordinal === 0 ? "TypeScript" : item.payload.material.assertion,
+      metadata: { ...item.payload.metadata, tags: ["edited"] },
+    };
+  });
+  await expect(
+    repository.addSourceEvidence(actor, {
+      taskId: task.id,
+      mode: "all",
+      items: items.slice(0, 20),
+      idempotencyKey: "incomplete-all",
+    }),
+  ).rejects.toMatchObject({ code: "Conflict" });
+  await expect(
+    repository.addSourceEvidence(actor, {
+      taskId: task.id,
+      mode: "all",
+      items: items.map((item, index) => (index === 26 ? { ...item, revision: 4 } : item)),
+      idempotencyKey: "stale",
+    }),
+  ).rejects.toMatchObject({ code: "Conflict" });
+  expect(
+    (
+      await repository.searchEvidence(actor.id, {
+        query: "",
+        status: "All",
+        archived: false,
+        contextId: null,
+        offset: 0,
+      })
+    ).total,
+  ).toBe(0);
+  const command = { taskId: task.id, mode: "all" as const, items, idempotencyKey: "add-all" };
+  const saved = await Promise.all([
+    repository.addSourceEvidence(actor, command),
+    repository.addSourceEvidence(actor, command),
+  ]);
+  expect(saved[0]).toEqual(saved[1]);
+  expect(
+    (
+      await repository.searchEvidence(actor.id, {
+        query: "",
+        status: "All",
+        archived: false,
+        contextId: null,
+        offset: 0,
+      })
+    ).total,
+  ).toBe(27);
+  const skills = await repository.searchEvidence(actor.id, {
+    query: "",
+    type: "Skill",
+    status: "All",
+    archived: false,
+    contextId: null,
+    offset: 0,
+  });
+  expect(skills.items[0]).toMatchObject({
+    assertion: "TypeScript",
+    metadata: { tags: ["edited"], type: "Skill" },
+  });
+  expect(
+    (await repository.inspectSourceAi(actor.id, task.id)).candidates.every(
+      (item) => item.state === "Accepted",
+    ),
+  ).toBe(true);
+  expect(
+    await repository.db
+      .select()
+      .from(schema.clarificationRequests)
+      .where(eq(schema.clarificationRequests.ownerId, actor.id)),
+  ).toEqual([]);
+});
+
+it("deleting a source preserves material and invalidates unaccepted extraction results", async () => {
+  const { repository, actor, source, generate } = await fixture();
+  const { task, first } = await generate();
+  if (!first.payload) throw Error("Missing payload");
+  const archived = await repository.archiveSource(actor, {
+    id: source.id,
+    revision: 0,
+    archived: true,
+    idempotencyKey: "delete-source",
+  });
+  const current = await repository.getSource(actor.id, source.id);
+  expect(current?.archivedAt).not.toBeNull();
+  expect(await env.ARTIFACTS.get(current?.objectKey ?? "")).not.toBeNull();
+  const item = {
+    id: first.id,
+    revision: first.revision,
+    digest: first.digest,
+    assertion: first.payload.material.assertion,
+    metadata: first.payload.metadata,
+  };
+  await expect(
+    repository.addSourceEvidence(actor, {
+      taskId: task.id,
+      mode: "selected",
+      items: [item],
+      idempotencyKey: "stale-deleted-source",
+    }),
+  ).rejects.toMatchObject({ code: "Conflict" });
+  await repository.archiveSource(actor, {
+    id: source.id,
+    revision: archived.revision,
+    archived: false,
+    idempotencyKey: "restore-source",
+  });
+  expect((await repository.getSource(actor.id, source.id))?.archivedAt).toBeNull();
+  expect((await repository.inspectSourceAi(actor.id, task.id)).candidates[0]?.state).toBe(
+    "Pending",
+  );
+});
+
+it("queues extraction from the saved personal model once and suppresses cancelled automatic output", async () => {
+  const { repository, actor, source, request, candidate } = await fixture();
+  expect(
+    await queueProcessedSourceEvidence(env, repository, actor.id, source.id, request.processingId),
+  ).toBeUndefined();
+  const connectionId = newId();
+  await repository.db.insert(schema.aiConnections).values({
+    id: connectionId,
+    ownerId: actor.id,
+    provider: "openai",
+    encryptedKey: "synthetic-unused-key",
+    keySuffix: "test",
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+  await repository.db
+    .update(schema.sources)
+    .set({ extractionAi: { connectionId, model: "selected-fixture-model" } })
+    .where(eq(schema.sources.id, source.id));
+  const configuredEnv = { ...env, AI_CREDENTIAL_ENCRYPTION_KEY: "synthetic-fixture-key" };
+  const task = await queueProcessedSourceEvidence(
+    configuredEnv,
+    repository,
+    actor.id,
+    source.id,
+    request.processingId,
+  );
+  if (!task?.revisionId) throw Error("Automatic task missing");
+  await repository.db
+    .update(schema.aiConnections)
+    .set({ removedAt: Date.now(), encryptedKey: null })
+    .where(eq(schema.aiConnections.id, connectionId));
+  expect(
+    await queueProcessedSourceEvidence(
+      configuredEnv,
+      repository,
+      actor.id,
+      source.id,
+      request.processingId,
+    ),
+  ).toEqual(task);
+  expect((await repository.inspectSourceAi(actor.id, task.id)).task.profile).toMatchObject({
+    model: "selected-fixture-model",
+    connection: { id: connectionId },
+  });
+  await repository.cancelOperation(actor.id, task.revisionId, "cancel-automatic");
+  expect(
+    await repository.publishSourceAi(actor.id, task.id, task.revisionId, {
+      candidates: [candidate],
+    }),
+  ).toBe(false);
+  expect((await repository.inspectSourceAi(actor.id, task.id)).candidates).toEqual([]);
+});
+
+it("includes every passage group and stops making provider calls after cancellation", async () => {
+  const text = `${"Implemented web features with TypeScript. ".repeat(500)}Used PostgreSQL for project storage.`;
+  const { repository, actor, request, extraction } = await fixture(text);
+  const input = await repository.captureSourceAiInput(actor, request, extraction);
+  const current = sourceAiProfile({
+    connection: { id: newId(), revision: 0, provider: "openai" },
+    model: profile.model,
+  });
+  if (!current) throw Error("Missing profile");
+  const visited = new Set<number>();
+  let calls = 0;
+  const transport: typeof fetch = async (_url, init) => {
+    calls++;
+    const body = JSON.parse(String(init?.body));
+    const sent = JSON.parse(body.input[0].content[0].text);
+    for (const anchor of sent.sourceAnchors) visited.add(anchor.index);
+    return Response.json({
+      id: "resp_fixture",
+      object: "response",
+      created_at: 1,
+      model: current.model,
+      status: "completed",
+      output: [
+        {
+          type: "message",
+          id: "msg_fixture",
+          status: "completed",
+          role: "assistant",
+          content: [
+            { type: "output_text", text: JSON.stringify({ candidates: [] }), annotations: [] },
+          ],
+        },
+      ],
+    });
+  };
+  await generateSourceCandidates("synthetic", input, current, transport);
+  expect(calls).toBeGreaterThan(1);
+  expect([...visited]).toEqual(input.sourceAnchors?.map((anchor) => anchor.index));
+  calls = 0;
+  await generateSourceCandidates(
+    "synthetic",
+    input,
+    current,
+    transport,
+    undefined,
+    async (index) => index === 0,
+  );
+  expect(calls).toBe(1);
+});
+
+it("replays committed start and retry commands after their personal connection becomes unavailable", async () => {
+  const f = await fixture();
+  const started = await f.repository.startSourceAi(f.actor, f.request, profile, f.extraction);
+  expect(
+    await Effect.runPromise(startSourceAiCommand(env, f.request).pipe(Effect.provide(f.layer))),
+  ).toEqual(started);
+  await f.repository.cancelOperation(f.actor.id, started.revisionId ?? "", "cancel-for-replay");
+  const request = { id: started.id, revision: started.revision, idempotencyKey: "retry-replay" };
+  const retried = await f.repository.retrySourceAi(f.actor, request, profile);
+  expect(
+    await Effect.runPromise(retrySourceAiCommand(env, request).pipe(Effect.provide(f.layer))),
+  ).toEqual(retried);
+});
+it("preserves the anchored provider contract when retrying a retained v2 source task", async () => {
+  const f = await fixture(),
+    legacy = { ...profile, contract: "river-source-claims-v2" as const };
+  const task = await f.repository.startSourceAi(f.actor, f.request, legacy, f.extraction);
+  const detail = await f.repository.inspectSourceAi(f.actor.id, task.id);
+  const output = {
+    candidates: [
+      {
+        ...f.candidate,
+        metadata: { ...f.candidate.metadata, type: "Experience" },
+        material: {
+          assertion: f.candidate.material.assertion,
+          contexts: f.candidate.material.contexts,
+          passageIndexes: [1],
+        },
+      },
+    ],
+  };
+  const generated = await generateSourceCandidates(
+    "synthetic",
+    detail.task.input,
+    legacy,
+    async (_url, init) => {
+      const body = JSON.parse(String(init?.body));
+      const material = body.text.format.schema.properties.candidates.items.properties.material;
+      expect(material.required).toContain("passageIndexes");
+      expect(material.properties).not.toHaveProperty("citations");
+      return Response.json({
+        id: "resp_v2",
+        object: "response",
+        created_at: 1,
+        model: legacy.model,
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            id: "msg_v2",
+            status: "completed",
+            role: "assistant",
+            content: [{ type: "output_text", text: JSON.stringify(output), annotations: [] }],
+          },
+        ],
+      });
+    },
+  );
+  expect(
+    await f.repository.publishSourceAi(f.actor.id, task.id, task.revisionId ?? "", generated),
+  ).toBe(true);
+  expect(
+    (await f.repository.inspectSourceAi(f.actor.id, task.id)).candidates[0]?.payload?.material
+      .citations[0],
+  ).toMatchObject({ start: 18, end: 35, quote: "Repeated passage." });
 });

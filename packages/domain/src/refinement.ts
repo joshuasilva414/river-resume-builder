@@ -66,25 +66,13 @@ export function sourceExportIssues(
         contextId,
         rationale,
       });
-    if (field.reviewRequired)
-      issue(
-        "Needs clarification",
-        "This source-only wording or support changed after structured composition. Review its meaning and evidence for this exact checkpoint.",
-      );
     if (field.role === "heading") continue;
-    if (!field.evidence.length) issue("Unsupported", "This wording has no supporting evidence.");
     for (const reference of field.evidence) {
       const matches = (row: { claimId: string; revisionId: string }) =>
         row.claimId === reference.claimId && row.revisionId === reference.revisionId;
       const captured = evidence.find(matches),
         status = statuses.find(matches);
       if (!captured || !status) throw new Error("Checkpoint evidence is incomplete.");
-      if (status.state === "Draft" || status.state === "Needs clarification")
-        issue(
-          status.state,
-          status.rationale || "This exact Evidence Revision has not been verified.",
-          reference,
-        );
       if (status.archived)
         issue(
           "Archived",
@@ -93,8 +81,6 @@ export function sourceExportIssues(
         );
       if (status.currentRevisionId !== reference.revisionId)
         issue("Stale", `A newer Evidence Revision exists: ${status.currentRevisionId}`, reference);
-      if (!captured.material.citations.length)
-        issue("Unsupported", "The linked Evidence Revision has no source citation.", reference);
       for (const context of status.contexts)
         if (context.currentRevisionId !== context.revisionId)
           issue(

@@ -17,6 +17,7 @@ import {
   TemplateScope,
   templateCandidate,
   templateFixtures,
+  validateGraph,
 } from "@river/templates";
 import { and, desc, eq, or, sql } from "drizzle-orm";
 import { Schema } from "effect";
@@ -163,7 +164,7 @@ export function createTemplateAiRepository(db: Database) {
       brief: request.brief,
       ...(promotion ? { layoutAdjustment: promotion.layout.changes } : {}),
       conversation: turn.input,
-      baseGraph: base.graph,
+      baseGraph: request.workingGraph ? validateGraph(request.workingGraph) : base.graph,
       destination: {
         id: request.reservedDesignId,
         revision: request.revision ?? 0,

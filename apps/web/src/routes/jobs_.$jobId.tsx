@@ -1,4 +1,5 @@
 import type { EvidenceSelection, JobRequirement } from "@river/domain";
+import { isQualification } from "@river/domain";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { ArrowLeft, Plus } from "lucide-react";
 import { useState } from "react";
@@ -12,6 +13,7 @@ import {
   SelectedEvidence,
 } from "~/components/jobs/evidence-selection";
 import { JobEditor } from "~/components/jobs/job-editor";
+import { JobImport } from "~/components/jobs/job-import";
 import { RequirementEditor } from "~/components/jobs/requirement-editor";
 import {
   JobConflict,
@@ -20,6 +22,7 @@ import {
   useJobCommand,
   useJobDetail,
 } from "~/components/jobs/shared";
+import { TrashAction } from "~/components/trash/actions";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -43,7 +46,7 @@ export const Route = createFileRoute("/jobs_/$jobId")({
   component: JobPage,
 });
 type DialogState =
-  | { type: "details" | "snapshot" | "archive"; detail: JobDetail }
+  | { type: "details" | "snapshot"; detail: JobDetail }
   | { type: "requirement"; detail: JobDetail; requirement?: JobRequirement }
   | { type: "history" }
   | null;
@@ -63,7 +66,7 @@ function JobPage() {
   const [notice, setNotice] = useState("");
   const mutation = useJobCommand(() => {
     setPending(null);
-    setNotice("Selection saved for this posting snapshot.");
+    setNotice("Selection saved for this posting.");
   });
   const detail = result.data;
   const historical =
@@ -136,7 +139,7 @@ function JobPage() {
                 disabled={busy}
                 onClick={() => setDialog({ type: "history" })}
               >
-                Posting history
+                Saved versions
               </Button>
               {!detail.job.archivedAt && (
                 <Button
@@ -147,13 +150,18 @@ function JobPage() {
                   Edit details
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                disabled={busy}
-                onClick={() => setDialog({ type: "archive", detail })}
-              >
-                {detail.job.archivedAt ? "Restore job" : "Archive job"}
-              </Button>
+              <fieldset disabled={busy}>
+                <TrashAction
+                  item={{
+                    id: detail.job.id,
+                    kind: "job",
+                    label: detail.job.details.role,
+                    revision: detail.job.revision,
+                    archivedAt: detail.job.archivedAt,
+                  }}
+                  onChanged={() => setDialog(null)}
+                />
+              </fieldset>
             </div>
           </header>
           {historical && (
@@ -168,7 +176,7 @@ function JobPage() {
           )}
           {detail.job.archivedAt && (
             <p className="border-b bg-muted px-5 py-4 text-sm md:px-7">
-              This job target is archived. Restore it to continue tailoring.
+              This job is in Trash. Restore it to continue tailoring.
             </p>
           )}
           <JobResumes detail={detail} readOnly={readOnly} />
@@ -224,95 +232,101 @@ function JobPage() {
                           </p>
                         </div>
                       )}
-                      {detail.workspace.data.requirements.map((requirement) => (
-                        <article key={requirement.id} className="space-y-3 border-b py-5">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="outline">{requirement.priority}</Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {requirement.category}
-                            </span>
-                            {!readOnly && (
-                              <Button
-                                className="ml-auto"
-                                variant="ghost"
-                                size="sm"
-                                disabled={busy}
-                                onClick={() =>
-                                  setDialog({ type: "requirement", detail, requirement })
-                                }
-                              >
-                                Edit requirement
-                              </Button>
-                            )}
-                          </div>
-                          <h3 className="font-sans text-lg font-semibold leading-[26px] whitespace-pre-wrap">
-                            {requirement.text}
-                          </h3>
-                          {requirement.keywords.length > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              Keywords: {requirement.keywords.join(", ")}
-                            </p>
-                          )}
-                          {requirement.confidence !== null && (
-                            <p className="text-xs text-muted-foreground">
-                              Interpretation confidence: {Math.round(requirement.confidence * 100)}%
-                            </p>
-                          )}
-                          {requirement.passages.length ? (
-                            <details>
-                              <summary className="min-h-8 cursor-pointer text-sm text-primary">
-                                View supporting passages
-                              </summary>
-                              {requirement.passages.map((p) => (
-                                <blockquote
-                                  key={`${p.start}:${p.end}`}
-                                  className="my-3 border-l-2 pl-4 text-sm whitespace-pre-wrap"
+                      <h3 className="font-editorial text-2xl">Qualifications</h3>
+                      {detail.workspace.data.requirements
+                        .filter(isQualification)
+                        .map((requirement) => (
+                          <article key={requirement.id} className="space-y-3 border-b py-5">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant="outline">{requirement.priority}</Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {requirement.category}
+                              </span>
+                              {!readOnly && (
+                                <Button
+                                  className="ml-auto"
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={busy}
+                                  onClick={() =>
+                                    setDialog({ type: "requirement", detail, requirement })
+                                  }
                                 >
-                                  {p.quote}
-                                  <p className="mt-2 text-xs text-muted-foreground">
-                                    Line {detail.snapshot.text.slice(0, p.start).split("\n").length}{" "}
-                                    · offsets {p.start}–{p.end}
-                                  </p>
-                                </blockquote>
-                              ))}
-                            </details>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">No supporting passage</p>
-                          )}
-                          <SelectedEvidence
-                            detail={detail}
-                            requirementId={requirement.id}
-                            readOnly={readOnly}
-                            busy={busy}
-                            onChoose={choose}
-                            onInspect={setInspection}
-                          />
-                          {!readOnly && (
-                            <Button
-                              variant="outline"
-                              onClick={() =>
-                                setChoosing(choosing === requirement.id ? null : requirement.id)
-                              }
-                            >
-                              {choosing === requirement.id
-                                ? "Close evidence search"
-                                : "Choose evidence"}
-                            </Button>
-                          )}
-                          {choosing === requirement.id && (
-                            <EvidenceSearchPanel
-                              key={requirement.id}
+                                  Edit requirement
+                                </Button>
+                              )}
+                            </div>
+                            <h3 className="font-sans text-lg font-semibold leading-[26px] whitespace-pre-wrap">
+                              {requirement.text}
+                            </h3>
+                            {requirement.keywords.length > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                Keywords: {requirement.keywords.join(", ")}
+                              </p>
+                            )}
+                            <SelectedEvidence
                               detail={detail}
                               requirementId={requirement.id}
                               readOnly={readOnly}
                               busy={busy}
-                              pending={pending?.choice ?? null}
                               onChoose={choose}
                               onInspect={setInspection}
                             />
-                          )}
-                        </article>
-                      ))}
+                            {!readOnly && (
+                              <Button
+                                variant="outline"
+                                onClick={() =>
+                                  setChoosing(choosing === requirement.id ? null : requirement.id)
+                                }
+                              >
+                                {choosing === requirement.id
+                                  ? "Close evidence search"
+                                  : "Choose evidence"}
+                              </Button>
+                            )}
+                            {choosing === requirement.id && (
+                              <EvidenceSearchPanel
+                                key={requirement.id}
+                                detail={detail}
+                                requirementId={requirement.id}
+                                readOnly={readOnly}
+                                busy={busy}
+                                pending={pending?.choice ?? null}
+                                onChoose={choose}
+                                onInspect={setInspection}
+                              />
+                            )}
+                          </article>
+                        ))}
+                      {detail.workspace.data.requirements.some(
+                        (item) => !isQualification(item),
+                      ) && (
+                        <section className="space-y-4 border-t py-5">
+                          <h3 className="font-editorial text-2xl">Eligibility</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Posting information only. These items do not match evidence or limit
+                            résumé creation.
+                          </p>
+                          {detail.workspace.data.requirements
+                            .filter((item) => !isQualification(item))
+                            .map((requirement) => (
+                              <article key={requirement.id} className="space-y-2 border-b py-4">
+                                <Badge variant="outline">{requirement.priority}</Badge>
+                                <p>{requirement.text}</p>
+                                {!readOnly && (
+                                  <Button
+                                    variant="ghost"
+                                    onClick={() =>
+                                      setDialog({ type: "requirement", detail, requirement })
+                                    }
+                                  >
+                                    Edit eligibility
+                                  </Button>
+                                )}
+                              </article>
+                            ))}
+                        </section>
+                      )}
                     </TabsContent>
                     <TabsContent value="all" className="space-y-5 pt-5">
                       <FormField label="Select for">
@@ -326,7 +340,7 @@ function JobPage() {
                           }
                         >
                           <option value="general">This job (general selection)</option>
-                          {detail.workspace.data.requirements.map((r) => (
+                          {detail.workspace.data.requirements.filter(isQualification).map((r) => (
                             <option key={r.id} value={r.id}>
                               {r.text}
                             </option>
@@ -409,7 +423,9 @@ function JobPage() {
           <footer className="sticky bottom-0 mt-auto flex flex-wrap items-center gap-3 border-t bg-background px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-7">
             <Badge variant="secondary">
               {new Set(detail.selected.map((s) => s.claimId)).size}{" "}
-              {new Set(detail.selected.map((s) => s.claimId)).size === 1 ? "claim" : "claims"}{" "}
+              {new Set(detail.selected.map((s) => s.claimId)).size === 1
+                ? "evidence item"
+                : "evidence items"}{" "}
               selected
             </Badge>
             <p className="text-xs text-muted-foreground" role="status">
@@ -419,7 +435,7 @@ function JobPage() {
                   : "Unsaved selection"
                 : result.error
                   ? "Showing last loaded work"
-                  : notice || "Saved selection for this posting snapshot"}
+                  : notice || "Saved selection for this posting"}
             </p>
             <Button
               variant="link"
@@ -434,7 +450,7 @@ function JobPage() {
           </footer>
           {dialog?.type === "history" && (
             <EvidenceDialog
-              title="Posting history"
+              title="Saved versions"
               description="Earlier postings and tailoring revisions remain available for inspection."
               onClose={() => setDialog(null)}
             >
@@ -491,14 +507,18 @@ function JobPage() {
                 requirement={dialog.requirement}
                 onClose={() => setDialog(null)}
               />
+            ) : dialog.type === "snapshot" ? (
+              <JobImport
+                detail={dialog.detail}
+                onClose={() => setDialog(null)}
+                onSaved={() => changeHistory()}
+              />
             ) : (
               <JobEditor
                 mode={dialog.type}
                 detail={dialog.detail}
                 onClose={() => setDialog(null)}
-                onSaved={() => {
-                  if (dialog.type === "snapshot") changeHistory();
-                }}
+                onSaved={() => {}}
               />
             ))}
         </>
@@ -550,24 +570,12 @@ function Posting({
         {detail.snapshot.text}
       </div>
       <p className="text-xs text-muted-foreground">
-        This posting is immutable. Capture a changed posting as a new snapshot.
+        Refresh the posting to review changes. Earlier captures stay available in saved versions.
       </p>
-      <details className="text-xs">
-        <summary className="cursor-pointer">Snapshot provenance</summary>
-        <dl className="mt-3 space-y-2 break-all font-mono">
-          <dt>Snapshot</dt>
-          <dd>{detail.snapshot.id}</dd>
-          <dt>Digest</dt>
-          <dd>{detail.snapshot.digest}</dd>
-          <dt>Captured by</dt>
-          <dd>{detail.snapshot.actorId}</dd>
-          <dt>Captured at</dt>
-          <dd>{new Date(detail.snapshot.createdAt).toISOString()}</dd>
-        </dl>
-      </details>
+
       {!disabled && (
         <Button variant="outline" onClick={onSnapshot}>
-          Add posting snapshot
+          Refresh posting
         </Button>
       )}
     </div>

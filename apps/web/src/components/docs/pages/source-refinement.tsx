@@ -3,8 +3,7 @@ import { type Guide, GuideLink } from "../shared";
 export const sourceRefinement = {
   slug: "source-refinement",
   title: "Refine the final document",
-  description:
-    "Review proposed wording and layout changes, then save an accepted result as a separate checkpoint.",
+  description: "Review changes to a generated document and save the result as a separate version.",
   group: "How-to guides",
   sections: [
     {
@@ -13,56 +12,54 @@ export const sourceRefinement = {
       body: (
         <>
           <p>
-            Source changes can alter both wording and layout. Start with a checkpoint whose PDF is
-            ready.
+            Start with a saved version whose PDF is ready. Final-document refinement can change both
+            wording and layout.
           </p>
           <ol>
-            <li>Open the checkpoint.</li>
             <li>
-              Select <strong>Refine final document</strong>.
+              Open the saved version and select <strong>Refine final document</strong>.
             </li>
             <li>
               Enter the intended change in <strong>Refinement goal</strong>.
             </li>
-            <li>Check the provider and model under AI for this action.</li>
             <li>
-              Select <strong>Suggest document changes</strong>.
+              Check the provider and model under <strong>AI for this action</strong>.
             </li>
-            <li>Open the candidate after generation and preview finish.</li>
+            <li>
+              Select <strong>Suggest document changes</strong> and wait for the candidate preview.
+            </li>
           </ol>
         </>
       ),
     },
     {
       id: "review",
-      title: "Review and save a candidate",
+      title: "Review and save the candidate",
       body: (
         <>
-          <p>Inspect every change before confirming review coverage.</p>
           <ol>
-            <li>Open Preview &amp; checks and compare the original and proposed PDFs.</li>
             <li>
-              Open Wording &amp; evidence and inspect the actual wording changes and citations.
-            </li>
-            <li>Check changes in meaning and factual support.</li>
-            <li>Check the preview warnings.</li>
-            <li>
-              If the candidate passes validation and you want the changes, confirm the
-              review-coverage checkbox.
+              Compare the original and proposed PDFs in <strong>Preview &amp; checks</strong>.
             </li>
             <li>
-              Select <strong>Accept &amp; save checkpoint</strong>.
+              Inspect the wording changes and available evidence links in{" "}
+              <strong>Wording &amp; evidence</strong>.
             </li>
-            <li>Wait for publication to finish.</li>
-            <li>Open the new checkpoint.</li>
+            <li>Check factual meaning, completeness, and document warnings.</li>
+            <li>
+              If you want the valid candidate, confirm that you reviewed the changes and select{" "}
+              <strong>Accept &amp; save checkpoint</strong>.
+            </li>
+            <li>Wait for publication and open the new saved version.</li>
           </ol>
           <p>
-            If you do not want the changes, select <strong>Reject candidate</strong> instead.
+            Use <strong>Reject candidate</strong> if you do not want the changes. The original
+            version remains saved.
           </p>
           <p>
-            To download the accepted result, follow{" "}
-            <GuideLink slug="export">Export a résumé</GuideLink>. Review the new checkpoint's
-            evidence issues.
+            To download the result, follow <GuideLink slug="export">Export a résumé</GuideLink>.
+            Optional sources and historical verification states do not add an export acknowledgment
+            step.
           </p>
         </>
       ),
@@ -73,23 +70,21 @@ export const sourceRefinement = {
       body: (
         <>
           <p>
-            Returning to the earlier editor version leaves out layout and wording changes made only
-            during final-document refinement. Review those differences first. The refined checkpoint
-            remains saved.
+            Returning to the structured editor regenerates the document from its section fields.
+            Layout or wording changes made only during final-document refinement can be left out.
+            The refined version remains saved.
           </p>
           <ol>
             <li>
-              On the source checkpoint, select <strong>Return to structured editing</strong>.
+              Select <strong>Return to structured editing</strong> on the refined version.
             </li>
             <li>Inspect the comparison and excluded changes.</li>
-            <li>Enter a name for the new draft.</li>
-            <li>Confirm the stated regeneration consequences.</li>
-            <li>Create the new draft.</li>
-            <li>Inspect its regenerated PDF.</li>
+            <li>Name the new résumé and confirm the stated regeneration consequences.</li>
+            <li>Create it and inspect its regenerated PDF.</li>
           </ol>
           <p>
-            For how the versions relate, see{" "}
-            <GuideLink slug="saved-versions">Saved versions and local changes</GuideLink>.
+            See <GuideLink slug="saved-versions">Saved versions and local changes</GuideLink> for
+            how the versions relate.
           </p>
         </>
       ),
@@ -100,13 +95,13 @@ export const sourceRefinement = {
       body: (
         <>
           <p>
-            To turn a supported layout change into a reusable template proposal, select{" "}
-            <strong>Promote a layout idea</strong> on the source checkpoint.
+            To use a layout idea in future résumés, open <strong>Templates</strong> and describe or
+            reproduce the change in a template working copy. Inspect the sample preview, then save
+            it.
           </p>
           <p>
-            Review the proposal before saving the template. Follow{" "}
-            <GuideLink slug="templates">Create and approve a template</GuideLink> to validate and
-            approve the saved revision.
+            A final-document edit does not automatically change reusable layouts or content schemas.
+            Follow <GuideLink slug="templates">Create and customize templates</GuideLink>.
           </p>
         </>
       ),

@@ -80,16 +80,21 @@ export const account = {
     },
     {
       id: "usage",
-      title: "Check task usage",
+      title: "Manage account preferences and usage",
       body: (
         <>
           <p>
-            To check your remaining processing allowance, open{" "}
-            <strong>Settings → Account &amp; sessions</strong>.
+            Open <strong>Settings → Account &amp; sessions</strong> to manage your account and
+            sessions. Use the shared theme control for light or dark appearance.
           </p>
           <p>
-            For the limits and reset rules, see{" "}
+            Personal AI connections have no daily River quota. Scoring has a separate allowance,
+            normally 25 successful results per UTC day. For the limits and reset rules, see{" "}
             <GuideLink slug="workspace-reference">Workspace access and limits</GuideLink>.
+          </p>
+          <p>
+            Administrators use the admin area for usage counts, account scoring allowances, and
+            backups. These controls are not available to normal accounts.
           </p>
         </>
       ),

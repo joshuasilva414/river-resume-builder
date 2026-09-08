@@ -157,11 +157,8 @@ it("keeps each issue separate, rejects unseen review changes, and freezes the or
     templates,
   );
   let detail = await repository.inspectCheckpoint(actor.id, captured.id);
-  expect(detail.report.issues.map((issue) => issue.kind).sort()).toEqual([
-    "Draft",
-    "Unsupported",
-    "Unsupported",
-  ]);
+  expect(detail.report.issues).toEqual([]);
+  expect(detail.report.policyVersion).toBe("river-evidence-export-v2");
   const oldInput = {
     id: captured.id,
     revision: detail.state.revision,
@@ -205,12 +202,7 @@ it("keeps each issue separate, rejects unseen review changes, and freezes the or
   detail = await repository.inspectCheckpoint(actor.id, captured.id);
   expect(detail.exported).toBeNull();
   expect(detail.acknowledgments).toHaveLength(0);
-  expect(detail.report.issues.map((issue) => issue.kind).sort()).toEqual([
-    "Archived",
-    "Draft",
-    "Unsupported",
-    "Unsupported",
-  ]);
+  expect(detail.report.issues.map((issue) => issue.kind)).toEqual(["Archived"]);
   await expect(
     repository.acknowledgeCheckpoint(actor, {
       ...oldInput,
@@ -225,19 +217,8 @@ it("keeps each issue separate, rejects unseen review changes, and freezes the or
     reportId: detail.report.id,
     digest: detail.report.digest,
   };
-  await expect(
-    repository.exportCheckpoint(actor, { ...current, idempotencyKey: "missing-acks" }),
-  ).rejects.toMatchObject({ code: "InvalidInput" });
-  await repository.acknowledgeCheckpoint(actor, {
-    ...current,
-    issueIds: detail.report.issues.map((issue) => issue.id),
-    idempotencyKey: "ack-current",
-  });
-  await repository.exportCheckpoint(actor, {
-    ...current,
-    revision: current.revision + 1,
-    idempotencyKey: "export",
-  });
+  // Changed or trashed references are information, so export needs no acknowledgment.
+  await repository.exportCheckpoint(actor, { ...current, idempotencyKey: "export" });
   const original = await repository.inspectCheckpoint(actor.id, captured.id);
   await repository.archiveEvidence(actor, {
     id: claim.id,
@@ -374,7 +355,7 @@ it("pins historical context values and requires a new report when that context c
     templates,
   );
   const before = await repository.inspectCheckpoint(actor.id, captured.id);
-  expect(before.report.issues.some((issue) => issue.kind === "Needs clarification")).toBe(true);
+  expect(before.report.issues.some((issue) => issue.kind === "Needs clarification")).toBe(false);
   await repository.saveContext(actor, {
     id: context.id,
     revision: 0,

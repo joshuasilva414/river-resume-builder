@@ -20,6 +20,7 @@ import { createEvidenceRepository } from "./evidence";
 import { createFeedbackRepository } from "./feedback";
 import { createHistoryRepository } from "./history";
 import { createJobAiRepository } from "./job-ai";
+import { createJobImportRepository } from "./job-import";
 import { createJobRepository } from "./jobs";
 import { createLibraryRepository } from "./library";
 import { createSourceRefinementRepository } from "./refinement";
@@ -31,6 +32,7 @@ import { createTemplateAiRepository } from "./template-ai";
 import { createTemplateConversationRepository } from "./template-conversations";
 import { createTemplateScoringRepository } from "./template-scoring";
 import { createTemplateRepository } from "./templates";
+import { createTrashRepository } from "./trash";
 import { createUsageRepository } from "./usage";
 import { createWordingRepository } from "./wording";
 
@@ -65,6 +67,7 @@ export function createRepository(binding: D1Database) {
     ...createAccessRepository(db),
     ...createAiSettingsRepository(db),
     ...createUsageRepository(db),
+    ...createTrashRepository(db),
     ...createBackupRepository(db),
     ...createCheckpointRepository(db),
     ...createHistoryRepository(db),
@@ -77,6 +80,7 @@ export function createRepository(binding: D1Database) {
     ...createFeedbackRepository(db),
     ...createDuplicateAiRepository(db),
     ...createJobRepository(db),
+    ...createJobImportRepository(db),
     ...createJobAiRepository(db),
     ...createLibraryRepository(db),
     ...createSourceRepository(db),
@@ -181,6 +185,20 @@ export function createRepository(binding: D1Database) {
             .update(schema.dispatches)
             .set({ dispatchedAt: null })
             .where(eq(schema.dispatches.operationId, id)),
+          db
+            .update(schema.sources)
+            .set({
+              state: "Failed",
+              failure: "Source processing cancelled. Retry when ready.",
+              updatedAt: Date.now(),
+            })
+            .where(
+              and(
+                eq(schema.sources.operationId, id),
+                eq(schema.sources.ownerId, actorId),
+                eq(schema.sources.state, "Processing"),
+              ),
+            ),
           db.insert(schema.receipts).values({
             actorId,
             command,

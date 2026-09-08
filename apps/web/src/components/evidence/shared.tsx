@@ -297,7 +297,6 @@ export function Conflict({
               </div>
               <div>
                 <p className="eyebrow mb-3">Saved revision {latest.data.claim.revision}</p>
-                <p className="mt-3 text-muted-foreground">{latest.data.claim.reviewState}</p>
                 <MaterialSummary
                   material={
                     latest.data.revisions.find((r) => r.id === latest.data?.claim.currentRevisionId)
@@ -354,17 +353,13 @@ export function MaterialSummary({
           className="whitespace-pre-wrap border-l-2 pl-3"
         >
           {c.quote}
-          <p className="mt-2 text-xs text-muted-foreground">
-            Offsets {c.start}–{c.end}
-          </p>
         </blockquote>
       ))}
       {material.contexts.map((c) => (
         <p key={c.revisionId} className="text-sm text-muted-foreground">
           Context:{" "}
           {contexts.find((context) => context.revisionId === c.revisionId)?.data.label ??
-            "Pinned context"}{" "}
-          · {c.revisionId.slice(-8)}
+            "Saved context"}
         </p>
       ))}
     </div>

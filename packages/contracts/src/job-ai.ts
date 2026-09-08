@@ -1,4 +1,4 @@
-import { JobAiTask, RecordId, Revision } from "@river/domain";
+import { EvidenceSelection, JobAiTask, RecordId, Revision } from "@river/domain";
 import { Schema } from "effect";
 import { AiSelectionFields } from "./ai";
 import { CommandKey } from "./evidence";
@@ -24,6 +24,8 @@ export const ReviewJobAiRequest = Schema.Struct({
   idempotencyKey: CommandKey,
   decision: Schema.Literals(["Accepted", "Rejected"]),
   acknowledgeRemovedAssociations: Schema.Boolean,
+  requirementIds: Schema.optionalKey(Schema.Array(RecordId).check(Schema.isMaxLength(100))),
+  selections: Schema.optionalKey(Schema.Array(EvidenceSelection).check(Schema.isMaxLength(300))),
 });
 export type ReviewJobAiRequest = typeof ReviewJobAiRequest.Type;
 export const RetryJobAiRequest = Schema.Struct({

@@ -10,13 +10,19 @@ import {
   type BlockFieldKey,
   blockDefinitions,
   canonicalJson,
+  captureSchemaBundle,
   type LibraryData,
   type LibraryReference,
+  libraryEvidence,
+  nestedContentRecords,
   newId,
   type Principal,
+  RecordId,
   validateLibraryData,
 } from "@river/domain";
+import { validateComposableLayouts } from "@river/templates";
 import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { Schema } from "effect";
 import { createCommands, type Guard, type Write } from "./commands";
 import type { Database } from "./index";
 import * as s from "./schema";
@@ -189,9 +195,7 @@ export function createLibraryRepository(db: Database) {
       const refs = [
         ...new Map(
           graph
-            .flatMap((entry) =>
-              entry.revision.data.kind === "content" ? entry.revision.data.evidence : [],
-            )
+            .flatMap((entry) => libraryEvidence(entry.revision.data))
             .map((ref) => [ref.revisionId, ref]),
         ).values(),
       ];
@@ -260,11 +264,6 @@ export function createLibraryRepository(db: Database) {
         input.idempotencyKey,
         input,
         async () => {
-          if (!input.rationale.trim())
-            throw new ApplicationError({
-              code: "InvalidInput",
-              message: "Provide a reason for this change.",
-            });
           const item = await observeLibrary(actor, input.id, input.revision);
           if ((item.archivedAt !== null) === input.archived)
             throw new ApplicationError({
@@ -417,6 +416,8 @@ export function createLibraryRepository(db: Database) {
             message: "Provide a library label and the observed revision for an existing item.",
           });
         validateLibraryData(input.data);
+        if (input.data.kind !== "content" && input.data.structured)
+          validateComposableLayouts(input.data.structured);
         if (new TextEncoder().encode(canonicalJson(input.data)).byteLength > 128 * 1024)
           throw new ApplicationError({
             code: "InvalidInput",
@@ -458,28 +459,27 @@ export function createLibraryRepository(db: Database) {
               message: "A child binding has an incompatible kind or content type.",
             });
         }
-        if (input.data.kind === "content")
-          for (const ref of input.data.evidence) {
-            const target = (
-              await db
-                .select({ id: s.evidenceRevisions.id })
-                .from(s.evidenceRevisions)
-                .innerJoin(s.claims, eq(s.claims.id, s.evidenceRevisions.claimId))
-                .where(
-                  and(
-                    eq(s.claims.ownerId, actor.ownerId),
-                    eq(s.claims.id, ref.claimId),
-                    eq(s.evidenceRevisions.id, ref.revisionId),
-                  ),
-                )
-                .limit(1)
-            )[0];
-            if (!target)
-              throw new ApplicationError({
-                code: "NotFound",
-                message: "A supporting Evidence Revision is unavailable.",
-              });
-          }
+        for (const ref of libraryEvidence(input.data)) {
+          const target = (
+            await db
+              .select({ id: s.evidenceRevisions.id })
+              .from(s.evidenceRevisions)
+              .innerJoin(s.claims, eq(s.claims.id, s.evidenceRevisions.claimId))
+              .where(
+                and(
+                  eq(s.claims.ownerId, actor.ownerId),
+                  eq(s.claims.id, ref.claimId),
+                  eq(s.evidenceRevisions.id, ref.revisionId),
+                ),
+              )
+              .limit(1)
+          )[0];
+          if (!target)
+            throw new ApplicationError({
+              code: "NotFound",
+              message: "A supporting Evidence Revision is unavailable.",
+            });
+        }
         const id = previous?.id ?? newId(),
           revisionId = newId(),
           revision = previous ? previous.revision + 1 : 0,
@@ -490,7 +490,65 @@ export function createLibraryRepository(db: Database) {
           revision,
           updatedAt: now,
         };
+        const entryWrites: Write[] = [];
+        if (input.data.kind === "section" && input.data.structured) {
+          const content = input.data.structured;
+          for (const entry of new Map(
+            nestedContentRecords(content).map((record) => [record.id, record]),
+          ).values()) {
+            if (entry.schema.id === "contact-link") continue;
+            Schema.decodeUnknownSync(RecordId)(entry.id);
+            const existing = await getLibraryItem(actor.ownerId, entry.id);
+            if (existing) continue;
+            const entryRevisionId = newId();
+            const entryLabel = String(
+              entry.values.title ??
+                entry.values.project ??
+                entry.values.institution ??
+                entry.values.credential ??
+                input.label,
+            ).slice(0, 160);
+            const data: LibraryData = {
+              kind: "block",
+              type: input.data.type,
+              fields: [],
+              structured: {
+                ...captureSchemaBundle(content, entry.schema),
+                record: entry,
+                evidence: content.evidence,
+              },
+            };
+            entryWrites.push(
+              db.insert(s.libraryItems).values({
+                id: entry.id,
+                ownerId: actor.ownerId,
+                kind: "block",
+                type: input.data.type,
+                label: entryLabel,
+                currentRevisionId: entryRevisionId,
+                revision: 0,
+                createdAt: now,
+                updatedAt: now,
+              }),
+              db.insert(s.libraryRevisions).values({
+                id: entryRevisionId,
+                itemId: entry.id,
+                data,
+                label: entryLabel,
+                rationale: "",
+                actorId: actor.id,
+                createdAt: now,
+              }),
+              ...content.evidence.map((ref) =>
+                db
+                  .insert(s.libraryEvidenceReferences)
+                  .values({ revisionId: entryRevisionId, evidenceRevisionId: ref.revisionId }),
+              ),
+            );
+          }
+        }
         const writes: Write[] = [
+          ...entryWrites,
           previous
             ? db.update(s.libraryItems).set(values).where(eq(s.libraryItems.id, id))
             : db.insert(s.libraryItems).values({
@@ -513,13 +571,11 @@ export function createLibraryRepository(db: Database) {
           ...[...new Set(children.map((child) => child.revisionId))].map((childRevisionId) =>
             db.insert(s.libraryChildReferences).values({ revisionId, childRevisionId }),
           ),
-          ...(input.data.kind === "content"
-            ? input.data.evidence.map((ref) =>
-                db
-                  .insert(s.libraryEvidenceReferences)
-                  .values({ revisionId, evidenceRevisionId: ref.revisionId }),
-              )
-            : []),
+          ...libraryEvidence(input.data).map((ref) =>
+            db
+              .insert(s.libraryEvidenceReferences)
+              .values({ revisionId, evidenceRevisionId: ref.revisionId }),
+          ),
         ];
         return {
           result: { id, revision, revisionId },

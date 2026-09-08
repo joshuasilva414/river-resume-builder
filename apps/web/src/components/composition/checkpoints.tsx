@@ -1,9 +1,11 @@
 import type { CaptureCheckpointRequest } from "@river/contracts";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { LoaderCircle } from "lucide-react";
 import { useRef, useState } from "react";
 import { Failure, FormField, unwrap } from "~/components/evidence/shared";
 import { RestoreCheckpoint } from "~/components/history/restore";
+import { ScoringAllowance, useScoringAllowance } from "~/components/scoring/allowance";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { captureResumeCheckpoint } from "~/server/checkpoint-functions";
@@ -21,7 +23,9 @@ export function CaptureCheckpoint({
   revision: number;
   waiting: boolean;
 }) {
-  const navigate = useNavigate();
+  const navigate = useNavigate(),
+    allowance = useScoringAllowance(),
+    client = useQueryClient();
   const settings = useQuery({
     queryKey: ["scoring-settings"],
     queryFn: async () => unwrap(await getScoringSettings()),
@@ -50,6 +54,7 @@ export function CaptureCheckpoint({
     },
     onSuccess: (result) => {
       setCaptured(result.id);
+      void client.invalidateQueries({ queryKey: ["scoring-allowance"] });
       if (result.mode === "branch") setBranch(true);
       if (result.mode === "export" || result.mode === "score")
         void navigate({
@@ -61,16 +66,15 @@ export function CaptureCheckpoint({
   });
   return (
     <section className="mt-6 space-y-4 border-t pt-5">
-      <h3 className="font-editorial text-2xl">Save checkpoint</h3>
+      <h3 className="font-editorial text-2xl">Save a version</h3>
       <p className="text-sm text-muted-foreground">
-        Save a checkpoint to preserve this résumé and its supporting information. River prepares its
+        Save a version to preserve this résumé and its supporting information. River prepares its
         export files after saving.
       </p>
       <p className="eyebrow">
-        Draft revision {revision} ·{" "}
-        {waiting ? "Waiting for save or conflict recovery" : "All changes saved"}
+        {waiting ? "Waiting for your changes to save" : "All changes saved"}
       </p>
-      <FormField label="Checkpoint label (optional)">
+      <FormField label="Version name (optional)">
         <Input
           maxLength={80}
           value={label}
@@ -83,8 +87,7 @@ export function CaptureCheckpoint({
       {captured ? (
         <div className="space-y-3 rounded-md border bg-primary/5 p-4">
           <p role="status">
-            Checkpoint {captured.slice(-8)} saved. Its document can finish or be retried
-            independently.
+            Version saved. Its PDF will be ready when document preparation finishes.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <Link
@@ -94,40 +97,45 @@ export function CaptureCheckpoint({
               to="/checkpoints/$checkpointId"
               params={{ checkpointId: captured }}
             >
-              Open checkpoint
+              Open saved version
             </Link>
             <Button variant="outline" onClick={() => setBranch(true)}>
-              Create a branch from this checkpoint
+              Create an editable copy
             </Button>
           </div>
         </div>
       ) : mode && capture.error ? (
         <Button disabled={waiting || capture.isPending} onClick={() => capture.mutate(mode)}>
-          Retry checkpoint command
+          Retry saving
         </Button>
       ) : (
         <div className="flex flex-wrap gap-3">
           <Button disabled={waiting || !!mode} onClick={() => capture.mutate("save")}>
-            {capture.isPending ? "Saving checkpoint…" : "Save checkpoint"}
+            {capture.isPending && <LoaderCircle className="animate-spin" />}
+            {capture.isPending ? "Saving version…" : "Save version"}
           </Button>
           <Button
             variant="outline"
             disabled={waiting || !!mode}
             onClick={() => capture.mutate("export")}
           >
-            Capture & review export
+            Save & review PDF
           </Button>
           <Button
             variant="outline"
             disabled={waiting || !!mode}
             onClick={() => capture.mutate("branch")}
           >
-            Save checkpoint & branch
+            Save & create a copy
           </Button>
           {settings.data?.configured && (
             <Button
               variant="outline"
-              disabled={waiting || !!mode}
+              disabled={
+                waiting ||
+                !!mode ||
+                (allowance.data?.remaining !== null && (allowance.data?.remaining ?? 0) < 1)
+              }
               onClick={() => capture.mutate("score")}
             >
               Save & score
@@ -135,9 +143,10 @@ export function CaptureCheckpoint({
           )}
         </div>
       )}
+      {settings.data?.configured && <ScoringAllowance />}
       {settings.error && (
         <p className="text-xs text-muted-foreground">
-          Scoring availability could not be checked. Checkpoint capture and export remain available.
+          Scoring availability could not be checked. You can still save and export your résumé.
         </p>
       )}
       {branch && captured && (

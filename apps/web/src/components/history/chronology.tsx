@@ -44,8 +44,8 @@ export function CheckpointHistory({ draftId, onClose }: { draftId: string; onClo
   const checkpoints = result.data?.pages.flatMap((page) => page.items) ?? [];
   return (
     <EvidenceDialog
-      title="Checkpoint history"
-      description="Newest first. Saved checkpoints, current drafts and exported artifacts remain separate."
+      title="Saved versions"
+      description="Newest first. Open a saved version, compare changes, or create an editable copy."
       onClose={onClose}
     >
       <div className="space-y-5">
@@ -59,17 +59,17 @@ export function CheckpointHistory({ draftId, onClose }: { draftId: string; onClo
               void family.refetch();
             }}
           >
-            Retry branch choices
+            Reload résumés
           </Button>
         )}
-        <FormField label="Draft or branch for this job">
+        <FormField label="Résumé for this job">
           <select
             className="min-h-11 w-full rounded-sm border bg-background px-3"
             value={selected}
             onChange={(event) => setSelected(event.target.value)}
           >
             {!drafts.some((draft) => draft.id === selected) && (
-              <option value={selected}>{root.data?.draft.data.name ?? "Current draft"}</option>
+              <option value={selected}>{root.data?.draft.data.name ?? "Current résumé"}</option>
             )}
             {drafts.map((draft) => (
               <option key={draft.id} value={draft.id}>
@@ -85,14 +85,13 @@ export function CheckpointHistory({ draftId, onClose }: { draftId: string; onClo
             disabled={family.isFetchingNextPage}
             onClick={() => void family.fetchNextPage()}
           >
-            Load more drafts and branches
+            Load more résumés
           </Button>
         )}
         <section className="space-y-2 rounded-md border bg-primary/5 p-4">
-          <h3 className="font-semibold">Working draft{current ? ` · r${current.revision}` : ""}</h3>
+          <h3 className="font-semibold">Current résumé</h3>
           <p className="text-sm text-muted-foreground">
-            This is the persisted draft. Open its editor to review local save state and capture a
-            checkpoint.
+            Open the editor to continue working or save a version of this résumé.
           </p>
           <Link
             target="_blank"
@@ -103,14 +102,10 @@ export function CheckpointHistory({ draftId, onClose }: { draftId: string; onClo
           >
             Open editor in a new tab
           </Link>
-          {current?.fromCheckpointId && (
-            <p className="text-xs">
-              Branched from checkpoint {current.fromCheckpointId.slice(-8)}.
-            </p>
-          )}
+          {current?.fromCheckpointId && <p className="text-xs">Created from a saved version.</p>}
         </section>
         <Failure error={result.error} />
-        {result.isPending && <p role="status">Loading chronological history…</p>}
+        {result.isPending && <p role="status">Loading saved versions…</p>}
         {result.error && (
           <Button variant="outline" onClick={() => void result.refetch()}>
             Retry history
@@ -118,12 +113,8 @@ export function CheckpointHistory({ draftId, onClose }: { draftId: string; onClo
         )}
         {checkpoints.map((checkpoint) => (
           <article key={checkpoint.id} className="space-y-3 border-b py-4">
-            <h3 className="font-editorial text-xl">Checkpoint {checkpoint.id.slice(-8)}</h3>
-            {checkpoint.label && <p className="text-sm font-medium">{checkpoint.label}</p>}
-            <p className="eyebrow">
-              {new Date(checkpoint.createdAt).toLocaleString()} · Captured draft r
-              {checkpoint.draftRevision}
-            </p>
+            <h3 className="font-editorial text-xl">{checkpoint.label ?? "Saved version"}</h3>
+            <p className="eyebrow">{new Date(checkpoint.createdAt).toLocaleString()}</p>
             <p className="text-sm">
               Saved ·{" "}
               {checkpoint.state === "Succeeded"
@@ -133,7 +124,7 @@ export function CheckpointHistory({ draftId, onClose }: { draftId: string; onClo
                   : `Document ${checkpoint.state.toLowerCase()}`}
               {checkpoint.exportedAt ? " · Exported" : ""}
               {checkpoint.scored ? " · Scored" : ""}
-              {checkpoint.sourceRefined ? " · Source refined" : ""}
+              {checkpoint.sourceRefined ? " · Document refined" : ""}
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <Link
@@ -143,10 +134,10 @@ export function CheckpointHistory({ draftId, onClose }: { draftId: string; onClo
                 to="/checkpoints/$checkpointId"
                 params={{ checkpointId: checkpoint.id }}
               >
-                Open saved checkpoint
+                Open saved version
               </Link>
               <Button variant="outline" onClick={() => setRestore(checkpoint.id)}>
-                Restore as a branch
+                Create an editable copy
               </Button>
               <Button variant="outline" onClick={() => setCompare(checkpoint.id)}>
                 Compare versions
@@ -156,7 +147,7 @@ export function CheckpointHistory({ draftId, onClose }: { draftId: string; onClo
               .filter((draft) => draft.fromCheckpointId === checkpoint.id)
               .map((draft) => (
                 <p key={draft.id} className="text-sm text-muted-foreground">
-                  Branch started here:{" "}
+                  Editable copy:{" "}
                   <Link
                     className="text-primary underline"
                     target="_blank"
@@ -171,9 +162,7 @@ export function CheckpointHistory({ draftId, onClose }: { draftId: string; onClo
           </article>
         ))}
         {!result.isPending && !result.error && checkpoints.length === 0 && (
-          <p className="text-sm">
-            No checkpoints yet. Save a checkpoint from the acknowledged draft in its editor.
-          </p>
+          <p className="text-sm">No saved versions yet. Open the résumé editor to save one.</p>
         )}
         {result.hasNextPage && (
           <Button
@@ -181,7 +170,7 @@ export function CheckpointHistory({ draftId, onClose }: { draftId: string; onClo
             disabled={result.isFetchingNextPage}
             onClick={() => void result.fetchNextPage()}
           >
-            Load earlier checkpoints
+            Load earlier versions
           </Button>
         )}
       </div>
