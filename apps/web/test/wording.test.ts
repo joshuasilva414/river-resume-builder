@@ -643,8 +643,8 @@ async function structuredFixture() {
         entries: [
           {
             id: newId(),
-            schema: { id: "experience-entry", revision: 1 },
-            layout: { id: "experience-entry-classic", revision: 1 },
+            schema: { id: "experience-entry", revision: 2 },
+            layout: { id: "experience-entry-classic", revision: 2 },
             values: {
               employer: "Synthetic employer",
               title: "Developer",

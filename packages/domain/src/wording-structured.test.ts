@@ -26,8 +26,8 @@ function fixture() {
   const id = newId();
   const entry: ContentRecord = {
     id: "first-entry",
-    schema: { id: "experience-entry", revision: 1 },
-    layout: { id: "experience-entry-classic", revision: 1 },
+    schema: { id: "experience-entry", revision: 2 },
+    layout: { id: "experience-entry-classic", revision: 2 },
     values: {
       employer: "Synthetic employer",
       title: "Developer",
@@ -44,8 +44,8 @@ function fixture() {
     ...emptyStructuredContent("experience", "root"),
     record: {
       id: "root",
-      schema: { id: "experience-section", revision: 1 },
-      layout: { id: "experience-section-classic", revision: 1 },
+      schema: { id: "experience-section", revision: 2 },
+      layout: { id: "experience-section-classic", revision: 2 },
       values: { heading: "Experience", entries: [entry, other] },
     },
     evidence: [
@@ -98,7 +98,7 @@ it("targets a nested record by identity across layout changes and sibling reorde
               other,
               {
                 ...entry,
-                layout: { id: "experience-entry-compact", revision: 1 },
+                layout: { id: "experience-entry-compact", revision: 2 },
                 values: {
                   ...entry.values,
                   title: "Renamed title",
@@ -118,7 +118,7 @@ it("targets a nested record by identity across layout changes and sibling reorde
     other,
     {
       ...entry,
-      layout: { id: "experience-entry-compact", revision: 1 },
+      layout: { id: "experience-entry-compact", revision: 2 },
       values: {
         ...entry.values,
         title: "Renamed title",

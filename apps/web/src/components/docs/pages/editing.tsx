@@ -30,12 +30,13 @@ export const editing = {
           <ol>
             <li>Choose a saved section or create one with the fields you need.</li>
             <li>Fill direct fields and add nested entries within the same editor.</li>
-            <li>Inspect the insertion preview in the actual résumé at the intended position.</li>
+            <li>Inspect the approximate insertion preview at the intended position.</li>
             <li>Add the section, then arrange sections and entries in reading order.</li>
           </ol>
           <p>
-            Use a compatible layout to change appearance without re-entering values. Review content
-            that becomes hidden or visible after the switch.
+            Expand sections, groups and individual entries independently. Existing items start
+            collapsed; new items open automatically. Collapsing keeps your unsaved values. Find
+            optional fields and layout choices in Additional settings.
           </p>
         </>
       ),
@@ -83,17 +84,17 @@ export const editing = {
     },
     {
       id: "save-preview",
-      title: "Inspect the current PDF",
+      title: "Preview edits and review the final PDF",
       body: (
         <>
           <p>
-            The PDF refreshes after edits settle. During rendering, the previous successful preview
-            stays visible. Check its status before assuming it includes the latest changes.
+            The approximate preview reflects your current edits. Pagination updates after you pause
+            typing. Custom templates can differ from this preview.
           </p>
           <p>
-            If rendering fails, correct the reported content or template error. An older response
-            cannot replace the preview for newer edits. Before export, wait for saving and the
-            current preview to finish.
+            Saving valid content and adding sections do not wait for a PDF. Choose Save version
+            after your edits finish saving, then review its exact PDF for final spacing and page
+            breaks.
           </p>
           <p>
             Read the extracted text as well as the PDF. See{" "}

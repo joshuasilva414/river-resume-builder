@@ -17,21 +17,10 @@ export const scoring = {
             scoring service. It uses a separate service from your personal AI connections.
           </p>
           <ol>
-            <li>
-              Open a saved version with a successfully rendered document and select{" "}
-              <strong>Scores</strong>.
-            </li>
-            <li>
-              Open <strong>View complete résumé text</strong> and{" "}
-              <strong>View exact posting</strong>.
-            </li>
-            <li>Review the text, provider, input limits, and available allowance.</li>
-            <li>
-              Select <strong>Score checkpoint</strong> when the inputs are correct.
-            </li>
-            <li>
-              Open the completed result in <strong>Scoring history</strong>.
-            </li>
+            <li>Open a saved version and review its complete PDF and job posting.</li>
+            <li>Choose Score résumé to check readiness.</li>
+            <li>Check readiness and the available allowance, then select Score.</li>
+            <li>Review progress and completed results in the Scores tab.</li>
           </ol>
           <p>Scoring is optional. You can review and export a valid document without it.</p>
         </>

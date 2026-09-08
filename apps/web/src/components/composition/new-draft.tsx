@@ -23,12 +23,12 @@ export function JobResumes({ detail, readOnly }: { detail: JobDetail; readOnly: 
     <section className="space-y-6 border-b p-5 md:p-7">
       <div className="flex flex-wrap items-center justify-between gap-5">
         <div>
-          <h2 className="font-editorial text-2xl">Résumé drafts</h2>
+          <h2 className="font-editorial text-2xl">Résumés</h2>
           <p className="mt-3 text-sm text-muted-foreground">
-            Continue a saved draft, or start one for this posting.
+            Continue a résumé or start a new one.
           </p>
         </div>
-        {!readOnly && <Button onClick={() => setCreating(true)}>Create résumé draft</Button>}
+        {!readOnly && <Button onClick={() => setCreating(true)}>New résumé</Button>}
       </div>
       <Failure error={result.error} />
       {result.error && (
@@ -38,38 +38,16 @@ export function JobResumes({ detail, readOnly }: { detail: JobDetail; readOnly: 
       )}
       {result.isPending && <p role="status">Loading saved drafts…</p>}
       {result.data?.items.map((item) => (
-        <article
-          key={item.id}
-          className="grid items-center gap-4 border-t py-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
-        >
+        <article key={item.id} className="flex items-center justify-between gap-4 border-t py-3">
           <div>
             <h3 className="font-sans font-semibold">{item.data.name}</h3>
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground">
               Saved {new Date(item.updatedAt).toLocaleString()}
             </p>
           </div>
-          <p className="text-sm">
-            {item.snapshotId === detail.snapshot.id
-              ? "This posting"
-              : item.snapshotCreatedAt < detail.snapshot.createdAt
-                ? "Earlier posting"
-                : "Other posting"}
-            <span className="eyebrow mt-2 block">Snapshot {item.snapshotId.slice(-8)}</span>
-          </p>
-          <p className="text-sm capitalize">
-            {item.data.template ? "Custom template" : item.data.theme}
-            <span className="eyebrow mt-2 block">Draft revision {item.revision}</span>
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {item.branchOf
-              ? item.branchName
-                ? `Branch of ${item.branchName}`
-                : `Branch · ${item.branchOf.slice(-8)}`
-              : "Original draft"}
-          </p>
           <Button variant="outline" asChild>
             <Link to="/resumes/$resumeId" params={{ resumeId: item.id }}>
-              Open draft
+              Open
             </Link>
           </Button>
         </article>
@@ -141,7 +119,7 @@ function NewDraft({ detail, onClose }: { detail: JobDetail; onClose: () => void 
         .mutateAsync({
           ...value,
           theme: selected.graph.theme,
-          templateRevision: 1,
+          templateRevision: 2,
           sections: [],
           ...(base.kind === "saved" && selected.data
             ? { template: { designId: selected.data.design.id, revisionId: base.revisionId } }
@@ -154,7 +132,7 @@ function NewDraft({ detail, onClose }: { detail: JobDetail; onClose: () => void 
     <form.Subscribe selector={(state) => state.isDirty}>
       {(dirty) => (
         <EvidenceDialog
-          title="Create résumé draft"
+          title="New résumé"
           description="Start a résumé for this job using the saved posting. Choose a template, then add your content."
           onClose={onClose}
           dirty={dirty || base.kind === "saved" || base.theme !== "classic"}

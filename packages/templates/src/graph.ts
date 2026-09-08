@@ -3,7 +3,7 @@ import { Schema } from "effect";
 import { validateComposableLayouts } from "./composable";
 import { fixedPack, StyleTokens, TemplateRevision, validateTemplate } from "./manifests";
 
-export const CUSTOM_RENDERER_VERSION = "river-tectonic-0.3.0";
+export const CUSTOM_RENDERER_VERSION = "river-tectonic-0.5.0";
 export const GRAPH_VALIDATOR_VERSION = "river-template-graph-v1";
 export const MAX_GRAPH_CHARACTERS = 60000;
 export const TemplateGraph = Schema.Struct({
@@ -119,15 +119,22 @@ export function validateGraph(value: unknown): TemplateGraph {
   return graph;
 }
 
-export function graphInventory(value: TemplateGraph) {
+export function graphInventory(
+  value: TemplateGraph,
+  renderer: typeof CUSTOM_RENDERER_VERSION | "river-tectonic-0.3.0" = CUSTOM_RENDERER_VERSION,
+) {
   const graph = validateGraph(value);
   return {
     theme: graph.theme,
-    renderer: CUSTOM_RENDERER_VERSION,
+    renderer,
     validator: GRAPH_VALIDATOR_VERSION,
     revision: graph.revision,
     ...(graph.composition
-      ? { composition: graph.composition, compositionRenderer: "river-composable-v2" }
+      ? {
+          composition: graph.composition,
+          compositionRenderer:
+            renderer === "river-tectonic-0.3.0" ? "river-composable-v2" : "river-composable-v3",
+        }
       : {}),
     tokens: graph.tokens,
     templates: graphTemplates(graph).map((item) => ({

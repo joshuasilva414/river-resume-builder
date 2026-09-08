@@ -1,5 +1,6 @@
 import {
   adaptLibraryContent,
+  BUILT_IN_CONTENT_REVISION,
   blockDefinitions,
   builtInSchemaBundle,
   ContentType,
@@ -21,23 +22,24 @@ import { useState } from "react";
 import { EvidenceDialog, Failure, FormField, selectClass } from "~/components/evidence/shared";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { EditorDisclosure, revealEditorErrors } from "./editor-disclosure";
 import { SavedSchemaPicker } from "./saved-schema-picker";
-import { StructuredFields } from "./schema-fields";
-import { builtInSchemaType, savedSchemaSnapshots, switchContentSchema } from "./schema-transition";
+import { recordTitle, StructuredFields } from "./schema-fields";
+import { builtInSchemaType, switchContentSchema } from "./schema-transition";
 import { LibraryConflict, type LibraryDetail, useLibraryCommand } from "./shared";
 
 function structuredStarter(kind: Exclude<LibraryKind, "content">, type: ContentType) {
   const content = emptyStructuredContent(type, newId());
   if (kind !== "block" || !["experience", "project", "education", "credential"].includes(type))
     return content;
-  const schema = { id: `${type}-entry`, revision: 1 };
+  const schema = { id: `${type}-entry`, revision: BUILT_IN_CONTENT_REVISION };
   return {
     ...content,
     ...captureSchemaBundle(builtInSchemaBundle, schema),
     record: {
       ...content.record,
       schema,
-      layout: { id: `${type}-entry-classic`, revision: 1 },
+      layout: { id: `${type}-entry-classic`, revision: BUILT_IN_CONTENT_REVISION },
       values: {},
     },
   };
@@ -128,6 +130,7 @@ export function StructuredLibraryEditor({
               data,
             });
           } catch (problem) {
+            revealEditorErrors(event.currentTarget);
             setError(problem instanceof Error ? problem : new Error("Check the fields."));
           }
         }}
@@ -141,63 +144,36 @@ export function StructuredLibraryEditor({
             disabled={save.isPending}
           />
         </FormField>
-        {!detail && (
-          <FormField label="Content type">
-            <select
-              className={selectClass}
-              value={type}
-              disabled={save.isPending}
-              onChange={(event) => {
-                const nextType = Schema.decodeUnknownSync(ContentType)(event.target.value);
-                const starter = structuredStarter(kind, nextType);
-                chooseSchema(starter, starter.record.schema);
-              }}
-            >
-              {contentTypes.map((value) => (
-                <option key={value} value={value}>
-                  {blockDefinitions[value].label}
-                </option>
-              ))}
-            </select>
-          </FormField>
-        )}
-        <SavedSchemaPicker
-          level={kind === "block" ? "entry" : "section"}
-          disabled={save.isPending}
-          onPick={chooseSchema}
-        />
-        {savedSchemaSnapshots(content).length > 0 && (
-          <details className="space-y-3 rounded-md border p-4">
-            <summary className="cursor-pointer text-sm font-semibold">
-              Previous fields and values
-            </summary>
-            <p className="text-sm text-muted-foreground">
-              Restore the fields and values from before a schema change. Your current values will
-              also be kept here.
-            </p>
-            {savedSchemaSnapshots(content).map((snapshot) => (
-              <Button
-                key={canonicalJson({
-                  schema: snapshot.record.schema,
-                  schemas: snapshot.schemas,
-                  layouts: snapshot.layouts,
-                })}
-                type="button"
-                variant="outline"
+        <EditorDisclosure title={recordTitle(content.record, type)} defaultOpen={!detail}>
+          <StructuredFields content={content} onChange={setContent} disabled={save.isPending} />
+        </EditorDisclosure>
+        <EditorDisclosure title="Section settings">
+          {!detail && (
+            <FormField label="Content type">
+              <select
+                className={selectClass}
+                value={type}
                 disabled={save.isPending}
-                onClick={() => chooseSchema(snapshot, snapshot.record.schema)}
+                onChange={(event) => {
+                  const nextType = Schema.decodeUnknownSync(ContentType)(event.target.value);
+                  const starter = structuredStarter(kind, nextType);
+                  chooseSchema(starter, starter.record.schema);
+                }}
               >
-                Restore{" "}
-                {snapshot.schemas.find(
-                  (item) =>
-                    item.id === snapshot.record.schema.id &&
-                    item.revision === snapshot.record.schema.revision,
-                )?.name ?? "saved fields"}
-              </Button>
-            ))}
-          </details>
-        )}
-        <StructuredFields content={content} onChange={setContent} disabled={save.isPending} />
+                {contentTypes.map((value) => (
+                  <option key={value} value={value}>
+                    {blockDefinitions[value].label}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          )}
+          <SavedSchemaPicker
+            level={kind === "block" ? "entry" : "section"}
+            disabled={save.isPending}
+            onPick={chooseSchema}
+          />
+        </EditorDisclosure>
         <Failure error={error} />
         <LibraryConflict
           id={detail?.item.id ?? null}
@@ -205,7 +181,7 @@ export function StructuredLibraryEditor({
           local={<p>Your entries remain in this editor.</p>}
           onReload={onClose}
         />
-        <div className="flex justify-end gap-3 border-t pt-5">
+        <div className="sticky bottom-0 flex justify-end gap-3 border-t bg-background py-4">
           <Button type="button" variant="outline" onClick={onClose} disabled={save.isPending}>
             Cancel
           </Button>

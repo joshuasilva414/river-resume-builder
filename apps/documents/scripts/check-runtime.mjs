@@ -278,7 +278,7 @@ for (const item of fixture.templateFixtures) {
   assert.equal(first.body.validation.passed, true, JSON.stringify(first.body.validation));
   assert.equal(second.body.validation.passed, true, JSON.stringify(second.body.validation));
   assert.equal(first.body.fingerprint, second.body.fingerprint, `custom deterministic ${item.id}`);
-  assert.equal(first.body.rendererVersion, "river-tectonic-0.3.0");
+  assert.equal(first.body.rendererVersion, "river-tectonic-0.5.0");
   await writeFile(
     new URL(`custom-${item.id}.pdf`, output),
     Buffer.from(first.body.pdfBase64, "base64"),

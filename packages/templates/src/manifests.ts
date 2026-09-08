@@ -1,7 +1,8 @@
 import { ContentType, canonicalJson, contentTypes, type Theme } from "@river/domain";
 import { Schema } from "effect";
+import { templateInventory as legacyInventory, fixedPack as legacyPack } from "./manifests-v1";
 
-export const RENDERER_VERSION = "river-tectonic-0.2.0";
+export const RENDERER_VERSION = "river-tectonic-0.4.0";
 
 export const StyleTokens = Schema.Struct({
   font: Schema.Literals(["Latin Modern Roman", "Latin Modern Sans"]),
@@ -97,6 +98,8 @@ const allowedCommands = new Set([
   "titlespacing",
   "hyphenpenalty",
   "exhyphenpenalty",
+  "clubpenalty",
+  "widowpenalty",
   "begin",
   "end",
   "LARGE",
@@ -106,6 +109,14 @@ const allowedCommands = new Set([
   "small",
   "hfill",
   "textwidth",
+  "nopagebreak",
+  "smallskip",
+  "textbullet",
+  "href",
+  "linewidth",
+  "raggedleft",
+  "raggedright",
+  "titlerule",
 ]);
 /** This is a deliberately closed fragment grammar. It never evaluates template code. */
 export function validateTemplate(template: TemplateRevision): void {
@@ -133,7 +144,11 @@ export function validateTemplate(template: TemplateRevision): void {
     if (!allowedCommands.has(match[1] ?? ""))
       throw new Error(`Prohibited LaTeX command: ${match[1]}`);
   for (const match of source.matchAll(/\\usepackage(?:\[[^\]]*\])?\{([^}]*)\}/g))
-    if (!["fontspec", "geometry", "enumitem", "titlesec", "multicol"].includes(match[1] ?? ""))
+    if (
+      !["fontspec", "geometry", "enumitem", "titlesec", "multicol", "hyperref"].includes(
+        match[1] ?? "",
+      )
+    )
       throw new Error("Unapproved LaTeX package.");
   for (const match of source.matchAll(/\\(?:begin|end)\{([^}]*)\}/g))
     if (!["document", "itemize", "minipage", "multicols"].includes(match[1] ?? ""))
@@ -174,7 +189,7 @@ function template(
   const result: TemplateRevision = {
     manifest: {
       id: `${theme}/${level}/${type ?? "resume"}`,
-      revision: 1,
+      revision: 2,
       level,
       contentTypes: type ? [type] : contentTypes,
       styleContract: "river-v1",
@@ -190,7 +205,8 @@ function template(
   return result;
 }
 
-export function fixedPack(theme: Theme) {
+export function fixedPack(theme: Theme, revision: 1 | 2 = 2) {
+  if (revision === 1) return legacyPack(theme);
   const document = template(
     theme,
     "document",
@@ -215,15 +231,19 @@ export function fixedPack(theme: Theme) {
 \usepackage[margin={{margin}}in]{geometry}
 \usepackage{enumitem}
 \usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{3pt}
-\setlist[itemize]{leftmargin=12pt,itemsep=2pt,topsep=2pt,label={}}
-\titleformat{\section}{\large\bfseries}{}{0pt}{}
+\setlength{\parskip}{2pt}
+\setlist[itemize]{leftmargin=12pt,itemsep=2pt,topsep=2pt,parsep=0pt,label=\textbullet}
+\titleformat{\section}{\large\bfseries}{}{0pt}{}${theme === "minimal" ? "" : "[\\titlerule]"}
 \titlespacing*{\section}{0pt}{ {{sectionSpacing}}pt }{4pt}
 \hyphenpenalty=10000
 \exhyphenpenalty=10000
+\clubpenalty=10000
+\widowpenalty=10000
 \begin{document}
+\raggedright
 {{header}}
 {{sections}}
 \end{document}
@@ -241,6 +261,7 @@ export function fixedPack(theme: Theme) {
           { name: "blocks", kind: "children", level: "block", types: [type] },
         ],
         String.raw`\section*{ {{heading}} }
+\raggedright
 {{blocks}}`,
       ),
     );
@@ -273,11 +294,19 @@ export function fixedPack(theme: Theme) {
 {{bullets}}`,
         ),
   );
-  return { theme, revision: 1 as const, tokens: packs[theme], document, sections, blocks };
+  return {
+    theme,
+    revision: 2 as const,
+    tokens: { ...packs[theme], revision: 2 },
+    document,
+    sections,
+    blocks,
+  };
 }
 
 /** A compact, deterministic inventory for checkpoints and artifact diagnostics. */
-export function templateInventory(theme: Theme) {
+export function templateInventory(theme: Theme, revision: 1 | 2 = 2) {
+  if (revision === 1) return legacyInventory(theme);
   const pack = fixedPack(theme);
   return {
     theme,

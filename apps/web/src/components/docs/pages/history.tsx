@@ -13,7 +13,7 @@ export const history = {
         <>
           <ol>
             <li>Wait for the résumé’s edits to finish saving.</li>
-            <li>Use the capture action and add a label if it helps you identify the version.</li>
+            <li>Choose Save version and add a name if it helps you identify the version.</li>
             <li>Open the captured version to inspect its document.</li>
           </ol>
           <p>
@@ -31,7 +31,7 @@ export const history = {
         <>
           <ol>
             <li>
-              Open <strong>History</strong> from the résumé or a saved version.
+              Open <strong>Saved versions</strong> from the résumé, or History from a saved version.
             </li>
             <li>Choose the two versions to compare and confirm their names and dates.</li>
             <li>Compare the wording and section arrangement.</li>

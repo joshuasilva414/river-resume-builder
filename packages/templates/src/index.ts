@@ -7,6 +7,7 @@ export * from "./schema-fixtures";
 
 import { COMPOSABLE_RENDERER_VERSION, renderStructuredContent } from "./composable";
 
+export { capturedRenderer } from "./captured-renderer";
 export * from "./refinement";
 export { ValidationReport } from "./validation-report";
 
@@ -265,13 +266,26 @@ function render(
 }
 
 /** Resolve a fixed internally compatible pack. No scripts, mutable records, or cross-pack substitution. */
-export function compose(document: ResumeDocument, theme: Theme): { tex: string; identity: string } {
-  return composeWithPack(document, fixedPack(theme), RENDERER_VERSION, false);
+export function compose(
+  document: ResumeDocument,
+  theme: Theme,
+  revision: 1 | 2 = 2,
+): { tex: string; identity: string } {
+  return composeWithPack(
+    document,
+    fixedPack(theme, revision),
+    revision === 1 ? "river-tectonic-0.2.0" : RENDERER_VERSION,
+    false,
+  );
 }
 
 /** Custom graphs use a separate renderer identity; built-in historical captures keep their identity. */
-export function composeGraph(document: ResumeDocument, graph: TemplateGraph) {
-  return composeWithPack(document, validateGraph(graph), CUSTOM_RENDERER_VERSION, true);
+export function composeGraph(
+  document: ResumeDocument,
+  graph: TemplateGraph,
+  renderer: typeof CUSTOM_RENDERER_VERSION | "river-tectonic-0.3.0" = CUSTOM_RENDERER_VERSION,
+) {
+  return composeWithPack(document, validateGraph(graph), renderer, true);
 }
 function composeWithPack(
   document: ResumeDocument,
@@ -328,13 +342,20 @@ function composeWithPack(
     return render(template, { heading: section.heading, blocks }, documentStyles, custom);
   });
   const output = render(pack.document, { header: [resolvedHeader], sections }, pack.tokens, custom);
+  const tex =
+    output.tex.includes("\\href{") && !/\\usepackage(?:\[[^\]]*\])?\{hyperref\}/.test(output.tex)
+      ? output.tex.replace(
+          "\\begin{document}",
+          "\\usepackage[hidelinks]{hyperref}\n\\begin{document}",
+        )
+      : output.tex;
   return {
     tex: custom
-      ? output.tex.replace(
+      ? tex.replace(
           "\\begin{document}",
           `\\begin{document}\n\\fontsize{${documentStyles.bodySize}pt}{${(documentStyles.bodySize * 1.2).toFixed(1)}pt}\\selectfont`,
         )
-      : output.tex,
+      : tex,
     identity: canonicalJson({
       document,
       pack,

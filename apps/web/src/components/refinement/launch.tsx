@@ -5,13 +5,20 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { AiSelector } from "~/components/ai-selection";
 import { EvidenceDialog, Failure, FormField, unwrap } from "~/components/evidence/shared";
-import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
 import type { getCheckpoint } from "~/server/checkpoint-functions";
 import { generateSourceRefinementTask, getSourceRefinements } from "~/server/refinement-functions";
 
 type Checkpoint = Extract<Awaited<ReturnType<typeof getCheckpoint>>, { ok: true }>["value"];
+function useRefinements(checkpointId: string, state?: SourceRefinementList["state"], offset = 0) {
+  return useQuery({
+    queryKey: ["source-refinements", "list", checkpointId, state, offset],
+    queryFn: async () =>
+      unwrap(await getSourceRefinements({ data: { checkpointId, state, offset } })),
+    refetchInterval: 5000,
+  });
+}
 export function SourceRefinements({
   detail,
   onClose,
@@ -19,21 +26,12 @@ export function SourceRefinements({
   detail: Checkpoint;
   onClose: () => void;
 }) {
-  const [ai, setAi] = useState<AiSelection>();
-  const navigate = useNavigate(),
-    client = useQueryClient(),
+  const [ai, setAi] = useState<AiSelection>(),
     [goal, setGoal] = useState("");
-  const [state, setState] = useState<SourceRefinementList["state"]>(),
-    [offset, setOffset] = useState(0);
+  const navigate = useNavigate(),
+    client = useQueryClient();
   const request = useRef<StartSourceRefinementRequest | null>(null);
-  const query = useQuery({
-    queryKey: ["source-refinements", "list", detail.checkpoint.id, state, offset],
-    queryFn: async () =>
-      unwrap(
-        await getSourceRefinements({ data: { checkpointId: detail.checkpoint.id, state, offset } }),
-      ),
-    refetchInterval: 5000,
-  });
+  const query = useRefinements(detail.checkpoint.id);
   const start = useMutation({
     mutationFn: async () => {
       if (!detail.operation) throw new Error("The checkpoint has no successful document output.");
@@ -57,168 +55,151 @@ export function SourceRefinements({
     detail.operation?.state === "Succeeded" && detail.operation.artifacts?.validationPassed;
   return (
     <EvidenceDialog
-      wide
-      className="sm:max-w-[1200px]"
-      title="Refine the final document"
-      description="Request changes to this résumé’s wording or layout, or continue reviewing a saved proposal."
+      title="Refine this résumé"
+      description="Review suggested changes before accepting them."
       onClose={onClose}
       dirty={!!goal}
       pending={start.isPending}
+      className="sm:max-w-[600px]"
     >
-      <div className="grid gap-6 lg:grid-cols-[.9fr_1.1fr]">
-        <section className="min-w-0 space-y-5 rounded-md border p-5 md:p-6">
-          <h2 className="text-[28px] leading-[34px]">Request document changes</h2>
-          <Badge variant="outline">{ready ? "Ready to refine" : "Document unavailable"}</Badge>
-          <p className="text-lg font-semibold">{detail.checkpoint.data.name}</p>
-          <p className="eyebrow">
-            Checkpoint {detail.checkpoint.id.slice(-8)} · Draft revision{" "}
-            {detail.checkpoint.draftRevision}
-          </p>
-
-          {!ready && (
-            <p className="border-l-2 border-highlight bg-highlight/10 p-4">
-              Wait for this checkpoint’s PDF to finish preparing, or retry if preparation failed.
-            </p>
-          )}
-          {query.data?.configured ? (
-            <form
-              className="space-y-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                start.mutate();
-              }}
-            >
-              <AiSelector
-                value={ai}
-                onChange={(selection) => {
-                  setAi(selection);
-                  request.current = null;
-                }}
-              />
-              <FormField label="Refinement goal">
-                <Textarea
-                  required
-                  maxLength={4000}
-                  rows={4}
-                  disabled={start.isPending || !!request.current}
-                  value={goal}
-                  onChange={(event) => setGoal(event.target.value)}
-                />
-              </FormField>
-              <p className="text-xs text-muted-foreground">{goal.length} / 4,000 characters</p>
-              <p className="text-sm text-muted-foreground">
-                Review the proposed wording, supporting evidence, and PDF before accepting.
-              </p>
-              <Failure error={start.error} />
-              <Button type="submit" disabled={!ready || !goal.trim() || start.isPending}>
-                {start.isPending
-                  ? "Saving request…"
-                  : start.error
-                    ? "Retry request"
-                    : "Suggest document changes"}
-              </Button>
-              {start.error && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    request.current = null;
-                    start.reset();
-                  }}
-                >
-                  Edit request
-                </Button>
-              )}
-            </form>
-          ) : (
-            query.data && (
-              <p className="border-l-2 border-highlight bg-highlight/10 p-4">
-                AI generation is unavailable. Saved candidates, publication recovery, and base
-                review/export remain available.
-              </p>
-            )
-          )}
-          <Button variant="outline" onClick={onClose}>
-            Return to checkpoint / export
+      <form
+        className="space-y-6"
+        onSubmit={(event) => {
+          event.preventDefault();
+          start.mutate();
+        }}
+      >
+        {!ready && (
+          <p className="text-sm">Prepare the PDF for this saved version before refining.</p>
+        )}
+        <FormField label="What would you like to change?">
+          <Textarea
+            required
+            maxLength={4000}
+            rows={4}
+            disabled={start.isPending || !!request.current}
+            value={goal}
+            onChange={(event) => setGoal(event.target.value)}
+          />
+        </FormField>
+        <AiSelector
+          value={ai}
+          disabled={start.isPending || !!request.current}
+          onChange={(selection) => {
+            setAi(selection);
+            request.current = null;
+          }}
+        />
+        <Failure error={query.error} />
+        <Failure error={start.error} />
+        {query.data && !query.data.configured && (
+          <p className="text-sm">Connect an AI provider in Settings to request changes.</p>
+        )}
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="outline" disabled={start.isPending} onClick={onClose}>
+            Cancel
           </Button>
-        </section>
-        <section className="min-w-0 space-y-5 rounded-md border p-5 md:p-6">
-          <h2 className="text-[28px] leading-[34px]">Saved refinements</h2>
-          <div className="flex flex-wrap gap-2">
-            {([undefined, "Pending", "Accepted", "Rejected"] as const).map((value) => (
-              <Button
-                key={value ?? "All"}
-                variant={state === value ? "default" : "outline"}
-                aria-pressed={state === value}
-                onClick={() => {
-                  setState(value);
-                  setOffset(0);
-                }}
-              >
-                {value ?? "All"}
-              </Button>
+          <Button
+            type="submit"
+            disabled={!ready || !query.data?.configured || !goal.trim() || start.isPending}
+          >
+            {start.isPending ? "Starting…" : start.error ? "Retry" : "Suggest changes"}
+          </Button>
+        </div>
+        {start.error && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              request.current = null;
+              start.reset();
+            }}
+          >
+            Edit request
+          </Button>
+        )}
+      </form>
+    </EvidenceDialog>
+  );
+}
+export function SavedRefinements({ checkpointId }: { checkpointId: string }) {
+  const [state, setState] = useState<SourceRefinementList["state"]>(),
+    [offset, setOffset] = useState(0);
+  const query = useRefinements(checkpointId, state, offset);
+  return (
+    <section className="space-y-5">
+      <h2 className="text-[28px] leading-[34px]">Saved refinements</h2>
+      <div className="flex flex-wrap gap-2">
+        {([undefined, "Pending", "Accepted", "Rejected"] as const).map((value) => (
+          <Button
+            key={value ?? "All"}
+            variant={state === value ? "default" : "outline"}
+            aria-pressed={state === value}
+            onClick={() => {
+              setState(value);
+              setOffset(0);
+            }}
+          >
+            {value ?? "All"}
+          </Button>
+        ))}
+      </div>
+      <Failure error={query.error} />
+      {query.isPending && <p role="status">Loading saved refinements…</p>}
+      {query.error && (
+        <Button variant="outline" onClick={() => void query.refetch()}>
+          Retry saved refinements
+        </Button>
+      )}
+      {query.data && (
+        <>
+          <div className="divide-y">
+            {query.data.items.map((item) => (
+              <div key={item.id} className="flex flex-wrap items-center gap-4 py-[18px]">
+                <div className="w-[104px] shrink-0 space-y-1">
+                  <p className="text-sm font-semibold">{item.state ?? "Pending"}</p>
+                </div>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(item.createdAt).toLocaleString()}
+                  </p>
+                </div>
+                <Link
+                  className="w-[88px] shrink-0 py-3 text-right text-sm font-semibold text-primary underline"
+                  to="/source-refinements/$taskId"
+                  params={{ taskId: item.id }}
+                >
+                  {item.state === "Pending" ? "Review" : "Inspect"}
+                </Link>
+              </div>
             ))}
           </div>
-          <Failure error={query.error} />
-          {query.isPending && <p role="status">Loading saved refinements…</p>}
-          {query.error && (
-            <Button variant="outline" onClick={() => void query.refetch()}>
-              Retry saved refinements
+          {!query.data.items.length && (
+            <p className="py-5 text-muted-foreground">No saved refinements in this view.</p>
+          )}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              variant="outline"
+              disabled={!offset}
+              onClick={() => setOffset(Math.max(0, offset - 20))}
+            >
+              Previous
             </Button>
-          )}
-          {query.data && (
-            <>
-              <div className="divide-y">
-                {query.data.items.map((item) => (
-                  <div key={item.id} className="flex flex-wrap items-center gap-4 py-[18px]">
-                    <div className="w-[104px] shrink-0 space-y-1">
-                      <p className="text-sm font-semibold">{item.state ?? "Pending"}</p>
-                      <p className="font-mono text-xs text-muted-foreground">{item.id.slice(-8)}</p>
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <p className="text-sm">{item.stage}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(item.createdAt).toLocaleString()}
-                      </p>
-                    </div>
-                    <Link
-                      className="w-[88px] shrink-0 py-3 text-right text-sm font-semibold text-primary underline"
-                      to="/source-refinements/$taskId"
-                      params={{ taskId: item.id }}
-                    >
-                      {item.state === "Pending" ? "Review" : "Inspect"}
-                    </Link>
-                  </div>
-                ))}
-              </div>
-              {!query.data.items.length && (
-                <p className="py-5 text-muted-foreground">No saved refinements in this view.</p>
-              )}
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  variant="outline"
-                  disabled={!offset}
-                  onClick={() => setOffset(Math.max(0, offset - 20))}
-                >
-                  Previous
-                </Button>
-                <p className="text-sm">
-                  {query.data.items.length
-                    ? `Showing ${offset + 1}–${offset + query.data.items.length}`
-                    : "0 results"}
-                </p>
-                <Button
-                  variant="outline"
-                  disabled={!query.data.hasMore}
-                  onClick={() => setOffset(offset + 20)}
-                >
-                  Next
-                </Button>
-              </div>
-            </>
-          )}
-        </section>
-      </div>
-    </EvidenceDialog>
+            <p className="text-sm">
+              {query.data.items.length
+                ? `Showing ${offset + 1}–${offset + query.data.items.length}`
+                : "0 results"}
+            </p>
+            <Button
+              variant="outline"
+              disabled={!query.data.hasMore}
+              onClick={() => setOffset(offset + 20)}
+            >
+              Next
+            </Button>
+          </div>
+        </>
+      )}
+    </section>
   );
 }

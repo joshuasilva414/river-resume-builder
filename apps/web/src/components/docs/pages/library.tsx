@@ -35,9 +35,10 @@ export const library = {
             item for each name, date, or sentence.
           </p>
           <p>
-            For Contact, add a name and optional contact details or labeled links. For Education,
-            enter GPA as a number if you want to include it. Choose the date precision you know:
-            year, month and year, full date, or Present.
+            For Contact, add a name and contact details. Each link needs a URL; optional display
+            text is in Additional settings. For Education, enter GPA as a number if needed. Type
+            dates such as 2025, May 2025, 2025-05-21 or Present. Ambiguous text and older date
+            ranges are preserved without guessing.
           </p>
           <p>
             A private library label helps you find an item. A printed section heading appears in the
@@ -83,8 +84,9 @@ export const library = {
             selectors.
           </p>
           <p>
-            Before inserting a section into a résumé, preview it at the intended position with the
-            surrounding content. Inspect page breaks and text, then confirm the insertion.
+            The approximate preview shows the section with surrounding content. Add valid content
+            immediately; PDF preparation never blocks insertion. Review exact page breaks in a saved
+            version before export.
           </p>
         </>
       ),

@@ -21,6 +21,7 @@ import {
   previewResume,
   saveResume,
   searchResumes,
+  upgradeResumeLayouts,
 } from "./composition";
 import { bindings } from "./env";
 import { Actor, attempt, dispatchPending, execute, Store } from "./services";
@@ -55,6 +56,9 @@ export const getResumes = createServerFn({ method: "GET" })
 export const getResume = createServerFn({ method: "GET" })
   .validator(Schema.decodeUnknownSync(InspectResumeRequest))
   .handler(({ data }) => execute(bindings(), getRequestHeaders(), inspectResume(data.id)));
+export const refreshResumeLayouts = createServerFn({ method: "POST" })
+  .validator(Schema.decodeUnknownSync(InspectResumeRequest))
+  .handler(({ data }) => execute(bindings(), getRequestHeaders(), upgradeResumeLayouts(data.id)));
 export const addResume = createServerFn({ method: "POST" })
   .validator(Schema.decodeUnknownSync(CreateResumeRequest))
   .handler(({ data }) => execute(bindings(), getRequestHeaders(), createResume(data)));

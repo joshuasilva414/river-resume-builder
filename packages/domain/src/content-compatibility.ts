@@ -4,13 +4,18 @@ import {
   resolveLibrary,
   type SectionPlacement,
 } from "./composition";
-import { builtInSchemaBundle, emptyStructuredContent } from "./content-defaults";
+import {
+  BUILT_IN_CONTENT_REVISION,
+  builtInSchemaBundle,
+  emptyStructuredContent,
+} from "./content-defaults";
 import {
   type ContentRecord,
   type ContentValues,
   readLegacyDate,
   type StructuredContent,
 } from "./content-schema";
+import { upgradeBuiltInContent } from "./content-upgrades";
 import { newId } from "./core";
 import {
   type BlockData,
@@ -26,7 +31,7 @@ export function adaptLibraryContent(
   id = newId(),
 ): StructuredContent {
   if (data.kind === "content") throw new Error("Choose an entry or section.");
-  if (data.structured) return data.structured;
+  if (data.structured) return upgradeBuiltInContent(data.structured);
   const content = emptyStructuredContent(data.type, id);
   const word = (reference: LibraryReference) => {
     const value = resolveLibrary(reference, graph);
@@ -57,8 +62,8 @@ export function adaptLibraryContent(
       values[block.type === "credential" ? "issuedDate" : "endDate"] = readLegacyDate(dates);
     return {
       id: recordId,
-      schema: { id: `${block.type}-entry`, revision: 1 },
-      layout: { id: `${block.type}-entry-classic`, revision: 1 },
+      schema: { id: `${block.type}-entry`, revision: BUILT_IN_CONTENT_REVISION },
+      layout: { id: `${block.type}-entry-classic`, revision: BUILT_IN_CONTENT_REVISION },
       values,
     };
   };
@@ -139,7 +144,7 @@ export function adaptCompositionSection(
   section: SectionPlacement,
   graph: readonly LibraryGraphNode[],
 ): StructuredContent {
-  if (section.structured) return section.structured;
+  if (section.structured) return upgradeBuiltInContent(section.structured);
   const visible: LibraryGraphNode[] = section.blocks.flatMap((block) => [
     {
       item: { id: block.id, currentRevisionId: block.id },

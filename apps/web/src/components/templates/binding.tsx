@@ -124,8 +124,8 @@ export function TemplateLayout({ detail, waiting }: { detail: ResumeDetail; wait
         {apply.isPending ? "Applying…" : "Apply template to résumé"}
       </Button>
       <p className="text-xs leading-5 text-muted-foreground">
-        Applying updates this résumé’s layout and prepares a PDF preview. Your wording and saved
-        versions stay intact. The previous PDF stays visible while the new preview is prepared.
+        Applying updates the approximate preview. Review a saved version’s PDF for exact spacing and
+        page breaks.
       </p>
     </section>
   );

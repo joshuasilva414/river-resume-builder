@@ -4,7 +4,7 @@ import { EvidenceReference } from "./library";
 
 /** Ordered intended text is captured before compilation, independently of PDF extraction. */
 const IntendedTextField = Schema.Struct({
-  locator: Schema.NonEmptyString.check(Schema.isMaxLength(300)),
+  locator: Schema.NonEmptyString.check(Schema.isMaxLength(4096)),
   text: Schema.NonEmptyString.check(Schema.isMaxLength(20_000)),
 });
 export const IntendedTextManifest = Schema.Array(IntendedTextField).check(
@@ -19,7 +19,7 @@ export const SourceField = Schema.Struct({
   origin: Schema.Literals(["structured", "source"]),
   role: Schema.Literals(["heading", "content"]),
   required: Schema.Boolean,
-  evidence: Schema.Array(EvidenceReference).check(Schema.isMaxLength(20)),
+  evidence: Schema.Array(EvidenceReference).check(Schema.isMaxLength(200)),
   reviewRequired: Schema.Boolean,
 });
 export type SourceField = typeof SourceField.Type;

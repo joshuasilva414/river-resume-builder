@@ -35,6 +35,12 @@ The stable meaning of a field across compatible schemas. Changing how a field is
 **Layout**:
 A presentation of values conforming to one content schema. Compatible layouts use the same schema and can display the same content without conversion.
 
+**Approximate preview**:
+The browser-rendered view of current résumé edits, with local approximate pagination. Exact PDF review belongs to a saved version before export.
+
+**Built-in layout update**:
+An automatic, versioned update to an editable draft that still uses unchanged built-in definitions and source. Custom layouts, library history, saved versions and exports remain preserved.
+
 **Template**:
 A reusable résumé design containing layouts and their required content schemas.
 
