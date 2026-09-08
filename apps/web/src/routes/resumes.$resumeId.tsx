@@ -293,7 +293,7 @@ function Editor({ detail }: { detail: ResumeDetail }) {
         ? "Save failed"
         : session.dirty
           ? "Unsaved changes"
-          : "All changes saved";
+          : "Saved";
   const shift = <T,>(values: readonly T[], index: number, direction: number) => {
     const next = [...values],
       value = next[index];

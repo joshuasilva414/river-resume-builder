@@ -561,7 +561,18 @@ export function SchemaRecordFields({
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-5">
         {definition.fields.filter(essential).map((field) => (
-          <div key={field.id} className={field.kind === "date" ? "min-w-0" : "col-span-2 min-w-0"}>
+          <div
+            key={field.id}
+            className={
+              field.kind === "date" ||
+              (definition.level === "entry" &&
+                ["employer", "title", "institution", "degree", "credential", "issuer"].includes(
+                  field.id,
+                ))
+                ? "min-w-0"
+                : "col-span-2 min-w-0"
+            }
+          >
             {renderField(field)}
           </div>
         ))}

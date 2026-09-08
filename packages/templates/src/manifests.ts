@@ -235,7 +235,7 @@ export function fixedPack(theme: Theme, revision: 1 | 2 = 2) {
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{2pt}
-\setlist[itemize]{leftmargin=12pt,itemsep=2pt,topsep=2pt,parsep=0pt,label=\textbullet}
+\setlist[itemize]{leftmargin=12pt,itemsep=2pt,topsep=2pt,parsep=0pt,beginpenalty=10000,label=\textbullet}
 \titleformat{\section}{\large\bfseries}{}{0pt}{}${theme === "minimal" ? "" : "[\\titlerule]"}
 \titlespacing*{\section}{0pt}{ {{sectionSpacing}}pt }{4pt}
 \hyphenpenalty=10000

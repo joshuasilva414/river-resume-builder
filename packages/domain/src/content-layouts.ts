@@ -27,7 +27,7 @@ export function builtInLayoutSource(id: string, style: "classic" | "compact") {
 {{accomplishments}}`;
     case "project-entry":
       return String.raw`${entryHeading(String.raw`\textbf{{{project}}}`)}
-${compact ? "{{description}} {{url}}" : "{{description}}\\par\\nopagebreak\n{{url}}"}
+${compact ? "{{description}} {{url}}" : "{{description}}\\par\\nopagebreak\n{{url}}"}\par\nopagebreak
 {{accomplishments}}`;
     case "education-entry":
       return compact
