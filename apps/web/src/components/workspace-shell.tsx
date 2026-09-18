@@ -30,6 +30,8 @@ const navigation = [
   { to: "/admin", label: "Administration", icon: Shield },
   { to: "/runtime", label: "Document runtime", icon: Activity },
   { to: "/settings", label: "Settings", icon: Settings },
+  // DEMO ONLY: remove with the isolated visual editor route; never visible outside development.
+  { to: "/demo/visual-editor", label: "Visual editor demo", icon: PanelsTopLeft },
 ] as const;
 export function WorkspaceShell({
   user,
@@ -48,6 +50,7 @@ export function WorkspaceShell({
   const visibleNavigation = navigation.filter(
     (item) =>
       (item.to !== "/admin" || user.isAdmin) &&
+      (item.to !== "/demo/visual-editor" || environment === "development") &&
       (item.to !== "/runtime" || (user.isAdmin && environment !== "production")),
   );
   const [failure, setFailure] = useState<string | null>(null);
