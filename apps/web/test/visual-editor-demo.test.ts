@@ -13,6 +13,7 @@ import {
 } from "../src/components/demo/visual-editor/demo-document";
 import { demoDropAtPoint } from "../src/components/demo/visual-editor/demo-drag";
 import {
+  demoEmptyRecord,
   demoInitialState,
   demoLibrary,
   demoPreviewSections,
@@ -438,5 +439,54 @@ describe("demo history shortcuts", () => {
       expect(demoHistoryShortcut({ ...key, ctrlKey: true, [flag]: true })).toBeNull();
     }
     expect(demoHistoryShortcut({ ...key, metaKey: true, key: "a" })).toBeNull();
+  });
+});
+
+describe("demo blank entries", () => {
+  it.each(["experience-entry", "education-entry", "contact-link"])(
+    "creates an empty %s with editable placeholders, not example content",
+    (schemaId) => {
+      const state = demoInitialState();
+      const record = demoEmptyRecord(schemaId);
+      expect(
+        Object.values(record.values).every((value) =>
+          typeof value === "string" ? value === "" : value.every((item) => item.text === ""),
+        ),
+      ).toBe(true);
+      expect(Object.values(record.children).every((records) => records.length === 0)).toBe(true);
+      const fields = demoFields(demoDocument([record], state.layouts));
+      expect(fields.length).toBeGreaterThan(0);
+      expect(fields.every((field) => field.content?.length === 0 && field.attrs?.label)).toBe(true);
+      expect(demoRecordsFromDocument(demoDocument([record], state.layouts), [record])).toEqual([
+        record,
+      ]);
+      expect(demoEmptyRecord(schemaId).id).not.toBe(record.id);
+    },
+  );
+  it("adds an empty entry to the requested section and restores it with redo", () => {
+    const state = demoInitialState();
+    const record = demoEmptyRecord("education-entry");
+    const history = demoHistoryReducer(demoHistory(state), {
+      type: "commit",
+      time: 1,
+      update: (current) => ({
+        ...current,
+        sections: demoMapRecords(current.sections, "demo-education", (parent) => ({
+          ...parent,
+          children: { ...parent.children, entries: [...(parent.children.entries ?? []), record] },
+        })),
+      }),
+    });
+    expect(demoParseState(history.present)).toEqual(history.present);
+    expect(
+      demoFindRecord(history.present.sections, "demo-education")?.children.entries,
+    ).toHaveLength(3);
+    expect(demoFindRecord(history.present.sections, "demo-experience")).toEqual(
+      demoFindRecord(state.sections, "demo-experience"),
+    );
+    expect(history.present.appliedLayouts).toEqual(state.appliedLayouts);
+    const undone = demoHistoryReducer(history, { type: "undo" });
+    expect(undone.present).toEqual(state);
+    expect(demoHistoryReducer(undone, { type: "redo" }).present).toEqual(history.present);
   });
 });

@@ -23,6 +23,7 @@ export const demoNodeAttrsSchema = z.object({
   kind: z.string(),
   style: demoStyleSchema,
   empty: z.boolean().default(false),
+  blankRecord: z.boolean().default(false),
   list: z.boolean().default(false),
 });
 export type DemoNodeAttrs = z.infer<typeof demoNodeAttrsSchema>;
@@ -48,6 +49,7 @@ export function demoDocument(records: DemoRecord[], layouts: DemoLayouts): JSONC
         itemId: "",
         style: node.style,
         empty: false,
+        blankRecord: false,
         list: field?.kind === "list",
       };
       if ("children" in node) {
@@ -94,6 +96,10 @@ export function demoDocument(records: DemoRecord[], layouts: DemoLayouts): JSONC
         recordId: record.id,
         label: demoSchema(record.schema.id).name,
         recordLabel: demoRecordLabel(record),
+        blankRecord:
+          Object.values(record.values).every((value) =>
+            typeof value === "string" ? !value : value.every((item) => !item.text),
+          ) && Object.values(record.children).every((items) => !items.length),
         kind: section ? "section" : "record",
         field: "",
         itemId: "",

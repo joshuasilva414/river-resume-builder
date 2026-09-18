@@ -16,9 +16,9 @@ import { DemoAreaSelection, demoFormatSelection, demoSameSelection } from "./dem
 import type { DemoDragRef, DemoDropPosition } from "./demo-drag";
 import { DemoEditor, type DemoSelection } from "./demo-editor";
 import {
+  demoEmptyRecord,
   demoJobs,
   demoLibrary,
-  demoMakeRecord,
   demoPreviewSections,
   demoSeedSections,
 } from "./demo-fixtures";
@@ -117,10 +117,13 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
     setMultiSelection([]);
     const allRecords = (items: DemoRecord[]): DemoRecord[] =>
       items.flatMap((item) => [item, ...allRecords(Object.values(item.children).flat())]);
+    const requested = demoFindRecord(records, value.recordId);
     const record =
-      allRecords(records).find(
-        (item) => item.id === value.recordId && item.schema.id === value.schemaId,
-      ) ?? allRecords(records).find((item) => item.schema.id === value.schemaId);
+      requested?.schema.id === value.schemaId
+        ? requested
+        : requested
+          ? allRecords(records).find((item) => item.schema.id === value.schemaId)
+          : undefined;
     setSelection({ ...value, recordId: record?.id ?? value.recordId });
     setError(null);
   };
@@ -193,6 +196,34 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
         nodeId: `${record.schema.id}-${target.field || "root"}`,
       });
     setSuggestTarget(target);
+  };
+  const addBlankEntry = (parentId: string, fieldId: string): DemoTarget | null => {
+    const parent = demoFindRecord(state.sections, parentId);
+    const field =
+      parent && demoSchema(parent.schema.id).fields.find((field) => field.id === fieldId);
+    if (state.mode !== "resume" || !parent || field?.kind !== "records") return null;
+    const record = demoEmptyRecord(field.schema.id);
+    const firstField = demoSchema(record.schema.id).fields.find(
+      (field) => field.kind !== "records" && field.kind !== "record" && field.kind !== "list",
+    );
+    commit((data) => ({
+      ...data,
+      sections: demoMapRecords(data.sections, parentId, (parent) => ({
+        ...parent,
+        children: {
+          ...parent.children,
+          [field.id]: [...(parent.children[field.id] ?? []), record],
+        },
+      })),
+    }));
+    closePanels();
+    select({
+      schemaId: record.schema.id,
+      recordId: record.id,
+      nodeId: `${record.schema.id}-${firstField?.id ?? "root"}`,
+      field: firstField?.id,
+    });
+    return firstField ? { recordId: record.id, field: firstField.id } : null;
   };
   const addEntry = (schemaId: string) => {
     const parent = state.sections.find((record) =>
@@ -541,6 +572,7 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
                       suggest,
                       move: moveLayout,
                       moveRecord,
+                      addEntry: addBlankEntry,
                       layouts: activeLayouts,
                       deleteContainer,
                       multiSelection,
@@ -760,18 +792,7 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
                       {!library.targetId && (
                         <button
                           type="button"
-                          onClick={() =>
-                            appendRecord(
-                              demoMakeRecord(
-                                library.schemaId,
-                                demoNewId(),
-                                library.schemaId === "education-entry"
-                                  ? { institution: "New institution", degree: "New degree" }
-                                  : { employer: "New employer", title: "New role" },
-                              ),
-                              library,
-                            )
-                          }
+                          onClick={() => appendRecord(demoEmptyRecord(library.schemaId), library)}
                         >
                           Write a new entry
                         </button>

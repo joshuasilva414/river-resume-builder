@@ -7,6 +7,7 @@ import {
   type DemoStyle,
   demoBaseStyle,
   demoDefaultSectionOrder,
+  demoNewId,
   demoReference,
   demoSchema,
   demoSchemas,
@@ -50,6 +51,15 @@ export function demoMakeRecord(
     }
   }
   return record;
+}
+/** Empty list items provide a typing target; labels remain placeholders, never saved text. */
+export function demoEmptyRecord(schemaId: string, id = demoNewId()): DemoRecord {
+  const emptyLists = Object.fromEntries(
+    demoSchema(schemaId)
+      .fields.filter((field) => field.kind === "list")
+      .map((field) => [field.id, [""]]),
+  );
+  return demoMakeRecord(schemaId, id, emptyLists);
 }
 export const demoLibrary = [
   demoMakeRecord("experience-entry", "demo-northstar", {

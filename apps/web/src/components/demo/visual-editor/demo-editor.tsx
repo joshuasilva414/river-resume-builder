@@ -9,7 +9,7 @@ import {
   ReactNodeViewRenderer,
   useEditor,
 } from "@tiptap/react";
-import { GripVertical, Sparkles } from "lucide-react";
+import { GripVertical, Plus, Sparkles } from "lucide-react";
 import {
   type CSSProperties,
   createContext,
@@ -48,6 +48,7 @@ type DemoEditorContextValue = {
   select: (selection: DemoSelection) => void;
   suggest: (target: DemoTarget) => void;
   move: (schemaId: string, from: string, to: string, position: DemoDropPosition) => void;
+  addEntry: (parentId: string, field: string) => DemoTarget | null;
   moveRecord: (from: string, to: string, position: DemoDropPosition) => void;
   layouts: DemoLayouts;
   deleteContainer: () => void;
@@ -71,6 +72,17 @@ function DemoNodeView({ node }: NodeViewProps) {
   const section = node.type.name === "demoSection";
   const record = section || node.type.name === "demoRecord";
   const list = node.type.name === "demoList";
+  const empty = field ? !node.textContent : attrs.empty;
+  const showPlaceholders =
+    record &&
+    !section &&
+    context.mode === "resume" &&
+    (attrs.blankRecord || context.selection?.recordId === attrs.recordId);
+  const entryFields = section
+    ? demoSchema(attrs.schemaId).fields.flatMap((field) =>
+        field.kind === "records" ? [{ id: field.id, schemaId: field.schema.id }] : [],
+      )
+    : [];
   const rootContainer =
     node.type.name === "demoContainer" && attrs.nodeId === `${attrs.schemaId}-root`;
   const listItem = field && attrs.list;
@@ -172,13 +184,13 @@ function DemoNodeView({ node }: NodeViewProps) {
   };
   return (
     <NodeViewWrapper
-      className={`demo-node demo-${node.type.name} ${attrs.kind === "row" ? "demo-row" : "demo-column"} ${selected ? "demo-selected" : ""} ${attrs.empty && !selected ? "demo-empty" : ""} ${attrs.field === "heading" ? "demo-section-heading" : ""} ${attrs.field === "skills" ? "demo-skills" : ""} ${attrs.list && field ? "demo-list-item" : ""}`}
+      className={`demo-node demo-${node.type.name} ${attrs.kind === "row" ? "demo-row" : "demo-column"} ${selected ? "demo-selected" : ""} ${empty && !selected ? "demo-empty" : ""} ${showPlaceholders ? "demo-show-placeholders" : ""} ${attrs.field === "heading" ? "demo-section-heading" : ""} ${attrs.field === "skills" ? "demo-skills" : ""} ${attrs.list && field ? "demo-list-item" : ""}`}
       style={style}
       data-demo-node={attrs.nodeId}
       data-demo-record={attrs.recordId}
       data-demo-field={attrs.field}
       data-demo-item={attrs.itemId}
-      data-demo-label={attrs.empty && field ? attrs.label : undefined}
+      data-demo-label={empty && field ? attrs.label : undefined}
       onClick={(event: MouseEvent<HTMLDivElement>) => {
         event.stopPropagation();
         if (event.shiftKey && context.mode === "template" && (field || list))
@@ -247,6 +259,23 @@ function DemoNodeView({ node }: NodeViewProps) {
               <Sparkles size={13} />
             </button>
           )}
+          {context.mode === "resume" &&
+            entryFields.map((field) => (
+              <button
+                type="button"
+                key={field.id}
+                className="demo-icon demo-add-entry"
+                aria-label={`Add ${demoSchema(field.schemaId).name.toLowerCase()}`}
+                title={`Add blank ${demoSchema(field.schemaId).name.toLowerCase()}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  stopTimer();
+                  context.addEntry(attrs.recordId, field.id);
+                }}
+              >
+                <Plus size={14} />
+              </button>
+            ))}
         </div>
       )}
       <NodeViewContent className="demo-node-content" />
@@ -269,6 +298,7 @@ const demoNodeAttributes = {
   kind: { default: "" },
   style: { default: null },
   empty: { default: false },
+  blankRecord: { default: false },
   list: { default: false },
 };
 function demoNode(name: string, content: string) {
@@ -289,7 +319,9 @@ function demoNode(name: string, content: string) {
             attrs.kind === "row"
               ? "min-content"
               : attrs.field === "startDate" || attrs.field === "endDate"
-                ? "4ch"
+                ? attrs.empty
+                  ? "9ch"
+                  : "4ch"
                 : "0";
           return {
             style: `min-width:${minWidth};flex:${attrs.field === "skills" && attrs.list ? "0 1 auto" : `${attrs.style.grow} 1 0%`}`,
@@ -412,7 +444,7 @@ export function DemoEditor({
             node.type.name === "demoField" &&
             node.attrs.recordId === target.recordId &&
             node.attrs.field === target.field &&
-            node.attrs.itemId === target.itemId
+            (node.attrs.itemId || undefined) === target.itemId
           ) {
             editor.commands.setTextSelection(position + 1);
             editor.commands.focus();
@@ -427,7 +459,16 @@ export function DemoEditor({
     };
   }, [records, layouts, editor, context.mode]);
   return (
-    <DemoEditorContext.Provider value={context}>
+    <DemoEditorContext.Provider
+      value={{
+        ...context,
+        addEntry: (parentId, field) => {
+          const target = context.addEntry(parentId, field);
+          pendingFocus.current = target;
+          return target;
+        },
+      }}
+    >
       <EditorContent
         editor={editor}
         className={`demo-editor demo-mode-${context.mode}`}

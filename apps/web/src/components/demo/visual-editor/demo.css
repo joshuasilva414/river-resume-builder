@@ -755,3 +755,24 @@
   background: #1e5eff12;
   border-radius: 2px;
 }
+
+/* DEMO ONLY: empty entries stay editable; field labels are visual hints, never record values. */
+.demo-mode-resume .demo-show-placeholders .demo-node.demo-empty:not(.demo-demoRepeat),
+.demo-mode-resume .demo-show-placeholders .react-renderer:has(> .demo-empty:not(.demo-demoRepeat)) {
+  display: block;
+}
+.demo-mode-resume .demo-demoField[data-demo-label]::after {
+  content: attr(data-demo-label);
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: #7b8494;
+  font-weight: 400;
+  pointer-events: none;
+}
+.demo-mode-resume .demo-demoField.demo-list-item[data-demo-label]::after {
+  left: 14px;
+}
+.demo-visual-editor .demo-add-entry {
+  color: var(--demo-blue);
+}
