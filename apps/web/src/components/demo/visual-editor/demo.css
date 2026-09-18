@@ -718,3 +718,40 @@
   top: auto;
   bottom: -3px;
 }
+
+.demo-selection-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  max-width: 816px;
+  margin: 0 auto 16px;
+}
+.demo-visual-editor .demo-selection-toolbar button {
+  font-size: 11px;
+  min-height: 30px;
+}
+.demo-selection-toolbar button[aria-pressed="true"] {
+  color: var(--demo-blue);
+  border-color: #b6caff;
+  background: #eef3ff;
+}
+.demo-area-surface {
+  outline: none;
+}
+.demo-area-active,
+.demo-area-active .demo-node,
+.demo-area-dragging * {
+  cursor: crosshair;
+}
+.demo-area-dragging {
+  user-select: none;
+}
+.demo-selection-box {
+  position: fixed;
+  z-index: 100;
+  pointer-events: none;
+  border: 1px solid #1e5eff;
+  background: #1e5eff12;
+  border-radius: 2px;
+}

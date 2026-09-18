@@ -1,6 +1,11 @@
 /** DEMO ONLY: invariants for the isolated visual editor; no production persistence or AI. */
+
 import type { JSONContent } from "@tiptap/core";
 import { describe, expect, it } from "vitest";
+import {
+  demoBoxesIntersect,
+  demoFormatSelection,
+} from "../src/components/demo/visual-editor/demo-area-selection";
 import {
   demoDocument,
   demoDocumentStructure,
@@ -360,5 +365,48 @@ describe("demo scoped dragging", () => {
         true,
       ),
     ).toMatchObject({ position: "after", width: 3 });
+  });
+});
+
+describe("demo area selection", () => {
+  it("selects intersecting visible fields and excludes empty or merely adjacent bounds", () => {
+    const box = { left: 50, right: 200, top: 100, bottom: 200 };
+    expect(demoBoxesIntersect(box, { left: 190, right: 300, top: 110, bottom: 130 })).toBe(true);
+    expect(demoBoxesIntersect(box, { left: 200, right: 300, top: 110, bottom: 130 })).toBe(false);
+    expect(demoBoxesIntersect(box, { left: 60, right: 160, top: 130, bottom: 130 })).toBe(false);
+  });
+  it("formats selected shared fields across samples in one undo step without changing values", () => {
+    const state = demoInitialState();
+    const selection = ["demo-lakeside", "demo-central"].map((recordId) => ({
+      recordId,
+      schemaId: "education-entry",
+      nodeId: "education-entry-degree",
+      field: "degree",
+    }));
+    const history = demoHistoryReducer(demoHistory(state), {
+      type: "commit",
+      time: 1,
+      update: (current) => ({
+        ...current,
+        layouts: demoFormatSelection(current.layouts, selection, {
+          weight: "bold",
+          align: "center",
+        }),
+      }),
+    });
+    expect(history.past).toHaveLength(1);
+    const fields = demoFields(demoDocument(demoPreviewSections(2), history.present.layouts)).filter(
+      (field) => field.attrs?.field === "degree",
+    );
+    expect(fields).toHaveLength(2);
+    expect(
+      fields.every(
+        (field) => field.attrs?.style.weight === "bold" && field.attrs?.style.align === "center",
+      ),
+    ).toBe(true);
+    expect(history.present.sections).toEqual(state.sections);
+    expect(history.present.appliedLayouts).toEqual(state.appliedLayouts);
+    expect(demoParseState(history.present)).toEqual(history.present);
+    expect(demoHistoryReducer(history, { type: "undo" }).present).toEqual(state);
   });
 });

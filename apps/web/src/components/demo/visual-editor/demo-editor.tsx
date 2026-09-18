@@ -52,6 +52,7 @@ type DemoEditorContextValue = {
   layouts: DemoLayouts;
   deleteContainer: () => void;
   multiSelection: DemoSelection[];
+  toggleSelection: (selection: DemoSelection) => void;
   drag: DemoDragRef;
 };
 const DemoEditorContext = createContext<DemoEditorContextValue | null>(null);
@@ -180,7 +181,9 @@ function DemoNodeView({ node }: NodeViewProps) {
       data-demo-label={attrs.empty && field ? attrs.label : undefined}
       onClick={(event: MouseEvent<HTMLDivElement>) => {
         event.stopPropagation();
-        choose();
+        if (event.shiftKey && context.mode === "template" && (field || list))
+          context.toggleSelection(selection);
+        else choose();
       }}
       onFocus={(event: FocusEvent<HTMLDivElement>) => {
         event.stopPropagation();

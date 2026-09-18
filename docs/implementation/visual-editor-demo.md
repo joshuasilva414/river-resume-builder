@@ -63,7 +63,7 @@ The comparison uses the 1440 × 1000 Paper viewport. The implementation retains 
 
 ## Validation
 
-Focused tests in `apps/web/test/visual-editor-demo.test.ts` cover layout, drag, and persistence cases: field/schema preservation, cycle prevention, unwrapping, shared entry layouts at different counts, stable text identities, structural transaction guarding, suggestion staleness, replacement/undo, entry ordering/removal, persisted-state validation, storage errors/reset isolation, and history grouping.
+The 15 focused tests in `apps/web/test/visual-editor-demo.test.ts` cover layout, drag, area-selection, and persistence cases: field/schema preservation, cycle prevention, unwrapping, shared entry layouts at different counts, stable text identities, structural transaction guarding, suggestion staleness, replacement/undo, entry ordering/removal, persisted-state validation, storage errors/reset isolation, and history grouping.
 
 Browser checks exercised authenticated entry, inline typing, keyboard undo, Enter/new-bullet focus, pointer dragging, keyboard movement, nested row/column insertion, unwrapping, shared typography, explicit layout application, three education entries, replacement/undo, add/remove sections, job-aware suggestions, hover dwell, empty suggestions, stale-preview rejection, reset, and refresh restoration. Refresh restored three education entries and their 16 px degree layout, while undo history correctly reset. Unavailable/corrupt-storage branches and preservation of unrelated keys are covered by focused tests; these failure modes were not injected into the browser.
 
@@ -83,3 +83,11 @@ Commands:
 Production integration would need a versioned visual renderer/export contract, translation to production typed field values, authorized persistence and concurrency handling, a real provider boundary with reviewed proposals, and broader accessibility/input-method testing. Pagination, rich-text formatting, PDF export, collaboration, touch-specific polish, and unrestricted generation are outside this demonstration.
 
 To remove the demo, delete its route, component directory, focused test, documentation/assets, and development navigation entry/filter. Regenerate TanStack's route tree and remove the three `@tiptap` dependencies if no other feature uses them. Browser demo keys can be deleted independently. There is no backend data or migration to undo.
+
+## Area selection follow-up
+
+In template mode, drag from the page margin to draw a rectangle, or choose **Area select** to start over content. Intersecting visible fields are highlighted individually; enclosing sections and containers are not also selected. List fields select as one block. Shift-click adds or removes a field. Shift-drag from the margin adds to an existing selection. Escape cancels an active rectangle and restores the previous selection; Escape outside a gesture clears selection and returns to Select mode.
+
+The inspector offers font, alignment, and weight changes for the selection. One action creates one undo step. Selecting multiple samples of a shared entry field still updates its one shared layout definition. Area selection does not move or delete groups, and does not select hidden optional fields. Selection is session-local; layout edits retain the existing browser persistence behavior. `demo-area-selection.tsx` contains the demo-only gesture and batch-formatting boundary.
+
+Browser checks verified margin selection across five fields, a live rectangle, retained highlights after release, batch alignment and one-step undo, Escape cancellation restoring the previous selection, explicit selection starting over content, Shift-click removal, and Escape clearing selection. Résumé checks also verified whole-entry dragging within Education and undo. Focused tests also cover rectangle intersection and batch formatting across repeated entries without changing résumé values.

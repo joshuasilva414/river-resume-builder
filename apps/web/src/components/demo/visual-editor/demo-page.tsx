@@ -1,6 +1,18 @@
 /** DEMO ONLY: fictional local workspace. No production saves, template publication, AI calls, or exports. */
-import { ArrowDown, ArrowUp, Plus, Redo2, Sparkles, Trash2, Undo2, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  MousePointer2,
+  Plus,
+  Redo2,
+  Scan,
+  Sparkles,
+  Trash2,
+  Undo2,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DemoAreaSelection, demoFormatSelection, demoSameSelection } from "./demo-area-selection";
 import type { DemoDragRef, DemoDropPosition } from "./demo-drag";
 import { DemoEditor, type DemoSelection } from "./demo-editor";
 import {
@@ -57,6 +69,20 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
     nodeId: "education-entry-root",
     recordId: "demo-lakeside",
   });
+  const [selectionVisible, setSelectionVisible] = useState(true);
+  const [multiSelection, setMultiSelection] = useState<DemoSelection[]>([]);
+  const [areaTool, setAreaTool] = useState(false);
+  useEffect(() => {
+    const clear = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMultiSelection([]);
+        setSelectionVisible(false);
+        setAreaTool(false);
+      }
+    };
+    window.addEventListener("keydown", clear);
+    return () => window.removeEventListener("keydown", clear);
+  }, []);
   const [suggestTarget, setSuggestTarget] = useState<DemoTarget | null>(null);
   const [suggestion, setSuggestion] = useState<DemoSuggestion | null>(null);
   const [library, setLibrary] = useState<DemoLibraryRequest | null>(null);
@@ -86,6 +112,8 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
     ? demoReplacementSuggestion(state.sections, suggestTarget, state.job)
     : null;
   const select = (value: DemoSelection) => {
+    setSelectionVisible(true);
+    setMultiSelection([]);
     const allRecords = (items: DemoRecord[]): DemoRecord[] =>
       items.flatMap((item) => [item, ...allRecords(Object.values(item.children).flat())]);
     const record =
@@ -94,6 +122,15 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
       ) ?? allRecords(records).find((item) => item.schema.id === value.schemaId);
     setSelection({ ...value, recordId: record?.id ?? value.recordId });
     setError(null);
+  };
+  const toggleSelection = (value: DemoSelection) => {
+    setSelectionVisible(false);
+    setMultiSelection((items) => {
+      const current = items.length ? items : selection.field ? [selection] : [];
+      return current.some((item) => demoSameSelection(item, value))
+        ? current.filter((item) => !demoSameSelection(item, value))
+        : [...current, value];
+    });
   };
   const closePanels = () => {
     setAddSection(false);
@@ -236,6 +273,9 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
     return { ...target, itemId: id };
   };
   const applyTemplate = () => {
+    drag.current?.();
+    setMultiSelection([]);
+    setAreaTool(false);
     commit((data) => ({
       ...data,
       appliedLayouts: structuredClone(data.layouts),
@@ -254,6 +294,8 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
   };
   const switchMode = (mode: "template" | "resume") => {
     drag.current?.();
+    setMultiSelection([]);
+    setAreaTool(false);
     commit((data) => ({ ...data, mode }));
     closePanels();
   };
@@ -266,6 +308,8 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
     setError(null);
   };
   const reset = () => {
+    setMultiSelection([]);
+    setAreaTool(false);
     session.reset();
     closePanels();
     setResetPending(false);
@@ -436,53 +480,181 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
                 <span>EDITORIAL STARTER</span>
                 <span>Continuous document</span>
               </div>
-              <div className="demo-paper">
-                <DemoEditor
-                  records={records}
-                  layouts={activeLayouts}
-                  context={{
-                    mode: state.mode,
-                    selection,
-                    select,
-                    suggest,
-                    move: moveLayout,
-                    moveRecord,
-                    layouts: activeLayouts,
-                    deleteContainer,
-                    multiSelection: [],
-                    drag,
-                  }}
-                  onEdit={(sections, group) => commit((data) => ({ ...data, sections }), group)}
-                  undo={undo}
-                  redo={redo}
-                  addBullet={addBullet}
-                />
-                {!records.length && (
-                  <div className="demo-empty-document">
-                    <h2>Start with a section.</h2>
-                    <p>Add content using your template’s block layouts.</p>
-                    <button type="button" onClick={() => setAddSection(true)}>
-                      Add section
+              {state.mode === "template" && (
+                <div className="demo-selection-toolbar">
+                  <fieldset className="demo-button-row" aria-label="Selection tool">
+                    <button
+                      type="button"
+                      aria-pressed={!areaTool}
+                      onClick={() => setAreaTool(false)}
+                    >
+                      <MousePointer2 size={14} /> Select
                     </button>
-                  </div>
-                )}
-              </div>
+                    <button type="button" aria-pressed={areaTool} onClick={() => setAreaTool(true)}>
+                      <Scan size={14} /> Area select
+                    </button>
+                  </fieldset>
+                  <span className="demo-muted" role="status">
+                    {multiSelection.length
+                      ? `${multiSelection.length} blocks selected`
+                      : areaTool
+                        ? "Drag across fields to select · Esc to cancel"
+                        : "Drag from the page margin to select an area"}
+                  </span>
+                  {multiSelection.length > 0 && (
+                    <button
+                      type="button"
+                      className="demo-text-button"
+                      onClick={() => setMultiSelection([])}
+                    >
+                      Clear selection
+                    </button>
+                  )}
+                </div>
+              )}
+              <DemoAreaSelection
+                enabled={state.mode === "template"}
+                active={areaTool}
+                selection={multiSelection}
+                onSelection={(items) => {
+                  setMultiSelection(items);
+                  setSelectionVisible(false);
+                }}
+                drag={drag}
+              >
+                <div className="demo-paper">
+                  <DemoEditor
+                    records={records}
+                    layouts={activeLayouts}
+                    context={{
+                      mode: state.mode,
+                      selection: selectionVisible && !areaTool ? selection : null,
+                      select,
+                      suggest,
+                      move: moveLayout,
+                      moveRecord,
+                      layouts: activeLayouts,
+                      deleteContainer,
+                      multiSelection,
+                      toggleSelection,
+                      drag,
+                    }}
+                    onEdit={(sections, group) => commit((data) => ({ ...data, sections }), group)}
+                    undo={undo}
+                    redo={redo}
+                    addBullet={addBullet}
+                  />
+                  {!records.length && (
+                    <div className="demo-empty-document">
+                      <h2>Start with a section.</h2>
+                      <p>Add content using your template’s block layouts.</p>
+                      <button type="button" onClick={() => setAddSection(true)}>
+                        Add section
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </DemoAreaSelection>
             </div>
             <aside
               className="demo-inspector"
               aria-label={state.mode === "template" ? "Layout inspector" : "Content inspector"}
             >
               {state.mode === "template" ? (
-                <DemoLayoutInspector
-                  layouts={state.layouts}
-                  selection={selection}
-                  select={select}
-                  change={changeLayout}
-                  previewCount={state.previewCount}
-                  setPreviewCount={(previewCount) => commit((data) => ({ ...data, previewCount }))}
-                  drag={drag}
-                  deleteContainer={deleteContainer}
-                />
+                multiSelection.length > 0 ? (
+                  <>
+                    <span className="demo-caption">AREA SELECTION</span>
+                    <h2>{multiSelection.length} blocks selected</h2>
+                    <p className="demo-muted">
+                      Format the selected fields together. Shared entry fields update in every
+                      sample.
+                    </p>
+                    <label className="demo-control">
+                      Font
+                      <select
+                        aria-label="Selected blocks font"
+                        value=""
+                        onChange={(event) =>
+                          commit((data) => ({
+                            ...data,
+                            layouts: demoFormatSelection(data.layouts, multiSelection, {
+                              fontFamily: event.target.value === "serif" ? "serif" : "sans",
+                            }),
+                          }))
+                        }
+                      >
+                        <option value="" disabled>
+                          Choose font…
+                        </option>
+                        <option value="sans">Instrument Sans</option>
+                        <option value="serif">Newsreader</option>
+                      </select>
+                    </label>
+                    <div>
+                      <p className="demo-label">Alignment</p>
+                      <div className="demo-button-row">
+                        {(["left", "center", "right"] as const).map((align) => (
+                          <button
+                            type="button"
+                            key={align}
+                            onClick={() =>
+                              commit((data) => ({
+                                ...data,
+                                layouts: demoFormatSelection(data.layouts, multiSelection, {
+                                  align,
+                                }),
+                              }))
+                            }
+                          >
+                            {align[0]?.toUpperCase()}
+                            {align.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="demo-label">Weight</p>
+                      <div className="demo-button-row">
+                        {(["normal", "bold"] as const).map((weight) => (
+                          <button
+                            type="button"
+                            key={weight}
+                            onClick={() =>
+                              commit((data) => ({
+                                ...data,
+                                layouts: demoFormatSelection(data.layouts, multiSelection, {
+                                  weight,
+                                }),
+                              }))
+                            }
+                          >
+                            {weight === "bold" ? "Semibold" : "Regular"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="demo-muted">
+                      Shift-click fields to add or remove them. Escape clears selection. Field
+                      bindings stay in their containers.
+                    </p>
+                    <button type="button" onClick={() => setMultiSelection([])}>
+                      Done selecting
+                    </button>
+                  </>
+                ) : (
+                  <DemoLayoutInspector
+                    layouts={state.layouts}
+                    selection={selection}
+                    select={select}
+                    change={changeLayout}
+                    previewCount={state.previewCount}
+                    setPreviewCount={(previewCount) =>
+                      commit((data) => ({ ...data, previewCount }))
+                    }
+                    drag={drag}
+                    deleteContainer={deleteContainer}
+                  />
+                )
               ) : (
                 <>
                   <div className="demo-inspector-heading">
