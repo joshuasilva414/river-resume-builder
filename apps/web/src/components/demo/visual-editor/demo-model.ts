@@ -394,3 +394,22 @@ export function demoMoveRecordRelative(
     ),
   }));
 }
+
+/** Reorder values within one record's list; item identities and other lists stay intact. */
+export function demoMoveListItem(
+  records: DemoRecord[],
+  source: DemoTarget,
+  targetId: string,
+  position: "before" | "after",
+) {
+  const record = demoFindRecord(records, source.recordId);
+  const items = record?.values[source.field];
+  if (!Array.isArray(items)) return records;
+  const from = items.find((item) => item.id === source.itemId);
+  const to = items.find((item) => item.id === targetId);
+  if (!from || !to || from === to) return records;
+  return demoMapRecords(records, source.recordId, (record) => ({
+    ...record,
+    values: { ...record.values, [source.field]: demoMoveRelative(items, from, to, position) },
+  }));
+}

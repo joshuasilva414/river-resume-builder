@@ -32,6 +32,7 @@ import {
   demoFindNode,
   demoFindRecord,
   demoMapRecords,
+  demoMoveListItem,
   demoMoveNode,
   demoMoveRecordRelative,
   demoMoveRelative,
@@ -176,6 +177,12 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
         ...data,
         sections: demoMoveRecordRelative(data.sections, from, to, position),
       }));
+  };
+  const moveListItem = (source: DemoTarget, targetId: string, position: DemoDropPosition) => {
+    commit((data) => ({
+      ...data,
+      sections: demoMoveListItem(data.sections, source, targetId, position),
+    }));
   };
   const deleteContainer = () => {
     const root = state.layouts[selection.schemaId];
@@ -572,6 +579,7 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
                       suggest,
                       move: moveLayout,
                       moveRecord,
+                      moveListItem,
                       addEntry: addBlankEntry,
                       layouts: activeLayouts,
                       deleteContainer,
@@ -990,7 +998,7 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
                               return (
                                 <div key={field.id}>
                                   <p className="demo-label">{field.label}</p>
-                                  {value.map((item) => (
+                                  {value.map((item, index) => (
                                     <div className="demo-list-control" key={item.id}>
                                       <textarea
                                         aria-label={`${field.label} item`}
@@ -1014,6 +1022,33 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
                                         }
                                       />
                                       <div className="demo-button-row">
+                                        {([-1, 1] as const).map((direction) => (
+                                          <button
+                                            type="button"
+                                            key={direction}
+                                            aria-label={`Move ${field.label.toLowerCase()} item ${index + 1} ${direction < 0 ? "up" : "down"}`}
+                                            disabled={!value[index + direction]}
+                                            onClick={() => {
+                                              const sibling = value[index + direction];
+                                              if (sibling)
+                                                moveListItem(
+                                                  {
+                                                    recordId: selectedRecord.id,
+                                                    field: field.id,
+                                                    itemId: item.id,
+                                                  },
+                                                  sibling.id,
+                                                  direction < 0 ? "before" : "after",
+                                                );
+                                            }}
+                                          >
+                                            {direction < 0 ? (
+                                              <ArrowUp size={12} />
+                                            ) : (
+                                              <ArrowDown size={12} />
+                                            )}
+                                          </button>
+                                        ))}
                                         <button
                                           type="button"
                                           onClick={() =>

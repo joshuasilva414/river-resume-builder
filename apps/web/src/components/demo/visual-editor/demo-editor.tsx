@@ -49,6 +49,7 @@ type DemoEditorContextValue = {
   suggest: (target: DemoTarget) => void;
   move: (schemaId: string, from: string, to: string, position: DemoDropPosition) => void;
   addEntry: (parentId: string, field: string) => DemoTarget | null;
+  moveListItem: (source: DemoTarget, targetId: string, position: DemoDropPosition) => void;
   moveRecord: (from: string, to: string, position: DemoDropPosition) => void;
   layouts: DemoLayouts;
   deleteContainer: () => void;
@@ -109,27 +110,35 @@ function DemoNodeView({ node }: NodeViewProps) {
     ? "section"
     : record
       ? "entry"
-      : parent && !listItem
-        ? "layout"
-        : undefined;
+      : listItem && context.mode === "resume"
+        ? "list-item"
+        : parent && !listItem
+          ? "layout"
+          : undefined;
   const canDrag =
-    !!dragKind && (record ? section || context.mode === "resume" : context.mode === "template");
+    !!dragKind &&
+    (record
+      ? section || context.mode === "resume"
+      : listItem
+        ? context.mode === "resume"
+        : context.mode === "template");
   const label = record
     ? `${attrs.recordLabel || attrs.label} ${section ? "section" : "entry"}`
-    : `${attrs.label} ${list ? "list" : node.type.name === "demoContainer" ? "container" : "field"}`;
+    : `${attrs.label} ${listItem ? "item" : list ? "list" : node.type.name === "demoContainer" ? "container" : "field"}`;
   const startDrag = (event: PointerEvent<HTMLButtonElement>) => {
     if (!canDrag) return;
     const source = event.currentTarget.closest<HTMLElement>(".demo-node");
     const editor = source?.closest(".demo-editor");
     if (!source || !editor) return;
     demoStartDrag(event, context.drag, {
-      sourceId: record ? attrs.recordId : attrs.nodeId,
+      sourceId: record ? attrs.recordId : listItem ? attrs.itemId : attrs.nodeId,
       source,
       label,
-      hint: record
-        ? "Drop between matching blocks · Esc to cancel"
-        : "Drop between siblings · Use Move into to change containers",
-      horizontal: !record && parent?.kind === "row",
+      hint:
+        record || listItem
+          ? "Drop between matching blocks · Esc to cancel"
+          : "Drop between siblings · Use Move into to change containers",
+      horizontal: listItem ? attrs.field === "skills" : !record && parent?.kind === "row",
       select: () => context.select(selection),
       targets: () =>
         [...editor.querySelectorAll<HTMLElement>(`[data-demo-drag-kind="${dragKind}"]`)]
@@ -139,7 +148,9 @@ function DemoNodeView({ node }: NodeViewProps) {
               (record
                 ? element.parentElement?.parentElement === source.parentElement?.parentElement
                 : element.dataset.demoRecord === attrs.recordId &&
-                  element.dataset.demoDragParent === parent?.id),
+                  (listItem
+                    ? element.dataset.demoField === attrs.field
+                    : element.dataset.demoDragParent === parent?.id)),
           )
           .map((element) => ({
             id: element.dataset.demoDragId ?? "",
@@ -149,7 +160,13 @@ function DemoNodeView({ node }: NodeViewProps) {
       drop: (id, position) =>
         record
           ? context.moveRecord(attrs.recordId, id, position)
-          : context.move(attrs.schemaId, attrs.nodeId, id, position),
+          : listItem
+            ? context.moveListItem(
+                { recordId: attrs.recordId, field: attrs.field, itemId: attrs.itemId },
+                id,
+                position,
+              )
+            : context.move(attrs.schemaId, attrs.nodeId, id, position),
     });
   };
   const target: DemoTarget = {
@@ -202,7 +219,7 @@ function DemoNodeView({ node }: NodeViewProps) {
         choose();
       }}
       data-demo-drag-kind={canDrag ? dragKind : undefined}
-      data-demo-drag-id={record ? attrs.recordId : attrs.nodeId}
+      data-demo-drag-id={record ? attrs.recordId : listItem ? attrs.itemId : attrs.nodeId}
       data-demo-drag-parent={parent?.id}
       data-demo-drag-label={label}
       data-demo-selectable={

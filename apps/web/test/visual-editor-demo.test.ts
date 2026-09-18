@@ -24,6 +24,7 @@ import {
   demoFindNode,
   demoFindRecord,
   demoMapRecords,
+  demoMoveListItem,
   demoMoveNode,
   demoMoveRecordRelative,
   demoMoveRelative,
@@ -488,5 +489,36 @@ describe("demo blank entries", () => {
     const undone = demoHistoryReducer(history, { type: "undo" });
     expect(undone.present).toEqual(state);
     expect(demoHistoryReducer(undone, { type: "redo" }).present).toEqual(history.present);
+  });
+});
+
+describe("demo list reordering", () => {
+  it("moves one sibling item without changing text, identities, layout, or other records", () => {
+    const state = demoInitialState();
+    const before = demoFindRecord(state.sections, demoTarget.recordId)?.values.accomplishments;
+    if (!Array.isArray(before) || !before[1]) throw new Error("Missing list fixture");
+    const history = demoHistoryReducer(demoHistory(state), {
+      type: "commit",
+      time: 1,
+      update: (current) => ({
+        ...current,
+        sections: demoMoveListItem(current.sections, demoTarget, before[1]?.id ?? "", "after"),
+      }),
+    });
+    expect(
+      demoFindRecord(history.present.sections, demoTarget.recordId)?.values.accomplishments,
+    ).toEqual([...before].reverse());
+    expect(demoFindRecord(history.present.sections, "demo-education")).toEqual(
+      demoFindRecord(state.sections, "demo-education"),
+    );
+    expect(history.present.appliedLayouts).toEqual(state.appliedLayouts);
+    expect(demoParseState(history.present)).toEqual(history.present);
+    expect(demoHistoryReducer(history, { type: "undo" }).present).toEqual(state);
+    expect(demoMoveListItem(state.sections, demoTarget, "demo-skills-skills-0", "before")).toBe(
+      state.sections,
+    );
+    expect(
+      demoMoveListItem(state.sections, { ...demoTarget, field: "title" }, before[1].id, "before"),
+    ).toBe(state.sections);
   });
 });

@@ -63,7 +63,7 @@ The comparison uses the 1440 × 1000 Paper viewport. The implementation retains 
 
 ## Validation
 
-The 22 focused tests in `apps/web/test/visual-editor-demo.test.ts` cover layout, drag, area-selection, and persistence cases: field/schema preservation, cycle prevention, unwrapping, shared entry layouts at different counts, stable text identities, structural transaction guarding, suggestion staleness, replacement/undo, entry ordering/removal, persisted-state validation, storage errors/reset isolation, and history grouping.
+The 23 focused tests in `apps/web/test/visual-editor-demo.test.ts` cover layout, drag, area-selection, and persistence cases: field/schema preservation, cycle prevention, unwrapping, shared entry layouts at different counts, stable text identities, structural transaction guarding, suggestion staleness, replacement/undo, entry ordering/removal, persisted-state validation, storage errors/reset isolation, and history grouping.
 
 Browser checks exercised authenticated entry, inline typing, keyboard undo, Enter/new-bullet focus, pointer dragging, keyboard movement, nested row/column insertion, unwrapping, shared typography, explicit layout application, three education entries, replacement/undo, add/remove sections, job-aware suggestions, hover dwell, empty suggestions, stale-preview rejection, reset, and refresh restoration. Refresh restored three education entries and their 16 px degree layout, while undo history correctly reset. Unavailable/corrupt-storage branches and preservation of unrelated keys are covered by focused tests; these failure modes were not injected into the browser.
 
@@ -107,3 +107,10 @@ In **Build résumé**, the plus beside a section's sparkle appends an empty entr
 Field labels appear as placeholders, not saved text. List fields start with one empty item so users can type a bullet immediately. Blank entries show their fields even before anything is typed; selected entries expose optional empty fields. Placeholder labels disappear when text is entered. The library's **Write a new entry** action also creates empty fields. Choosing a library example still inserts that example's content.
 
 The blank-entry factory and projection remain demo-only. No schemas or production records change. Browser checks verified Education and Experience addition, all-empty content, visible placeholders, initial caret placement, typing, and entry undo/redo. Tests cover empty factories, serialization without placeholder text, target-section isolation, retained layouts, and history restoration.
+
+
+## Reordering list items
+
+In résumé mode, bullet and skill-item handles reorder siblings within the same record and list. The lifted preview and insertion line show the destination. Item IDs and text stay unchanged, so suggestions continue to target the correct item. Each reorder is one undo step. The content inspector also provides up/down buttons for each item. Field bindings and lists from other entries cannot receive the drop.
+
+Browser checks verified moving a Northstar bullet with its preview and drop line, then restoring the original order with Command+Z. Focused tests verify identity, content, layout, scope, and undo preservation.
