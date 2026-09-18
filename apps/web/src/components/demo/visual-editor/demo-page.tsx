@@ -29,6 +29,7 @@ import {
   type DemoRecord,
   type DemoTarget,
   demoCloneRecord,
+  demoDeleteContent,
   demoFindNode,
   demoFindRecord,
   demoMapRecords,
@@ -192,6 +193,37 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
     if (!selected || !("children" in selected) || !parent) return;
     changeLayout(selection.schemaId, demoUnwrapNode(root, selected.id));
     select({ ...selection, nodeId: parent.id, field: undefined, itemId: undefined });
+  };
+  const deleteSelection = () => {
+    if (multiSelection.length) {
+      setError("Template fields are fixed. Select a row or column to delete its container.");
+      return;
+    }
+    if (!selectionVisible) return;
+    const root = activeLayouts[selection.schemaId];
+    const node = root && demoFindNode(root, selection.nodeId);
+    if (!root || !node) return;
+    drag.current?.();
+    if (state.mode === "template") {
+      if (node.id !== root.id && "children" in node) deleteContainer();
+      else
+        setError(
+          "Template fields and entry roots are fixed. Delete a row or column to unwrap its fields.",
+        );
+      return;
+    }
+    if (node.id !== root.id && !("field" in node)) {
+      setError("Layout containers are locked here. Remove them in Design template.");
+      return;
+    }
+    const target: DemoTarget = {
+      recordId: selection.recordId,
+      field: "field" in node ? node.field : "",
+      itemId: selection.itemId,
+    };
+    commit((data) => ({ ...data, sections: demoDeleteContent(data.sections, target) }));
+    setSelectionVisible(false);
+    closePanels();
   };
   const suggest = (target: DemoTarget) => {
     closePanels();
@@ -362,7 +394,7 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
   };
   return (
     <div className="demo-visual-editor">
-      <DemoHistoryShortcuts undo={undo} redo={redo} />
+      <DemoHistoryShortcuts undo={undo} redo={redo} deleteSelection={deleteSelection} />
       <header className="demo-page-header">
         <div>
           <div className="demo-title-row">
@@ -583,7 +615,6 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
                       moveListItem,
                       addEntry: addBlankEntry,
                       layouts: activeLayouts,
-                      deleteContainer,
                       multiSelection,
                       toggleSelection,
                       drag,

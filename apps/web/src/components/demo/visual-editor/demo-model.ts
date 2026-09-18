@@ -413,3 +413,30 @@ export function demoMoveListItem(
     values: { ...record.values, [source.field]: demoMoveRelative(items, from, to, position) },
   }));
 }
+
+/** Remove selected résumé content while retaining schema fields and shared layouts. */
+export function demoDeleteContent(records: DemoRecord[], target: DemoTarget): DemoRecord[] {
+  const record = demoFindRecord(records, target.recordId);
+  if (!record) return records;
+  if (!target.field) return demoMapRecords(records, record.id, () => null);
+  const value = record.values[target.field];
+  if (target.itemId && (!Array.isArray(value) || !value.some((item) => item.id === target.itemId)))
+    return records;
+  if (typeof value === "string" || Array.isArray(value)) {
+    const cleared = Array.isArray(value)
+      ? target.itemId
+        ? value.filter((item) => item.id !== target.itemId)
+        : []
+      : "";
+    return demoMapRecords(records, record.id, (record) => ({
+      ...record,
+      values: { ...record.values, [target.field]: cleared },
+    }));
+  }
+  if (record.children[target.field])
+    return demoMapRecords(records, record.id, (record) => ({
+      ...record,
+      children: { ...record.children, [target.field]: [] },
+    }));
+  return records;
+}

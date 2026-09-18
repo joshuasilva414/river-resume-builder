@@ -23,7 +23,6 @@ import {
   demoPatchNode,
   demoSchema,
   demoSchemas,
-  demoUnwrapNode,
 } from "./demo-model";
 
 export function DemoLayoutInspector({
@@ -138,15 +137,7 @@ export function DemoLayoutInspector({
             });
           }}
           onClick={() => selectNode(node)}
-          onKeyDown={(event) => {
-            if (event.key !== "Backspace" && event.key !== "Delete") return;
-            event.preventDefault();
-            const nodeParent = demoNodePath(root, node.id).at(-2);
-            if ("children" in node && nodeParent) {
-              change(schemaId, demoUnwrapNode(root, node.id));
-              selectNode(nodeParent);
-            }
-          }}
+          onFocus={() => selectNode(node)}
           aria-pressed={node.id === selected.id}
           title="Select block. Drag to reorder among siblings."
         >

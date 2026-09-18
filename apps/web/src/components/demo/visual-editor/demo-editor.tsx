@@ -55,7 +55,6 @@ type DemoEditorContextValue = {
   moveListItem: (source: DemoTarget, targetId: string, position: DemoDropPosition) => void;
   moveRecord: (from: string, to: string, position: DemoDropPosition) => void;
   layouts: DemoLayouts;
-  deleteContainer: () => void;
   multiSelection: DemoSelection[];
   toggleSelection: (selection: DemoSelection) => void;
   drag: DemoDragRef;
@@ -633,13 +632,6 @@ export function DemoEditor({
             event.stopPropagation();
             endEditing();
             focusBlock(target);
-          }
-          if (
-            context.mode === "template" &&
-            (event.key === "Backspace" || event.key === "Delete")
-          ) {
-            event.preventDefault();
-            context.deleteContainer();
           }
         }}
       />

@@ -63,7 +63,7 @@ The comparison uses the 1440 × 1000 Paper viewport. The implementation retains 
 
 ## Validation
 
-The 25 focused tests in `apps/web/test/visual-editor-demo.test.ts` cover layout, drag, area-selection, and persistence cases: field/schema preservation, cycle prevention, unwrapping, shared entry layouts at different counts, stable text identities, structural transaction guarding, suggestion staleness, replacement/undo, entry ordering/removal, persisted-state validation, storage errors/reset isolation, and history grouping.
+The 28 focused tests in `apps/web/test/visual-editor-demo.test.ts` cover layout, drag, area-selection, and persistence cases: field/schema preservation, cycle prevention, unwrapping, shared entry layouts at different counts, stable text identities, structural transaction guarding, suggestion staleness, replacement/undo, entry ordering/removal, persisted-state validation, storage errors/reset isolation, and history grouping.
 
 Browser checks exercised authenticated entry, inline typing, keyboard undo, Enter/new-bullet focus, pointer dragging, keyboard movement, nested row/column insertion, unwrapping, shared typography, explicit layout application, three education entries, replacement/undo, add/remove sections, job-aware suggestions, hover dwell, empty suggestions, stale-preview rejection, reset, and refresh restoration. Refresh restored three education entries and their 16 px degree layout, while undo history correctly reset. Unavailable/corrupt-storage branches and preservation of unrelated keys are covered by focused tests; these failure modes were not injected into the browser.
 
@@ -123,3 +123,12 @@ In résumé mode, a single click selects a field without placing a text caret. D
 Only the explicitly opened field can receive text transactions. Its record, field, and list-item IDs define the edit target; changes to other fields or structure are rejected. Editing state is temporary and is not persisted. Undo/redo still uses the shared demo history.
 
 Browser checks verified single-click typing prevention, double-click editing, Enter/F2, Escape, selecting another block, undo while editing, adding a bullet with Enter, and selecting a newly added blank entry. Focused checks cover closed-field, sibling-field, cross-record, and structural transaction rejection.
+
+
+## Delete and Backspace
+
+Both keys operate on the selected block from the canvas, structure tree, or non-text inspector controls. In template mode, deleting a non-root container unwraps its fields. Fixed schema fields and entry roots stay intact, with a message explaining why they cannot be removed. Focusing a structure-tree item selects that item, so keyboard deletion targets the focused row.
+
+In résumé mode, deletion removes a selected list item, entry, or section. Selecting a scalar field and deleting clears its value while retaining its binding. Selecting a whole list clears its items. Layout containers stay locked. Each action is undoable. Removal clears the résumé selection; holding the key cannot cascade into subsequent blocks. Active inline editing and ordinary input/textarea/select controls retain their normal text-key behavior.
+
+Browser checks covered Delete while the inspector's Delete container button had focus, Backspace in the structure tree, bullet removal, entry removal, ordinary Backspace during inline editing, and undo restoration. Tests cover both keys, text-editing and modifier guards, identity-preserving undo, field-value clearing, and record removal. No browser experiments or unrelated documentation edits were discarded.

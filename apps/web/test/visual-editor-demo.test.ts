@@ -19,9 +19,13 @@ import {
   demoLibrary,
   demoPreviewSections,
 } from "../src/components/demo/visual-editor/demo-fixtures";
-import { demoHistoryShortcut } from "../src/components/demo/visual-editor/demo-history-shortcuts";
+import {
+  demoDeleteShortcut,
+  demoHistoryShortcut,
+} from "../src/components/demo/visual-editor/demo-history-shortcuts";
 import {
   demoCloneRecord,
+  demoDeleteContent,
   demoFindNode,
   demoFindRecord,
   demoMapRecords,
@@ -556,5 +560,80 @@ describe("demo explicit field editing", () => {
     const changed = structuredClone(before);
     changed.content?.pop();
     expect(demoCanEditDocument(before, changed, demoTarget)).toBe(false);
+  });
+});
+
+describe("demo selection deletion", () => {
+  const key = {
+    key: "Delete",
+    metaKey: false,
+    ctrlKey: false,
+    shiftKey: false,
+    altKey: false,
+    isComposing: false,
+    defaultPrevented: false,
+    repeat: false,
+  };
+  it("accepts both delete keys outside text editing without swallowing text deletion", () => {
+    expect(demoDeleteShortcut(key, false)).toBe(true);
+    expect(demoDeleteShortcut({ ...key, key: "Backspace" }, false)).toBe(true);
+    expect(demoDeleteShortcut(key, true)).toBe(false);
+    for (const flag of [
+      "isComposing",
+      "repeat",
+      "metaKey",
+      "ctrlKey",
+      "altKey",
+      "shiftKey",
+      "defaultPrevented",
+    ] as const)
+      expect(demoDeleteShortcut({ ...key, [flag]: true }, false)).toBe(false);
+  });
+  it("removes only the selected bullet and restores its identity in one undo step", () => {
+    const state = demoInitialState();
+    const history = demoHistoryReducer(demoHistory(state), {
+      type: "commit",
+      time: 1,
+      update: (current) => ({
+        ...current,
+        sections: demoDeleteContent(current.sections, demoTarget),
+      }),
+    });
+    const items = demoFindRecord(history.present.sections, demoTarget.recordId)?.values
+      .accomplishments;
+    expect(items).toEqual([
+      {
+        id: "demo-northstar-accomplishments-1",
+        text: "Connected customer workflows to a REST API.",
+      },
+    ]);
+    expect(history.present.appliedLayouts).toEqual(state.appliedLayouts);
+    expect(demoParseState(history.present)).toEqual(history.present);
+    expect(demoHistoryReducer(history, { type: "undo" }).present).toEqual(state);
+  });
+  it("clears scalar values without removing bindings, and can remove a whole entry or section", () => {
+    const state = demoInitialState();
+    const cleared = demoDeleteContent(state.sections, {
+      recordId: "demo-northstar",
+      field: "employer",
+    });
+    expect(demoFindRecord(cleared, "demo-northstar")?.values.employer).toBe("");
+    expect(demoParseState({ ...state, sections: cleared }).sections).toEqual(cleared);
+    const entryRemoved = demoDeleteContent(state.sections, {
+      recordId: "demo-lakeside",
+      field: "",
+    });
+    expect(demoFindRecord(entryRemoved, "demo-lakeside")).toBeUndefined();
+    expect(demoFindRecord(entryRemoved, "demo-central")).toEqual(
+      demoFindRecord(state.sections, "demo-central"),
+    );
+    const sectionRemoved = demoDeleteContent(state.sections, {
+      recordId: "demo-education",
+      field: "",
+    });
+    expect(demoFindRecord(sectionRemoved, "demo-education")).toBeUndefined();
+    expect(demoDeleteContent(state.sections, { ...demoTarget, itemId: "missing" })).toBe(
+      state.sections,
+    );
   });
 });
