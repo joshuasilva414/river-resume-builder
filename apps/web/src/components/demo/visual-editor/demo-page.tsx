@@ -22,6 +22,7 @@ import {
   demoPreviewSections,
   demoSeedSections,
 } from "./demo-fixtures";
+import { DemoHistoryShortcuts } from "./demo-history-shortcuts";
 import { DemoLayoutInspector } from "./demo-layout-inspector";
 import {
   type DemoLayoutNode,
@@ -300,10 +301,12 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
     closePanels();
   };
   const undo = () => {
+    drag.current?.();
     session.undo();
     setError(null);
   };
   const redo = () => {
+    drag.current?.();
     session.redo();
     setError(null);
   };
@@ -321,6 +324,7 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
   };
   return (
     <div className="demo-visual-editor">
+      <DemoHistoryShortcuts undo={undo} redo={redo} />
       <header className="demo-page-header">
         <div>
           <div className="demo-title-row">
@@ -392,6 +396,8 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
                 className="demo-text-button"
                 disabled={!session.canUndo}
                 onClick={undo}
+                title="Undo (⌘/Ctrl+Z)"
+                aria-keyshortcuts="Meta+Z Control+Z"
               >
                 <Undo2 size={15} /> Undo
               </button>
@@ -400,6 +406,8 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
                 className="demo-text-button"
                 disabled={!session.canRedo}
                 onClick={redo}
+                title="Redo (⌘/Ctrl+Shift+Z)"
+                aria-keyshortcuts="Meta+Shift+Z Control+Shift+Z"
               >
                 <Redo2 size={15} /> Redo
               </button>
@@ -540,8 +548,6 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
                       drag,
                     }}
                     onEdit={(sections, group) => commit((data) => ({ ...data, sections }), group)}
-                    undo={undo}
-                    redo={redo}
                     addBullet={addBullet}
                   />
                   {!records.length && (

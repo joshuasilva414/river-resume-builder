@@ -17,6 +17,7 @@ import {
   demoLibrary,
   demoPreviewSections,
 } from "../src/components/demo/visual-editor/demo-fixtures";
+import { demoHistoryShortcut } from "../src/components/demo/visual-editor/demo-history-shortcuts";
 import {
   demoCloneRecord,
   demoFindNode,
@@ -408,5 +409,34 @@ describe("demo area selection", () => {
     expect(history.present.appliedLayouts).toEqual(state.appliedLayouts);
     expect(demoParseState(history.present)).toEqual(history.present);
     expect(demoHistoryReducer(history, { type: "undo" }).present).toEqual(state);
+  });
+});
+
+describe("demo history shortcuts", () => {
+  const key = {
+    key: "z",
+    metaKey: false,
+    ctrlKey: false,
+    shiftKey: false,
+    altKey: false,
+    isComposing: false,
+    defaultPrevented: false,
+  };
+  it.each(["metaKey", "ctrlKey"] as const)(
+    "supports undo and shifted uppercase redo with %s",
+    (modifier) => {
+      expect(demoHistoryShortcut({ ...key, [modifier]: true })).toBe("undo");
+      expect(demoHistoryShortcut({ ...key, [modifier]: true, shiftKey: true, key: "Z" })).toBe(
+        "redo",
+      );
+      expect(demoHistoryShortcut({ ...key, [modifier]: true, key: "y" })).toBe("redo");
+    },
+  );
+  it("ignores ordinary typing, composition, Alt chords, and handled events", () => {
+    expect(demoHistoryShortcut(key)).toBeNull();
+    for (const flag of ["isComposing", "altKey", "defaultPrevented"] as const) {
+      expect(demoHistoryShortcut({ ...key, ctrlKey: true, [flag]: true })).toBeNull();
+    }
+    expect(demoHistoryShortcut({ ...key, metaKey: true, key: "a" })).toBeNull();
   });
 });

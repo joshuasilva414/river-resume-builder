@@ -63,7 +63,7 @@ The comparison uses the 1440 × 1000 Paper viewport. The implementation retains 
 
 ## Validation
 
-The 15 focused tests in `apps/web/test/visual-editor-demo.test.ts` cover layout, drag, area-selection, and persistence cases: field/schema preservation, cycle prevention, unwrapping, shared entry layouts at different counts, stable text identities, structural transaction guarding, suggestion staleness, replacement/undo, entry ordering/removal, persisted-state validation, storage errors/reset isolation, and history grouping.
+The 18 focused tests in `apps/web/test/visual-editor-demo.test.ts` cover layout, drag, area-selection, and persistence cases: field/schema preservation, cycle prevention, unwrapping, shared entry layouts at different counts, stable text identities, structural transaction guarding, suggestion staleness, replacement/undo, entry ordering/removal, persisted-state validation, storage errors/reset isolation, and history grouping.
 
 Browser checks exercised authenticated entry, inline typing, keyboard undo, Enter/new-bullet focus, pointer dragging, keyboard movement, nested row/column insertion, unwrapping, shared typography, explicit layout application, three education entries, replacement/undo, add/remove sections, job-aware suggestions, hover dwell, empty suggestions, stale-preview rejection, reset, and refresh restoration. Refresh restored three education entries and their 16 px degree layout, while undo history correctly reset. Unavailable/corrupt-storage branches and preservation of unrelated keys are covered by focused tests; these failure modes were not injected into the browser.
 
@@ -91,3 +91,10 @@ In template mode, drag from the page margin to draw a rectangle, or choose **Are
 The inspector offers font, alignment, and weight changes for the selection. One action creates one undo step. Selecting multiple samples of a shared entry field still updates its one shared layout definition. Area selection does not move or delete groups, and does not select hidden optional fields. Selection is session-local; layout edits retain the existing browser persistence behavior. `demo-area-selection.tsx` contains the demo-only gesture and batch-formatting boundary.
 
 Browser checks verified margin selection across five fields, a live rectangle, retained highlights after release, batch alignment and one-step undo, Escape cancellation restoring the previous selection, explicit selection starting over content, Shift-click removal, and Escape clearing selection. Résumé checks also verified whole-entry dragging within Education and undo. Focused tests also cover rectangle intersection and batch formatting across repeated entries without changing résumé values.
+
+
+## Undo and redo shortcuts
+
+Command/Ctrl+Z undoes and Command/Ctrl+Shift+Z redoes across the demo: inline résumé fields, inspector inputs, structure controls, and canvas selection. Command/Ctrl+Y also redoes. One capture handler owns demo history so native input history and Tiptap cannot both process the same keypress. Unmodified typing, composition, Alt shortcuts, and focus on River's surrounding shell are left alone. History commands cancel an active drag first. The listener is removed when leaving the demo.
+
+Browser checks verified both modifier combinations in inspector inputs, inline text editing, and layout controls. Tests cover key matching and ignored input combinations. `demo-history-shortcuts.tsx` is demo-only.

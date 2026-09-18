@@ -313,20 +313,16 @@ export function DemoEditor({
   layouts,
   context,
   onEdit,
-  undo,
-  redo,
   addBullet,
 }: {
   records: DemoRecord[];
   layouts: DemoLayouts;
   context: DemoEditorContextValue;
   onEdit: (records: DemoRecord[], group?: string) => void;
-  undo: () => void;
-  redo: () => void;
   addBullet: (target: DemoTarget) => DemoTarget;
 }) {
-  const refs = useRef({ records, context, onEdit, undo, redo, addBullet });
-  refs.current = { records, context, onEdit, undo, redo, addBullet };
+  const refs = useRef({ records, context, onEdit, addBullet });
+  refs.current = { records, context, onEdit, addBullet };
   const acknowledged = useRef("");
   const previousLayouts = useRef(layouts);
   const pendingFocus = useRef<DemoTarget | null>(null);
@@ -337,18 +333,6 @@ export function DemoEditor({
         name: "demoEditingRules",
         addKeyboardShortcuts() {
           return {
-            "Mod-z": () => {
-              refs.current.undo();
-              return true;
-            },
-            "Mod-Shift-z": () => {
-              refs.current.redo();
-              return true;
-            },
-            "Mod-y": () => {
-              refs.current.redo();
-              return true;
-            },
             Enter: () => {
               const parent = this.editor.state.selection.$from.parent;
               if (parent.type.name === "demoField") {
