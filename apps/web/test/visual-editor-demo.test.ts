@@ -7,6 +7,7 @@ import {
   demoFormatSelection,
 } from "../src/components/demo/visual-editor/demo-area-selection";
 import {
+  demoCanEditDocument,
   demoDocument,
   demoDocumentStructure,
   demoRecordsFromDocument,
@@ -520,5 +521,40 @@ describe("demo list reordering", () => {
     expect(
       demoMoveListItem(state.sections, { ...demoTarget, field: "title" }, before[1].id, "before"),
     ).toBe(state.sections);
+  });
+});
+
+describe("demo explicit field editing", () => {
+  it("rejects typing until a field is opened, then permits only that field", () => {
+    const state = demoInitialState();
+    const before = demoDocument(state.sections, state.appliedLayouts);
+    const changed = structuredClone(before);
+    const field = demoFields(changed).find((node) => node.attrs?.itemId === demoTarget.itemId);
+    if (!field) throw new Error("Missing field");
+    field.content = [{ type: "text", text: "Deliberate edit" }];
+    expect(demoCanEditDocument(before, changed, null)).toBe(false);
+    expect(demoCanEditDocument(before, changed, demoTarget)).toBe(true);
+    expect(
+      demoCanEditDocument(before, changed, {
+        ...demoTarget,
+        itemId: "demo-northstar-accomplishments-1",
+      }),
+    ).toBe(false);
+    expect(
+      demoCanEditDocument(before, changed, { ...demoTarget, recordId: "another-record" }),
+    ).toBe(false);
+    const sibling = demoFields(changed).find(
+      (node) => node.attrs?.itemId === "demo-northstar-accomplishments-1",
+    );
+    if (!sibling) throw new Error("Missing sibling");
+    sibling.content = [{ type: "text", text: "Unintended edit" }];
+    expect(demoCanEditDocument(before, changed, demoTarget)).toBe(false);
+  });
+  it("keeps structural changes locked even while editing", () => {
+    const state = demoInitialState();
+    const before = demoDocument(state.sections, state.appliedLayouts);
+    const changed = structuredClone(before);
+    changed.content?.pop();
+    expect(demoCanEditDocument(before, changed, demoTarget)).toBe(false);
   });
 });

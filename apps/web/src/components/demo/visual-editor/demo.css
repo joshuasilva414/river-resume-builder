@@ -776,3 +776,18 @@
 .demo-visual-editor .demo-add-entry {
   color: var(--demo-blue);
 }
+
+/* DEMO ONLY: selection and text editing are distinct résumé interactions. */
+.demo-mode-resume .demo-demoField[aria-readonly="true"] {
+  cursor: default;
+  user-select: none;
+}
+.demo-mode-resume .demo-demoField.demo-editing {
+  cursor: text;
+  background: #f7f9ff;
+  user-select: text;
+}
+.demo-mode-resume .demo-demoField[aria-readonly="true"]:focus {
+  outline: 1px solid var(--demo-blue);
+  outline-offset: 3px;
+}

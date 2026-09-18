@@ -5,6 +5,7 @@ import {
   type DemoLayoutNode,
   type DemoLayouts,
   type DemoRecord,
+  type DemoTarget,
   demoBaseStyle,
   demoRecordLabel,
   demoSchema,
@@ -141,4 +142,28 @@ export function demoDocumentStructure(doc: JSONContent): string {
         }
       : { type: node.type, attrs: node.attrs, content: node.content?.map(shape) };
   return JSON.stringify(shape(doc));
+}
+
+/** Typing may change only the explicitly opened field, including its stable list-item identity. */
+export function demoCanEditDocument(
+  before: JSONContent,
+  after: JSONContent,
+  target: DemoTarget | null,
+): boolean {
+  if (!target || demoDocumentStructure(before) !== demoDocumentStructure(after)) return false;
+  const visit = (previous: JSONContent, next: JSONContent): boolean => {
+    if (previous.type === "demoField") {
+      const attrs = demoNodeAttrsSchema.parse(previous.attrs);
+      const active =
+        attrs.recordId === target.recordId &&
+        attrs.field === target.field &&
+        (attrs.itemId || undefined) === target.itemId;
+      return active || JSON.stringify(previous.content) === JSON.stringify(next.content);
+    }
+    return (previous.content ?? []).every((child, index) => {
+      const nextChild = next.content?.[index];
+      return !!nextChild && visit(child, nextChild);
+    });
+  };
+  return visit(before, after);
 }

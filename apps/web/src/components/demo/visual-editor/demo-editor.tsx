@@ -14,15 +14,18 @@ import {
   type CSSProperties,
   createContext,
   type FocusEvent,
+  type KeyboardEvent,
   type MouseEvent,
   type PointerEvent,
+  useCallback,
   useContext,
   useEffect,
   useRef,
+  useState,
 } from "react";
 import {
+  demoCanEditDocument,
   demoDocument,
-  demoDocumentStructure,
   demoNodeAttrsSchema,
   demoRecordsFromDocument,
 } from "./demo-document";
@@ -57,7 +60,11 @@ type DemoEditorContextValue = {
   toggleSelection: (selection: DemoSelection) => void;
   drag: DemoDragRef;
 };
-const DemoEditorContext = createContext<DemoEditorContextValue | null>(null);
+type DemoNodeViewContext = DemoEditorContextValue & {
+  editing: DemoTarget | null;
+  edit: (target: DemoTarget, coordinates?: { left: number; top: number }) => void;
+};
+const DemoEditorContext = createContext<DemoNodeViewContext | null>(null);
 function DemoNodeView({ node }: NodeViewProps) {
   const context = useContext(DemoEditorContext);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,6 +80,12 @@ function DemoNodeView({ node }: NodeViewProps) {
   const section = node.type.name === "demoSection";
   const record = section || node.type.name === "demoRecord";
   const list = node.type.name === "demoList";
+  const editing =
+    field &&
+    context.mode === "resume" &&
+    context.editing?.recordId === attrs.recordId &&
+    context.editing.field === attrs.field &&
+    (context.editing.itemId ?? "") === attrs.itemId;
   const empty = field ? !node.textContent : attrs.empty;
   const showPlaceholders =
     record &&
@@ -201,8 +214,52 @@ function DemoNodeView({ node }: NodeViewProps) {
   };
   return (
     <NodeViewWrapper
-      className={`demo-node demo-${node.type.name} ${attrs.kind === "row" ? "demo-row" : "demo-column"} ${selected ? "demo-selected" : ""} ${empty && !selected ? "demo-empty" : ""} ${showPlaceholders ? "demo-show-placeholders" : ""} ${attrs.field === "heading" ? "demo-section-heading" : ""} ${attrs.field === "skills" ? "demo-skills" : ""} ${attrs.list && field ? "demo-list-item" : ""}`}
+      className={`demo-node demo-${node.type.name} ${attrs.kind === "row" ? "demo-row" : "demo-column"} ${selected ? "demo-selected" : ""} ${editing ? "demo-editing" : ""} ${empty && !selected ? "demo-empty" : ""} ${showPlaceholders ? "demo-show-placeholders" : ""} ${attrs.field === "heading" ? "demo-section-heading" : ""} ${attrs.field === "skills" ? "demo-skills" : ""} ${attrs.list && field ? "demo-list-item" : ""}`}
       style={style}
+      contentEditable={field && !editing ? false : undefined}
+      tabIndex={field && context.mode === "resume" ? (editing ? -1 : 0) : undefined}
+      role={field && context.mode === "resume" ? "textbox" : undefined}
+      aria-label={field && context.mode === "resume" ? attrs.label : undefined}
+      aria-readonly={field && context.mode === "resume" ? !editing : undefined}
+      title={
+        field && context.mode === "resume" && !editing
+          ? "Double-click or press Enter to edit"
+          : undefined
+      }
+      onMouseDown={(event: MouseEvent<HTMLDivElement>) => {
+        if (
+          field &&
+          context.mode === "resume" &&
+          !editing &&
+          !(event.target instanceof Element && event.target.closest("button"))
+        )
+          event.preventDefault();
+      }}
+      onDoubleClick={(event: MouseEvent<HTMLDivElement>) => {
+        if (
+          !field ||
+          context.mode !== "resume" ||
+          (event.target instanceof Element && event.target.closest("button"))
+        )
+          return;
+        event.preventDefault();
+        event.stopPropagation();
+        choose();
+        context.edit(target, { left: event.clientX, top: event.clientY });
+      }}
+      onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+        if (
+          event.target === event.currentTarget &&
+          field &&
+          context.mode === "resume" &&
+          !editing &&
+          (event.key === "Enter" || event.key === "F2")
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          context.edit(target);
+        }
+      }}
       data-demo-node={attrs.nodeId}
       data-demo-record={attrs.recordId}
       data-demo-field={attrs.field}
@@ -213,6 +270,8 @@ function DemoNodeView({ node }: NodeViewProps) {
         if (event.shiftKey && context.mode === "template" && (field || list))
           context.toggleSelection(selection);
         else choose();
+        if (field && context.mode === "resume" && !editing)
+          event.currentTarget.focus({ preventScroll: true });
       }}
       onFocus={(event: FocusEvent<HTMLDivElement>) => {
         event.stopPropagation();
@@ -370,11 +429,13 @@ export function DemoEditor({
   onEdit: (records: DemoRecord[], group?: string) => void;
   addBullet: (target: DemoTarget) => DemoTarget;
 }) {
+  const editingRef = useRef<DemoTarget | null>(null);
+  const [editingTarget, setEditingTarget] = useState<DemoTarget | null>(null);
   const refs = useRef({ records, context, onEdit, addBullet });
   refs.current = { records, context, onEdit, addBullet };
   const acknowledged = useRef("");
   const previousLayouts = useRef(layouts);
-  const pendingFocus = useRef<DemoTarget | null>(null);
+  const pendingFocus = useRef<{ target: DemoTarget; edit: boolean } | null>(null);
   const editor = useEditor({
     extensions: [
       ...demoNodes,
@@ -387,11 +448,14 @@ export function DemoEditor({
               if (parent.type.name === "demoField") {
                 const attrs = demoNodeAttrsSchema.parse(parent.attrs);
                 if (attrs.list && refs.current.context.mode === "resume")
-                  pendingFocus.current = refs.current.addBullet({
-                    recordId: attrs.recordId,
-                    field: attrs.field,
-                    itemId: attrs.itemId,
-                  });
+                  pendingFocus.current = {
+                    target: refs.current.addBullet({
+                      recordId: attrs.recordId,
+                      field: attrs.field,
+                      itemId: attrs.itemId,
+                    }),
+                    edit: true,
+                  };
               }
               return true;
             },
@@ -404,20 +468,23 @@ export function DemoEditor({
                 !transaction.docChanged ||
                 transaction.getMeta("demoProjection") === true ||
                 (refs.current.context.mode === "resume" &&
-                  demoDocumentStructure(transaction.doc.toJSON()) ===
-                    demoDocumentStructure(state.doc.toJSON())),
+                  demoCanEditDocument(
+                    state.doc.toJSON(),
+                    transaction.doc.toJSON(),
+                    editingRef.current,
+                  )),
             }),
           ];
         },
       }),
     ],
     immediatelyRender: false,
-    editable: context.mode === "resume",
+    editable: false,
     content: demoDocument(records, layouts),
     editorProps: {
       attributes: { "aria-label": "Résumé document", spellcheck: "false" },
       handlePaste: (view, event) => {
-        if (refs.current.context.mode !== "resume") return true;
+        if (refs.current.context.mode !== "resume" || !editingRef.current) return true;
         const text = event.clipboardData?.getData("text/plain").replace(/\s*\n\s*/g, " ") ?? "";
         view.dispatch(view.state.tr.insertText(text));
         return true;
@@ -434,13 +501,65 @@ export function DemoEditor({
       );
     },
   });
+  const endEditing = useCallback(() => {
+    editingRef.current = null;
+    setEditingTarget(null);
+    if (editor && !editor.isDestroyed) editor.setEditable(false, false);
+  }, [editor]);
+  const focusBlock = useCallback(
+    (target: DemoTarget) => {
+      const element = [
+        ...(editor?.view.dom.querySelectorAll<HTMLElement>(".demo-demoField") ?? []),
+      ].find(
+        (element) =>
+          element.dataset.demoRecord === target.recordId &&
+          element.dataset.demoField === target.field &&
+          (element.dataset.demoItem || undefined) === target.itemId,
+      );
+      element?.focus({ preventScroll: true });
+      element?.scrollIntoView({ block: "nearest" });
+    },
+    [editor],
+  );
+  const beginEditing = useCallback(
+    (target: DemoTarget, coordinates?: { left: number; top: number }) => {
+      if (!editor || context.mode !== "resume") return;
+      let range: { from: number; to: number } | undefined;
+      editor.state.doc.descendants((node, position) => {
+        if (
+          node.type.name === "demoField" &&
+          node.attrs.recordId === target.recordId &&
+          node.attrs.field === target.field &&
+          (node.attrs.itemId || undefined) === target.itemId
+        )
+          range = { from: position + 1, to: position + node.nodeSize - 1 };
+      });
+      if (!range) {
+        endEditing();
+        return;
+      }
+      const position = coordinates ? editor.view.posAtCoords(coordinates)?.pos : range.to;
+      editingRef.current = target;
+      setEditingTarget(target);
+      editor.setEditable(true, false);
+      editor.commands.setTextSelection(
+        Math.max(range.from, Math.min(position ?? range.to, range.to)),
+      );
+      editor.commands.focus();
+    },
+    [editor, context.mode, endEditing],
+  );
   useEffect(() => {
     if (!editor) return;
     // Node views flush React portals synchronously; project after this effect finishes.
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled || editor.isDestroyed) return;
-      editor.setEditable(context.mode === "resume", false);
+      if (context.mode !== "resume") {
+        editingRef.current = null;
+        setEditingTarget(null);
+      }
+      editor.setEditable(context.mode === "resume" && !!editingRef.current, false);
       const serialized = JSON.stringify(records);
       if (acknowledged.current === serialized && previousLayouts.current === layouts) return;
       const doc: JSONContent = demoDocument(records, layouts);
@@ -453,35 +572,50 @@ export function DemoEditor({
       });
       acknowledged.current = serialized;
       previousLayouts.current = layouts;
-      const target = pendingFocus.current;
-      if (target) {
-        pendingFocus.current = null;
-        editor.state.doc.descendants((node, position) => {
-          if (
-            node.type.name === "demoField" &&
-            node.attrs.recordId === target.recordId &&
-            node.attrs.field === target.field &&
-            (node.attrs.itemId || undefined) === target.itemId
-          ) {
-            editor.commands.setTextSelection(position + 1);
-            editor.commands.focus();
-            return false;
-          }
-          return true;
-        });
+      const request =
+        pendingFocus.current ??
+        (editingRef.current ? { target: editingRef.current, edit: true } : null);
+      pendingFocus.current = null;
+      if (request) {
+        if (request.edit) beginEditing(request.target);
+        else {
+          endEditing();
+          // New React node views must mount before their read-only field can receive focus.
+          requestAnimationFrame(() => {
+            if (
+              !editor.isDestroyed &&
+              refs.current.context.selection?.recordId === request.target.recordId
+            )
+              focusBlock(request.target);
+          });
+        }
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [records, layouts, editor, context.mode]);
+  }, [records, layouts, editor, context.mode, beginEditing, endEditing, focusBlock]);
   return (
     <DemoEditorContext.Provider
       value={{
         ...context,
+        editing: editingTarget,
+        edit: beginEditing,
+        select: (selection) => {
+          const active = editingRef.current;
+          if (
+            active &&
+            (selection.recordId !== active.recordId ||
+              selection.field !== active.field ||
+              selection.itemId !== active.itemId)
+          )
+            endEditing();
+          context.select(selection);
+        },
         addEntry: (parentId, field) => {
+          endEditing();
           const target = context.addEntry(parentId, field);
-          pendingFocus.current = target;
+          pendingFocus.current = target ? { target, edit: false } : null;
           return target;
         },
       }}
@@ -489,7 +623,17 @@ export function DemoEditor({
       <EditorContent
         editor={editor}
         className={`demo-editor demo-mode-${context.mode}`}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) endEditing();
+        }}
         onKeyDown={(event) => {
+          if (event.key === "Escape" && editingRef.current) {
+            const target = editingRef.current;
+            event.preventDefault();
+            event.stopPropagation();
+            endEditing();
+            focusBlock(target);
+          }
           if (
             context.mode === "template" &&
             (event.key === "Backspace" || event.key === "Delete")

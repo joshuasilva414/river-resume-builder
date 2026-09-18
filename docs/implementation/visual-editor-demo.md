@@ -22,7 +22,7 @@ Insert rows and columns from the right-hand Structure inspector. **Delete contai
 
 **Preview entries** renders zero to three examples for both Experience and Education. These are sample counts, independent of the résumé's actual counts. Each schema has one layout definition; all instances use that definition. Blank schema fields remain available in Structure and the content inspector.
 
-Choose **Use template** to open the fictional résumé. Type directly into fields. Enter in a bullet adds a new item and moves the caret there. The inspector also exposes blank fields and item removal. Add permitted sections and entries, reorder them, remove them, or preview a replacement from the fictional library. Structural content commands preserve the template layout.
+Choose **Use template** to open the fictional résumé. Click a field to select it; double-click or press Enter/F2 to edit it. Enter in a bullet adds a new item and moves the caret there. The inspector also exposes blank fields and item removal. Add permitted sections and entries, reorder them, remove them, or preview a replacement from the fictional library. Structural content commands preserve the template layout.
 
 Switch back to template design to experiment. Returning to **Build résumé** continues using its last captured layout. **Apply layout changes** explicitly captures the edited layout while retaining résumé values and entry counts. Template section ordering is captured separately; applying a changed template order updates the résumé section order. Otherwise its own section order is retained.
 
@@ -63,7 +63,7 @@ The comparison uses the 1440 × 1000 Paper viewport. The implementation retains 
 
 ## Validation
 
-The 23 focused tests in `apps/web/test/visual-editor-demo.test.ts` cover layout, drag, area-selection, and persistence cases: field/schema preservation, cycle prevention, unwrapping, shared entry layouts at different counts, stable text identities, structural transaction guarding, suggestion staleness, replacement/undo, entry ordering/removal, persisted-state validation, storage errors/reset isolation, and history grouping.
+The 25 focused tests in `apps/web/test/visual-editor-demo.test.ts` cover layout, drag, area-selection, and persistence cases: field/schema preservation, cycle prevention, unwrapping, shared entry layouts at different counts, stable text identities, structural transaction guarding, suggestion staleness, replacement/undo, entry ordering/removal, persisted-state validation, storage errors/reset isolation, and history grouping.
 
 Browser checks exercised authenticated entry, inline typing, keyboard undo, Enter/new-bullet focus, pointer dragging, keyboard movement, nested row/column insertion, unwrapping, shared typography, explicit layout application, three education entries, replacement/undo, add/remove sections, job-aware suggestions, hover dwell, empty suggestions, stale-preview rejection, reset, and refresh restoration. Refresh restored three education entries and their 16 px degree layout, while undo history correctly reset. Unavailable/corrupt-storage branches and preservation of unrelated keys are covered by focused tests; these failure modes were not injected into the browser.
 
@@ -102,7 +102,7 @@ Browser checks verified both modifier combinations in inspector inputs, inline t
 
 ## Blank entries from section controls
 
-In **Build résumé**, the plus beside a section's sparkle appends an empty entry to that section's repeating collection. This also works for a collection with no existing entries. Experience and Education get their existing shared layouts; Contact can add an empty link. The new entry is selected, scrolled into view, and focused on its first text field.
+In **Build résumé**, the plus beside a section's sparkle appends an empty entry to that section's repeating collection. This also works for a collection with no existing entries. Experience and Education get their existing shared layouts; Contact can add an empty link. The new entry is selected and scrolled into view. Its first field receives keyboard focus in read-only mode; double-click or press Enter/F2 to start typing.
 
 Field labels appear as placeholders, not saved text. List fields start with one empty item so users can type a bullet immediately. Blank entries show their fields even before anything is typed; selected entries expose optional empty fields. Placeholder labels disappear when text is entered. The library's **Write a new entry** action also creates empty fields. Choosing a library example still inserts that example's content.
 
@@ -114,3 +114,12 @@ The blank-entry factory and projection remain demo-only. No schemas or productio
 In résumé mode, bullet and skill-item handles reorder siblings within the same record and list. The lifted preview and insertion line show the destination. Item IDs and text stay unchanged, so suggestions continue to target the correct item. Each reorder is one undo step. The content inspector also provides up/down buttons for each item. Field bindings and lists from other entries cannot receive the drop.
 
 Browser checks verified moving a Northstar bullet with its preview and drop line, then restoring the original order with Command+Z. Focused tests verify identity, content, layout, scope, and undo preservation.
+
+
+## Select first, then edit
+
+In résumé mode, a single click selects a field without placing a text caret. Double-click, Enter, or F2 opens that field for editing. Escape returns focus to the selected block. Selecting another block or moving focus outside the document ends editing. The inspector's form controls remain directly editable. New entries begin selected; pressing Enter in an already open bullet continues writing in a new empty bullet.
+
+Only the explicitly opened field can receive text transactions. Its record, field, and list-item IDs define the edit target; changes to other fields or structure are rejected. Editing state is temporary and is not persisted. Undo/redo still uses the shared demo history.
+
+Browser checks verified single-click typing prevention, double-click editing, Enter/F2, Escape, selecting another block, undo while editing, adding a bullet with Enter, and selecting a newly added blank entry. Focused checks cover closed-field, sibling-field, cross-record, and structural transaction rejection.

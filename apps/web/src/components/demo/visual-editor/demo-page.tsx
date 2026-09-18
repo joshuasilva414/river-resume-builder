@@ -511,7 +511,8 @@ export default function DemoVisualEditorPage({ userId }: { userId: string }) {
                     <Plus size={14} /> Add education
                   </button>
                   <p className="demo-muted demo-help">
-                    Edit your content directly. Every new entry inherits the template layout.
+                    Click to select a block. Double-click or press Enter to edit. Every new entry
+                    inherits the template layout.
                   </p>
                 </>
               )}
