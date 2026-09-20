@@ -46,7 +46,7 @@ function PdfNode({ node }: { node: ResolvedNode }) {
               style={{
                 ...childStyle,
                 color: node.style.color ?? "#17191f",
-                textDecoration: "none",
+                textDecoration: "underline",
               }}
             >
               {span.text}

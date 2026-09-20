@@ -34,8 +34,10 @@ import { Route as DocsIndexRouteImport } from './routes/docs.index'
 import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
 import { Route as FactsImportRouteImport } from './routes/facts_.import'
 import { Route as JobsJobIdRouteImport } from './routes/jobs_.$jobId'
+import { Route as ResumesIndexRouteImport } from './routes/resumes.index'
 import { Route as ResumesResumeIdRouteImport } from './routes/resumes.$resumeId'
 import { Route as SourceRefinementsTaskIdRouteImport } from './routes/source-refinements.$taskId'
+import { Route as TemplatesTemplateIdRouteImport } from './routes/templates_.$templateId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiV1ContextsRouteImport } from './routes/api/v1/contexts'
 import { Route as ApiV1DuplicatesRouteImport } from './routes/api/v1/duplicates'
@@ -193,6 +195,11 @@ const JobsJobIdRoute = JobsJobIdRouteImport.update({
   path: '/jobs/$jobId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResumesIndexRoute = ResumesIndexRouteImport.update({
+  id: '/resumes/',
+  path: '/resumes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResumesResumeIdRoute = ResumesResumeIdRouteImport.update({
   id: '/resumes/$resumeId',
   path: '/resumes/$resumeId',
@@ -201,6 +208,11 @@ const ResumesResumeIdRoute = ResumesResumeIdRouteImport.update({
 const SourceRefinementsTaskIdRoute = SourceRefinementsTaskIdRouteImport.update({
   id: '/source-refinements/$taskId',
   path: '/source-refinements/$taskId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TemplatesTemplateIdRoute = TemplatesTemplateIdRouteImport.update({
+  id: '/templates_/$templateId',
+  path: '/templates/$templateId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -391,7 +403,9 @@ export interface FileRoutesByFullPath {
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/resumes/$resumeId': typeof ResumesResumeIdRoute
   '/source-refinements/$taskId': typeof SourceRefinementsTaskIdRoute
+  '/templates/$templateId': typeof TemplatesTemplateIdRoute
   '/docs/': typeof DocsIndexRoute
+  '/resumes/': typeof ResumesIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/contexts': typeof ApiV1ContextsRoute
   '/api/v1/duplicates': typeof ApiV1DuplicatesRoute
@@ -450,7 +464,9 @@ export interface FileRoutesByTo {
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/resumes/$resumeId': typeof ResumesResumeIdRoute
   '/source-refinements/$taskId': typeof SourceRefinementsTaskIdRoute
+  '/templates/$templateId': typeof TemplatesTemplateIdRoute
   '/docs': typeof DocsIndexRoute
+  '/resumes': typeof ResumesIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/contexts': typeof ApiV1ContextsRoute
   '/api/v1/duplicates': typeof ApiV1DuplicatesRoute
@@ -511,7 +527,9 @@ export interface FileRoutesById {
   '/jobs_/$jobId': typeof JobsJobIdRoute
   '/resumes/$resumeId': typeof ResumesResumeIdRoute
   '/source-refinements/$taskId': typeof SourceRefinementsTaskIdRoute
+  '/templates_/$templateId': typeof TemplatesTemplateIdRoute
   '/docs/': typeof DocsIndexRoute
+  '/resumes/': typeof ResumesIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/contexts': typeof ApiV1ContextsRoute
   '/api/v1/duplicates': typeof ApiV1DuplicatesRoute
@@ -573,7 +591,9 @@ export interface FileRouteTypes {
     | '/jobs/$jobId'
     | '/resumes/$resumeId'
     | '/source-refinements/$taskId'
+    | '/templates/$templateId'
     | '/docs/'
+    | '/resumes/'
     | '/api/auth/$'
     | '/api/v1/contexts'
     | '/api/v1/duplicates'
@@ -632,7 +652,9 @@ export interface FileRouteTypes {
     | '/jobs/$jobId'
     | '/resumes/$resumeId'
     | '/source-refinements/$taskId'
+    | '/templates/$templateId'
     | '/docs'
+    | '/resumes'
     | '/api/auth/$'
     | '/api/v1/contexts'
     | '/api/v1/duplicates'
@@ -692,7 +714,9 @@ export interface FileRouteTypes {
     | '/jobs_/$jobId'
     | '/resumes/$resumeId'
     | '/source-refinements/$taskId'
+    | '/templates_/$templateId'
     | '/docs/'
+    | '/resumes/'
     | '/api/auth/$'
     | '/api/v1/contexts'
     | '/api/v1/duplicates'
@@ -752,6 +776,8 @@ export interface RootRouteChildren {
   JobsJobIdRoute: typeof JobsJobIdRoute
   ResumesResumeIdRoute: typeof ResumesResumeIdRoute
   SourceRefinementsTaskIdRoute: typeof SourceRefinementsTaskIdRoute
+  TemplatesTemplateIdRoute: typeof TemplatesTemplateIdRoute
+  ResumesIndexRoute: typeof ResumesIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiV1ContextsRoute: typeof ApiV1ContextsRoute
   ApiV1DuplicatesRoute: typeof ApiV1DuplicatesRoute
@@ -949,6 +975,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JobsJobIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/resumes/': {
+      id: '/resumes/'
+      path: '/resumes'
+      fullPath: '/resumes/'
+      preLoaderRoute: typeof ResumesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/resumes/$resumeId': {
       id: '/resumes/$resumeId'
       path: '/resumes/$resumeId'
@@ -961,6 +994,13 @@ declare module '@tanstack/react-router' {
       path: '/source-refinements/$taskId'
       fullPath: '/source-refinements/$taskId'
       preLoaderRoute: typeof SourceRefinementsTaskIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/templates_/$templateId': {
+      id: '/templates_/$templateId'
+      path: '/templates/$templateId'
+      fullPath: '/templates/$templateId'
+      preLoaderRoute: typeof TemplatesTemplateIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -1346,6 +1386,8 @@ const rootRouteChildren: RootRouteChildren = {
   JobsJobIdRoute: JobsJobIdRoute,
   ResumesResumeIdRoute: ResumesResumeIdRoute,
   SourceRefinementsTaskIdRoute: SourceRefinementsTaskIdRoute,
+  TemplatesTemplateIdRoute: TemplatesTemplateIdRoute,
+  ResumesIndexRoute: ResumesIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiV1ContextsRoute: ApiV1ContextsRoute,
   ApiV1DuplicatesRoute: ApiV1DuplicatesRoute,

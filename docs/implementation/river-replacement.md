@@ -15,7 +15,7 @@ an active browser; server agents submit extracted text.
 - [x] Browser worker rendering proof and shared typed document resolver.
 - [x] Records, owner-scoped persistence, revision/idempotency protection, archive.
 - [x] Fact bank, browser imports, nested content, REST/MCP replacement.
-- [ ] Production template/résumé editor and Paper states.
+- [x] Production template/résumé editor and Paper states.
 - [ ] PDF preview/export, history, suggestions, both optional scorecards.
 - [ ] Local archive cutover and retained artifact validation.
 - [ ] Retired editor, LaTeX, Paged.js and container dependency removal.
@@ -91,3 +91,24 @@ creation, save-as-content, independent copy edits, partial-date import, exclusio
 an empty proposed fact, and saving supplied source text. Local validation records
 are clearly named and will be removed before delivery. Real-provider and file-format
 failure checks remain part of final acceptance.
+
+### Production visual editor
+
+Templates and résumés now use the authenticated visual editor at `/templates/:id`
+and `/resumes/:id`. Commands own session history, selection, editing and stable IDs.
+Tiptap updates field attributes during typing; structural commands rebuild only the
+projection. Repeating layouts belong to reusable definitions. Containers unwrap on
+removal; explicit reparenting is separate from sibling dragging. Incomplete drafts
+save to the server with browser recovery, conflict recovery and separate-copy actions.
+
+Template switches and content insertion expose nested field mapping and retain
+unused values. Direct authoring, blank-entry controls, and explicit save-back to the
+Fact Bank or library use independent copies. The canvas fits the available desktop
+width, while measurements remain points. PDF preview shows the actual generated file.
+
+Paper adds content mapping `D2W-1` and saved versions/exports `D4L-1`. Browser checks
+covered template creation, custom Publications with repeated entries, typed fields,
+blank résumé creation, double-click editing, Escape, add-entry, Control undo/redo,
+Backspace deletion and a one-page PDF text-completeness check. Focused domain tests
+cover unwrapping, movement cycle protection and layout application retaining IDs,
+values and entry counts. Broader browser interaction checks remain in final acceptance.

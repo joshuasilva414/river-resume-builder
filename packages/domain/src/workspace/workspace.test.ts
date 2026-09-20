@@ -119,3 +119,46 @@ it("imports typed values without verification states and rejects malformed dates
     ),
   ).toThrow();
 });
+
+it("unwraps layout containers without changing field bindings or values", async () => {
+  const { layoutPath, moveLayout, removeLayout } = await import("./layout");
+  const resume = renderingFixture(2),
+    definition = resume.template.document.definitions.find((item) => item.id === "education");
+  if (!definition) throw Error("Missing fixture");
+  const container =
+    definition.layout.kind === "column"
+      ? definition.layout.children.find((node) => node.kind === "row")
+      : undefined;
+  if (container?.kind !== "row") throw Error("Missing row");
+  const children = container.children.map((node) => node.id),
+    unwrapped = removeLayout(definition.layout, container.id);
+  for (const id of children) expect(layoutPath(unwrapped, id)).toHaveLength(2);
+  expect(moveLayout(unwrapped, unwrapped.id, children[0] ?? "", "inside")).toEqual(unwrapped);
+});
+it("applying a new template retains repeated entry counts and unused values", async () => {
+  const { applyTemplate } = await import("./mapping");
+  const resume = renderingFixture(3),
+    template = structuredClone(resume.template.document),
+    education = template.definitions.find((item) => item.id === "education");
+  if (!education) throw Error("Missing fixture");
+  const changed = applyTemplate(resume, { ...resume.template, revision: 2, document: template });
+  const { findContent } = await import("./content");
+  const visit = (nodes: typeof resume.sections) => {
+    for (const node of nodes) {
+      const after = findContent(changed.sections, node.id);
+      expect(after).toBeDefined();
+      if (node.kind === "field") {
+        expect(after?.kind === "field" ? after.value : null).toEqual(node.value);
+      } else visit(node.children);
+    }
+  };
+  visit(resume.sections);
+  const beforeEntries = resume.sections.find((node) => node.key === "experiences"),
+    afterEntries = changed.sections.find((node) => node.key === "experiences");
+  expect(afterEntries?.kind === "group" ? afterEntries.children.length : 0).toBe(
+    beforeEntries?.kind === "group" ? beforeEntries.children.length : 0,
+  );
+  template.sections = template.sections.filter((section) => section.key !== "educations");
+  const switched = applyTemplate(resume, { ...resume.template, revision: 3, document: template });
+  expect(switched.sections.length + switched.unused.length).toBe(resume.sections.length);
+});

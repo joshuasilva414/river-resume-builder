@@ -75,6 +75,10 @@ export type ResolvedDocument = {
   expectedText: string[];
   warnings: string[];
 };
+const printable = (node: ResolvedNode): boolean =>
+  node.kind === "text"
+    ? node.spans.some((span) => span.text.length > 0)
+    : node.children.some(printable);
 /** This is the single authority for printable content and reading order. Editor placeholders never print. */
 export function resolveDocument(resume: Resume, placeholders = false): ResolvedDocument {
   const template = resume.template.document;
@@ -103,9 +107,13 @@ export function resolveDocument(resume: Resume, placeholders = false): ResolvedD
           const result = resolve(child);
           return result ? [result] : [];
         });
-        if (node.kind === "row" && node.separator && children.length > 1)
-          children = children.flatMap((child, i) =>
-            i
+        if (node.kind === "row" && node.separator && children.length > 1) {
+          let populatedBefore = false;
+          children = children.flatMap((child, i) => {
+            const include = printable(child),
+              separate = include && populatedBefore;
+            populatedBefore ||= include;
+            return separate
               ? [
                   {
                     ...base,
@@ -116,8 +124,9 @@ export function resolveDocument(resume: Resume, placeholders = false): ResolvedD
                   },
                   child,
                 ]
-              : [child],
-          );
+              : [child];
+          });
+        }
         return children.length || placeholders
           ? { ...base, kind: node.kind, children, contentId: group.id }
           : null;

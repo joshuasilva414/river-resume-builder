@@ -4,7 +4,7 @@ import { WorkspaceShell } from "~/components/workspace-shell";
 import { getSession } from "~/server/functions";
 
 const DocumentList = lazy(() => import("~/components/visual-editor/document-list"));
-export const Route = createFileRoute("/templates")({
+export const Route = createFileRoute("/resumes/")({
   beforeLoad: async () => {
     const session = await getSession();
     if (!session.user) throw redirect({ to: "/sign-in" });
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/templates")({
     return (
       <WorkspaceShell {...session}>
         <Suspense fallback={<p className="p-10">Loading document workspace…</p>}>
-          <DocumentList kind="template" />
+          <DocumentList kind="resume" />
         </Suspense>
       </WorkspaceShell>
     );

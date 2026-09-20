@@ -91,10 +91,14 @@ export function RichTextInput({
   value,
   onChange,
   label = "Value",
+  compact = false,
+  autofocus = false,
 }: {
   value: RichText;
   onChange: (value: RichText) => void;
   label?: string;
+  compact?: boolean;
+  autofocus?: boolean;
 }) {
   const callback = useRef(onChange);
   callback.current = onChange;
@@ -104,7 +108,7 @@ export function RichTextInput({
     content: { type: "doc", content: [{ type: "paragraph", content: spansToJson(value) }] },
     editorProps: {
       attributes: {
-        class: "min-h-24 p-3 outline-none",
+        class: compact ? "min-h-6 p-1 outline-none" : "min-h-24 p-3 outline-none",
         role: "textbox",
         "aria-label": label,
         "aria-multiline": "true",
@@ -112,6 +116,9 @@ export function RichTextInput({
     },
     onUpdate: ({ editor }) => callback.current(jsonToSpans(editor.getJSON())),
   });
+  useEffect(() => {
+    if (editor && autofocus) editor.commands.focus("end");
+  }, [editor, autofocus]);
   useEffect(() => {
     if (editor && JSON.stringify(jsonToSpans(editor.getJSON())) !== JSON.stringify(value))
       editor.commands.setContent(
