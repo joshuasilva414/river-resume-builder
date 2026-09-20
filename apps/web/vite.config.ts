@@ -11,7 +11,8 @@ export default defineConfig({
     cloudflare({ viteEnvironment: { name: "ssr" } }),
     tanstackStart(),
     tailwindcss(),
-    react(),
+    // Worker-rendered React documents have no window or hot-refresh runtime.
+    react({ exclude: [/\/pdf\/(?:document|render\.worker)\.tsx$/, /\/node_modules\//] }),
   ],
   server: { port: 3000, host: "127.0.0.1" },
 });

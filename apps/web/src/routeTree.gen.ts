@@ -26,6 +26,7 @@ import { Route as SourcesRouteImport } from './routes/sources'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as TrashRouteImport } from './routes/trash'
 import { Route as CheckpointsCheckpointIdRouteImport } from './routes/checkpoints.$checkpointId'
+import { Route as DemoPdfProofRouteImport } from './routes/demo.pdf-proof'
 import { Route as DemoVisualEditorRouteImport } from './routes/demo.visual-editor'
 import { Route as DocsIndexRouteImport } from './routes/docs.index'
 import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
@@ -133,6 +134,11 @@ const TrashRoute = TrashRouteImport.update({
 const CheckpointsCheckpointIdRoute = CheckpointsCheckpointIdRouteImport.update({
   id: '/checkpoints/$checkpointId',
   path: '/checkpoints/$checkpointId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoPdfProofRoute = DemoPdfProofRouteImport.update({
+  id: '/demo/pdf-proof',
+  path: '/demo/pdf-proof',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoVisualEditorRoute = DemoVisualEditorRouteImport.update({
@@ -274,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/templates': typeof TemplatesRoute
   '/trash': typeof TrashRoute
   '/checkpoints/$checkpointId': typeof CheckpointsCheckpointIdRoute
+  '/demo/pdf-proof': typeof DemoPdfProofRoute
   '/demo/visual-editor': typeof DemoVisualEditorRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
@@ -315,6 +322,7 @@ export interface FileRoutesByTo {
   '/templates': typeof TemplatesRoute
   '/trash': typeof TrashRoute
   '/checkpoints/$checkpointId': typeof CheckpointsCheckpointIdRoute
+  '/demo/pdf-proof': typeof DemoPdfProofRoute
   '/demo/visual-editor': typeof DemoVisualEditorRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
@@ -358,6 +366,7 @@ export interface FileRoutesById {
   '/templates': typeof TemplatesRoute
   '/trash': typeof TrashRoute
   '/checkpoints/$checkpointId': typeof CheckpointsCheckpointIdRoute
+  '/demo/pdf-proof': typeof DemoPdfProofRoute
   '/demo/visual-editor': typeof DemoVisualEditorRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/jobs_/$jobId': typeof JobsJobIdRoute
@@ -402,6 +411,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/trash'
     | '/checkpoints/$checkpointId'
+    | '/demo/pdf-proof'
     | '/demo/visual-editor'
     | '/docs/$slug'
     | '/jobs/$jobId'
@@ -443,6 +453,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/trash'
     | '/checkpoints/$checkpointId'
+    | '/demo/pdf-proof'
     | '/demo/visual-editor'
     | '/docs/$slug'
     | '/jobs/$jobId'
@@ -485,6 +496,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/trash'
     | '/checkpoints/$checkpointId'
+    | '/demo/pdf-proof'
     | '/demo/visual-editor'
     | '/docs/$slug'
     | '/jobs_/$jobId'
@@ -528,6 +540,7 @@ export interface RootRouteChildren {
   TemplatesRoute: typeof TemplatesRoute
   TrashRoute: typeof TrashRoute
   CheckpointsCheckpointIdRoute: typeof CheckpointsCheckpointIdRoute
+  DemoPdfProofRoute: typeof DemoPdfProofRoute
   DemoVisualEditorRoute: typeof DemoVisualEditorRoute
   JobsJobIdRoute: typeof JobsJobIdRoute
   ResumesResumeIdRoute: typeof ResumesResumeIdRoute
@@ -664,6 +677,13 @@ declare module '@tanstack/react-router' {
       path: '/checkpoints/$checkpointId'
       fullPath: '/checkpoints/$checkpointId'
       preLoaderRoute: typeof CheckpointsCheckpointIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo/pdf-proof': {
+      id: '/demo/pdf-proof'
+      path: '/demo/pdf-proof'
+      fullPath: '/demo/pdf-proof'
+      preLoaderRoute: typeof DemoPdfProofRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo/visual-editor': {
@@ -911,6 +931,7 @@ const rootRouteChildren: RootRouteChildren = {
   TemplatesRoute: TemplatesRoute,
   TrashRoute: TrashRoute,
   CheckpointsCheckpointIdRoute: CheckpointsCheckpointIdRoute,
+  DemoPdfProofRoute: DemoPdfProofRoute,
   DemoVisualEditorRoute: DemoVisualEditorRoute,
   JobsJobIdRoute: JobsJobIdRoute,
   ResumesResumeIdRoute: ResumesResumeIdRoute,
