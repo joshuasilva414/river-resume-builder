@@ -16,7 +16,7 @@ export const ExtractionResult = Schema.Struct({
 });
 export type ExtractionResult = typeof ExtractionResult.Type;
 
-export const SourceIdentity = Schema.Struct({ id: Schema.String.check(Schema.isUUID(7)) });
+export const SourceIdentity = Schema.Struct({ id: Schema.String.check(Schema.isUUID()) });
 export const InspectSourceRequest = Schema.Struct({
   ...SourceIdentity.fields,
   processingId: Schema.optional(Schema.String.check(Schema.isUUID(7))),

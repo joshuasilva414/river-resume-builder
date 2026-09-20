@@ -249,10 +249,10 @@ export default function FactImport({ sourceId }: { sourceId?: string }) {
               </Button>
             </div>
             {contexts.map((context) => (
-              <div key={context.id} className="flex gap-2">
+              <div key={context.id} className="grid min-w-0 gap-2 sm:grid-cols-2">
                 <input
                   aria-label="Context name"
-                  className={`${inputClass} flex-1`}
+                  className={inputClass}
                   value={context.label}
                   onChange={(event) =>
                     setContexts(
@@ -298,7 +298,7 @@ export default function FactImport({ sourceId }: { sourceId?: string }) {
                 className={`space-y-3 rounded border p-5 ${excluded.includes(fact.id) ? "opacity-50" : ""}`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <label className="flex items-center gap-2 text-xs text-primary">
+                  <label className="flex shrink-0 items-center gap-2 text-xs text-primary">
                     <input
                       type="checkbox"
                       checked={!excluded.includes(fact.id)}
@@ -314,7 +314,7 @@ export default function FactImport({ sourceId }: { sourceId?: string }) {
                   </label>
                   <select
                     aria-label="Fact type"
-                    className={inputClass}
+                    className={`${inputClass} max-w-40`}
                     value={fact.value.kind}
                     onChange={(event) =>
                       update(fact.id, (item) => ({
@@ -328,10 +328,10 @@ export default function FactImport({ sourceId }: { sourceId?: string }) {
                     ))}
                   </select>
                 </div>
-                <div className="flex gap-3">
+                <div className="grid min-w-0 gap-3 sm:grid-cols-2">
                   <input
                     aria-label="Fact label"
-                    className={`${inputClass} flex-1`}
+                    className={inputClass}
                     value={fact.label}
                     onChange={(event) =>
                       update(fact.id, (item) => ({ ...item, label: event.target.value }))

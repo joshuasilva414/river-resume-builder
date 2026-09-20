@@ -10,7 +10,7 @@ export default defineConfig(async () => ({
         compatibilityFlags: ["nodejs_compat"],
         d1Databases: ["DB"],
         r2Buckets: ["ARTIFACTS"],
-        workflows: {BACKUP_WORKFLOW:{name:"test-backup",className:"BackupWorkflow"}},
+        workflows: { BACKUP_WORKFLOW: { name: "test-backup", className: "BackupWorkflow" } },
         bindings: { TEST_MIGRATIONS: await readD1Migrations("../../packages/db/migrations") },
       },
     }),

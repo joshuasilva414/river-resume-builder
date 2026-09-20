@@ -96,3 +96,52 @@ it("rejects stale rendered text before a provider call and releases allowance af
   expect(result.error).toContain("unavailable");
   expect(await repository.readScoringAllowance(actor)).toMatchObject({ used: 0, reserved: 0 });
 });
+it("scores an owned résumé against its captured posting with one quota unit", async () => {
+  const { repository, actor, resume, run } = await fixture(),
+    jobId = newId(),
+    resumeId = newId();
+  await repository.saveWorkspaceJob(actor, {
+    id: jobId,
+    revision: 0,
+    idempotencyKey: newId(),
+    details: { role: "Engineer", company: "Fictional", location: "Remote" },
+    description: "Build accessible React products.",
+    url: null,
+    factIds: [],
+    archived: false,
+  });
+  resume.job = { id: jobId, title: "Engineer", description: "Build accessible React products." };
+  await repository.saveWorkspaceRecord(actor, {
+    id: resumeId,
+    revision: 0,
+    idempotencyKey: newId(),
+    payload: { kind: "resume", data: resume },
+  });
+  const transport = vi.fn<typeof fetch>(async (_url, init) =>
+    Response.json(
+      init?.method === "POST"
+        ? syntheticScoringResponse(JSON.parse(String(init.body)))
+        : syntheticScoringVersion,
+    ),
+  );
+  const result = await run(
+    {
+      documentId: resumeId,
+      kind: "resume-score",
+      idempotencyKey: newId(),
+      sample: {
+        name: "Captured résumé",
+        resume,
+        text: resolveDocument(resume).expectedText.join("\n"),
+        renderer: "browser-fixture",
+        fonts: "fixture",
+        mapped: true,
+      },
+    },
+    transport,
+  );
+  expect(result.state).toBe("Complete");
+  expect(JSON.parse(result.result ?? "{}").results).toHaveLength(1);
+  expect(await repository.readScoringAllowance(actor)).toMatchObject({ used: 1, reserved: 0 });
+  expect(result.input).toContain(resume.job.description);
+});

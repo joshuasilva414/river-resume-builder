@@ -204,8 +204,13 @@ export function useWorkspaceDraft(initial: EditorRecord, ownerId: string) {
       return flush();
     },
     discardRecovery: () => {
-      localStorage.removeItem(storageKey);
-      window.location.reload();
+      // The explicit discard action must bypass the ordinary unsaved-navigation guard.
+      saved.current = JSON.stringify(current.current);
+      try {
+        localStorage.removeItem(storageKey);
+      } finally {
+        window.location.reload();
+      }
     },
   };
 }

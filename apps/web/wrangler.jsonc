@@ -4,9 +4,7 @@
   "account_id": "a91c30d69981b341efe3b656a263f6da",
   "main": "src/server.ts",
   "compatibility_date": "2026-08-22",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true,
     "redact_query_string": true,
@@ -48,9 +46,7 @@
     }
   ],
   "triggers": {
-    "crons": [
-      "*/5 * * * *"
-    ]
+    "crons": ["*/5 * * * *"]
   },
   "env": {
     "staging": {
@@ -87,15 +83,11 @@
       "send_email": [
         {
           "name": "EMAIL",
-          "allowed_sender_addresses": [
-            "hello@river.jilva.dev"
-          ]
+          "allowed_sender_addresses": ["hello@river.jilva.dev"]
         }
       ],
       "triggers": {
-        "crons": [
-          "*/5 * * * *"
-        ]
+        "crons": ["*/5 * * * *"]
       },
       "d1_databases": [
         {
@@ -140,15 +132,11 @@
       "send_email": [
         {
           "name": "EMAIL",
-          "allowed_sender_addresses": [
-            "hello@river.jilva.dev"
-          ]
+          "allowed_sender_addresses": ["hello@river.jilva.dev"]
         }
       ],
       "triggers": {
-        "crons": [
-          "*/5 * * * *"
-        ]
+        "crons": ["*/5 * * * *"]
       },
       "d1_databases": [
         {

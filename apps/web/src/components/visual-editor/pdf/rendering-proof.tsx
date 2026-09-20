@@ -6,7 +6,18 @@ import { usePdf } from "./use-pdf";
 /** Development acceptance fixture. Never writes fictional content to the workspace. */
 export default function RenderingProof() {
   const [count, setCount] = useState(3);
-  const resume = useMemo(() => renderingFixture(count), [count]);
+  const [name, setName] = useState("Maya Chen");
+  const resume = useMemo(() => {
+    const document = renderingFixture(count),
+      contact = document.sections[0];
+    if (contact?.kind === "group")
+      contact.children = contact.children.map((field) =>
+        field.kind === "field" && field.key === "name"
+          ? { ...field, value: { kind: "text", value: [{ text: name }] } }
+          : field,
+      );
+    return document;
+  }, [count, name]);
   const pdf = usePdf(resume);
   return (
     <div className="flex flex-col gap-4 p-8">
@@ -26,6 +37,15 @@ export default function RenderingProof() {
           onChange={(event) => setCount(Math.max(1, Math.min(40, Number(event.target.value))))}
         />
       </label>
+      <label>
+        Fixture name{" "}
+        <input
+          aria-label="Fixture name"
+          maxLength={150}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
+      </label>
       <p role="status">
         {pdf.pending
           ? "Generating PDF…"
@@ -34,7 +54,7 @@ export default function RenderingProof() {
             : "Preview unavailable"}
       </p>
       {pdf.error && <p role="alert">{pdf.error}</p>}
-      <ImportProof pdf={pdf.fresh ? (pdf.result?.blob ?? null) : null} />
+      <ImportProof pdf={pdf.fresh ? (pdf.result?.blob ?? null) : null} expectedName={name} />
       {pdf.result && (
         <>
           <a href={pdf.result.url} download="river-rendering-proof.pdf">

@@ -11,16 +11,14 @@ async function fixture() {
   const repository = createRepository(env.DB),
     id = newId();
   const actor: Principal = { kind: "owner", id, ownerId: id };
-  await repository.db
-    .insert(schema.user)
-    .values({
-      id,
-      email: `${id}@test.invalid`,
-      name: "Job fixture",
-      emailVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+  await repository.db.insert(schema.user).values({
+    id,
+    email: `${id}@test.invalid`,
+    name: "Job fixture",
+    emailVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
   const factId = newId();
   await repository.saveWorkspaceRecord(actor, {
     id: factId,

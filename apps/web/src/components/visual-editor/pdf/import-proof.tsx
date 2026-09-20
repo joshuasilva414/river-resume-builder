@@ -1,9 +1,10 @@
+import { getDocument } from "pdfjs-dist";
 import { useState } from "react";
 import { parseCandidateFile } from "~/components/workspace/browser-import";
 import fixtureUrl from "./fixtures/representative.docx?url";
 
 /** DEVELOPMENT ONLY: browser acceptance fixtures, never submitted to Sources or candidate records. */
-export function ImportProof({ pdf }: { pdf: Blob | null }) {
+export function ImportProof({ pdf, expectedName }: { pdf: Blob | null; expectedName: string }) {
   const [results, setResults] = useState<string[]>([]),
     [busy, setBusy] = useState(false);
   const run = async () => {
@@ -30,8 +31,29 @@ export function ImportProof({ pdf }: { pdf: Blob | null }) {
       }
     };
     await check("PDF text extraction", async () =>
-      (await parseCandidateFile(new File([pdf], "resume.pdf"))).text.includes("Maya Chen"),
+      (await parseCandidateFile(new File([pdf], "resume.pdf"))).text.includes(expectedName),
     );
+    await check("PDF preserves web and email links", async () => {
+      const task = getDocument({ data: new Uint8Array(await pdf.arrayBuffer()) });
+      try {
+        const document = await task.promise;
+        const links: string[] = [];
+        for (let page = 1; page <= document.numPages; page++) {
+          const annotations: unknown[] = await (await document.getPage(page)).getAnnotations();
+          for (const annotation of annotations)
+            if (
+              annotation &&
+              typeof annotation === "object" &&
+              "url" in annotation &&
+              typeof annotation.url === "string"
+            )
+              links.push(annotation.url);
+        }
+        return links.includes("https://example.com/") && links.includes("mailto:maya@example.com");
+      } finally {
+        await task.destroy();
+      }
+    });
     await check("DOCX text, tables and Unicode", async () => {
       const file = new File([await (await fetch(fixtureUrl)).arrayBuffer()], "candidate.docx");
       const parsed = await parseCandidateFile(file);
