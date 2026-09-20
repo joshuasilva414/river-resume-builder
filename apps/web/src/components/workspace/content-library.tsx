@@ -96,6 +96,7 @@ export function ContentTreeEditor({
               <div className="flex flex-col gap-1 pt-1">
                 {([-1, 1] as const).map((direction) => (
                   <Button
+                    type="button"
                     key={direction}
                     variant="ghost"
                     size="icon-sm"
@@ -112,6 +113,7 @@ export function ContentTreeEditor({
                   </Button>
                 ))}
                 <Button
+                  type="button"
                   variant="ghost"
                   size="icon-sm"
                   aria-label={`Remove ${child.label}`}
@@ -129,6 +131,7 @@ export function ContentTreeEditor({
           ))}
           <div className="flex gap-2">
             <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={() => onChange({ ...node, children: [...node.children, newField()] })}
@@ -137,6 +140,7 @@ export function ContentTreeEditor({
               Field
             </Button>
             <Button
+              type="button"
               variant="outline"
               size="sm"
               disabled={depth >= 6}
@@ -296,12 +300,13 @@ export default function ContentLibrary() {
               <Button type="submit" disabled={commands.save.isPending}>
                 Save content
               </Button>
-              <Button variant="outline" onClick={() => setEditing(null)}>
+              <Button type="button" variant="outline" onClick={() => setEditing(null)}>
                 Cancel
               </Button>
               {editing.revision > 0 && (
                 <>
                   <Button
+                    type="button"
                     variant="outline"
                     onClick={() =>
                       setEditing({
@@ -318,6 +323,8 @@ export default function ContentLibrary() {
                     Duplicate
                   </Button>
                   <Button
+                    type="button"
+                    disabled={commands.remove.isPending || commands.save.isPending}
                     variant="ghost"
                     onClick={async () => {
                       try {

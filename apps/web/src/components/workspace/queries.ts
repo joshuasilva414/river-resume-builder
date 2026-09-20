@@ -37,8 +37,11 @@ export function useRecordCommands() {
   });
   const remove = useMutation({
     mutationFn: async (input: { id: string; revision: number; kind: RecordKind }) => {
+      const identity = `delete:${input.kind}:${input.id}:${input.revision}`;
+      const idempotencyKey = retries.current.get(identity) ?? crypto.randomUUID();
+      retries.current.set(identity, idempotencyKey);
       const result = await removeWorkspaceRecord({
-        data: { ...input, idempotencyKey: crypto.randomUUID() },
+        data: { ...input, idempotencyKey },
       });
       if (!result.ok) throw Error(result.error.title);
       return result.value;
