@@ -1,6 +1,7 @@
 import { renderingFixture } from "@river/domain/workspace";
 import { useMemo, useState } from "react";
 import { PdfPreview } from "~/components/pdf-preview";
+import { ImportProof } from "./import-proof";
 import { usePdf } from "./use-pdf";
 /** Development acceptance fixture. Never writes fictional content to the workspace. */
 export default function RenderingProof() {
@@ -33,6 +34,7 @@ export default function RenderingProof() {
             : "Preview unavailable"}
       </p>
       {pdf.error && <p role="alert">{pdf.error}</p>}
+      <ImportProof pdf={pdf.fresh ? (pdf.result?.blob ?? null) : null} />
       {pdf.result && (
         <>
           <a href={pdf.result.url} download="river-rendering-proof.pdf">

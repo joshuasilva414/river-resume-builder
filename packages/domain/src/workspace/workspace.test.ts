@@ -135,6 +135,72 @@ it("unwraps layout containers without changing field bindings or values", async 
   for (const id of children) expect(layoutPath(unwrapped, id)).toHaveLength(2);
   expect(moveLayout(unwrapped, unwrapped.id, children[0] ?? "", "inside")).toEqual(unwrapped);
 });
+it("deleting a nested template row keeps its section, while deleting the root removes only that section", async () => {
+  const { removeTemplateNode } = await import("./layout");
+  const template = standardTemplate(),
+    contact = template.definitions.find((item) => item.id === "contact");
+  if (contact?.layout.kind !== "column") throw Error("fixture");
+  const row = contact.layout.children.find((item) => item.kind === "row");
+  if (!row) throw Error("fixture");
+  const unwrapped = parseTemplate(removeTemplateNode(template, contact.id, row.id, "contact"));
+  expect(unwrapped.sections).toEqual(template.sections);
+  expect(unwrapped.definitions.find((item) => item.id === "contact")?.fields).toEqual(
+    contact.fields,
+  );
+  expect(
+    removeTemplateNode(template, contact.id, contact.layout.id, "contact").sections.map(
+      (item) => item.key,
+    ),
+  ).toEqual(template.sections.filter((item) => item.key !== "contact").map((item) => item.key));
+});
+it("hides conditional labels for empty nested groups, and prints zero and false with their prefixes", async () => {
+  const { blankResume, blankGroup, addTemplateField } = await import("./index");
+  const template = standardTemplate(),
+    experience = template.definitions.find((item) => item.id === "experiences"),
+    education = template.definitions.find((item) => item.id === "education");
+  if (experience?.layout.kind !== "column" || !education) throw Error("fixture");
+  experience.layout.children.unshift({
+    id: "conditional",
+    kind: "literal",
+    text: "Available experience",
+    whenField: "entries",
+    style: {},
+  });
+  template.definitions = template.definitions.map((item) =>
+    item.id === education.id
+      ? addTemplateField(item, {
+          id: "remote",
+          key: "remote",
+          label: "Remote",
+          type: "boolean",
+          repeat: false,
+          required: false,
+          prefix: "Remote: ",
+          suffix: "",
+          separator: "",
+          dateFormat: "short",
+        })
+      : item,
+  );
+  const resume = blankResume(template, "template", 1),
+    group = resume.sections.find((item) => item.key === "experiences"),
+    schools = resume.sections.find((item) => item.key === "educations");
+  if (group?.kind !== "group" || schools?.kind !== "group") throw Error("fixture");
+  group.children.push(blankGroup(template, "experience", "entries", "Experience"));
+  expect(resolveDocument(resume).expectedText.join(" ")).not.toContain("Available experience");
+  const school = blankGroup(template, "education", "entries", "Education");
+  school.children = school.children.map((item) =>
+    item.kind === "field" && item.key === "gpa"
+      ? { ...item, value: { kind: "number", value: 0 } }
+      : item.kind === "field" && item.key === "remote"
+        ? { ...item, value: { kind: "boolean", value: false } }
+        : item,
+  );
+  schools.children.push(school);
+  const text = resolveDocument(resume).expectedText.join(" ");
+  expect(text).toContain("GPA: 0");
+  expect(text).toContain("Remote: No");
+});
 it("applying a new template retains repeated entry counts and unused values", async () => {
   const { applyTemplate } = await import("./mapping");
   const resume = renderingFixture(3),

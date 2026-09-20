@@ -318,7 +318,13 @@ const nodes = [
   ),
 ];
 /** Update attributes at stable identities during typing. Only structural commands rebuild the projection. */
-export function VisualCanvas({ commands }: { commands: CanvasCommands }) {
+export function VisualCanvas({
+  commands,
+  scale = "fit",
+}: {
+  commands: CanvasCommands;
+  scale?: "fit" | number;
+}) {
   const projection = useMemo(
     () => projectDocument(commands.resume, commands.mode),
     [commands.resume, commands.mode],
@@ -392,7 +398,8 @@ export function VisualCanvas({ commands }: { commands: CanvasCommands }) {
         className="visual-paper"
         style={{
           ...browserStyle(template.style),
-          zoom,
+          zoom: scale === "fit" ? zoom : scale,
+          minHeight: template.page.size === "A4" ? "841.89pt" : "792pt",
           width: template.page.size === "A4" ? "595.28pt" : "612pt",
           padding: `${template.page.margin}pt`,
         }}

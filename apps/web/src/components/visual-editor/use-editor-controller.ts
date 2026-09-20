@@ -11,7 +11,7 @@ import {
   newIdentity,
   parseTemplate,
   type Resume,
-  removeLayout,
+  removeTemplateNode,
   type VisualTemplate,
 } from "@river/domain/workspace";
 import { useMemo, useRef, useState } from "react";
@@ -122,28 +122,16 @@ export function useEditorController(initial: EditorRecord, ownerId: string) {
   const remove = () => {
     if (mode === "template")
       updateTemplate((template) =>
-        selection.reduce((current, item) => {
-          const section = resume.sections.find((section) => section.id === item.contentId);
-          if (section) {
-            return {
-              // biome-ignore lint/performance/noAccumulatingSpread: A fixed-size template envelope must remain immutable for undo snapshots.
-              ...current,
-              sections: current.sections.filter((item) => item.key !== section.key),
-            };
-          }
-          return changeDefinition(current, item.definitionId, (definition) => {
-            const target = layoutPath(definition.layout, item.layoutId).at(-1);
-            if (!target || target.id === definition.layout.id) return definition;
-            return {
-              ...definition,
-              fields:
-                target.kind === "field"
-                  ? definition.fields.filter((field) => field.key !== target.fieldKey)
-                  : definition.fields,
-              layout: removeLayout(definition.layout, item.layoutId),
-            };
-          });
-        }, template),
+        selection.reduce(
+          (current, item) =>
+            removeTemplateNode(
+              current,
+              item.definitionId,
+              item.layoutId,
+              resume.sections.find((section) => section.id === item.contentId)?.key,
+            ),
+          template,
+        ),
       );
     else
       updateResume((resume) => ({
@@ -174,6 +162,12 @@ export function useEditorController(initial: EditorRecord, ownerId: string) {
       const definition = resume.template.document.definitions.find(
         (item) => item.id === source.definitionId,
       );
+      if (definition?.layout.id === source.layoutId) {
+        const index = resume.sections.findIndex((section) => section.id === source.contentId);
+        const target = index >= 0 ? resume.sections[index + direction] : undefined;
+        if (target) move(source, target.id, direction < 0 ? "before" : "after", true);
+        return;
+      }
       const parent = definition ? layoutPath(definition.layout, source.layoutId).at(-2) : undefined;
       if (parent?.kind === "row" || parent?.kind === "column") {
         const target =

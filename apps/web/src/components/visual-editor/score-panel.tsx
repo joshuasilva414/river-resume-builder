@@ -119,7 +119,7 @@ export function ScorePanel({
     [storageError, setStorageError] = useState<string | null>(null),
     [busy, setBusy] = useState(false),
     [submitted, setSubmitted] = useState<string | null>(null);
-  const attempt = useRef<WorkspaceScoreRequest | null>(null);
+  const attempt = useRef<{ request: WorkspaceScoreRequest; key: string } | null>(null);
   useEffect(() => {
     if (templateMode)
       try {
@@ -223,10 +223,10 @@ export function ScorePanel({
             kind: "resume-score",
             sample: asSample(single, c.resume.name),
           };
-      const frozen = attempt.current ?? input;
+      const frozen = attempt.current ?? { request: input, key };
       attempt.current = frozen;
-      setSubmitted(key);
-      const result = await requestWorkspaceScore({ data: frozen });
+      setSubmitted(frozen.key);
+      const result = await requestWorkspaceScore({ data: frozen.request });
       if (!result.ok) throw Error(result.error.title);
       if (result.value.state === "Failed") {
         attempt.current = null;

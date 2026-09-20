@@ -132,3 +132,27 @@ export function emptyDefinition(label: string): EntryDefinition {
     layout: { id: newIdentity(), kind: "column", style: { gap: 6 }, children: [] },
   };
 }
+
+/** Only a selected section root removes a section. Nested containers unwrap in place. */
+export function removeTemplateNode(
+  template: VisualTemplate,
+  definitionId: string,
+  layoutId: string,
+  sectionKey?: string,
+): VisualTemplate {
+  const definition = template.definitions.find((item) => item.id === definitionId);
+  const target = definition && layoutPath(definition.layout, layoutId).at(-1);
+  if (!definition || !target) return template;
+  if (target.id === definition.layout.id)
+    return sectionKey
+      ? { ...template, sections: template.sections.filter((section) => section.key !== sectionKey) }
+      : template;
+  return changeDefinition(template, definitionId, (current) => ({
+    ...current,
+    fields:
+      target.kind === "field"
+        ? current.fields.filter((field) => field.key !== target.fieldKey)
+        : current.fields,
+    layout: removeLayout(current.layout, layoutId),
+  }));
+}

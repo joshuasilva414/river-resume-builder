@@ -15,10 +15,14 @@ export type RenderResponse =
       fonts: string;
     }
   | { id: string; ok: false; error: string };
-// Serial execution prevents concurrent font/layout state from interleaving inside the renderer.
-let queue = Promise.resolve();
-self.onmessage = ({ data }: MessageEvent<RenderRequest>) => {
-  queue = queue.then(async () => {
+// Render serially and coalesce waiting requests. Typing cannot build an obsolete render backlog.
+let pending: RenderRequest | null = null;
+let running = false;
+async function drain() {
+  running = true;
+  while (pending) {
+    const data = pending;
+    pending = null;
     try {
       const resume = parseResume(data.resume);
       const document = resolveDocument(resume);
@@ -42,5 +46,10 @@ self.onmessage = ({ data }: MessageEvent<RenderRequest>) => {
       };
       self.postMessage(response);
     }
-  });
+  }
+  running = false;
+}
+self.onmessage = ({ data }: MessageEvent<RenderRequest>) => {
+  pending = data;
+  if (!running) void drain();
 };

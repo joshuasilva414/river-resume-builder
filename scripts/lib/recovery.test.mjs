@@ -127,6 +127,39 @@ async function migrationBundle(max = "9999") {
     }),
   );
 }
+
+test("replacement inventory retains source bytes and complete browser PDFs while excluding pending uploads", () => {
+  const db = new DatabaseSync(":memory:");
+  try {
+    db.exec(
+      "CREATE TABLE sources(object_key TEXT,digest TEXT,state TEXT); CREATE TABLE source_processing_results(object_key TEXT,digest TEXT); CREATE TABLE operations(artifacts TEXT); CREATE TABLE workspace_exports(object_key TEXT,metadata TEXT,state TEXT);",
+    );
+    const digest = sha256("fixture"),
+      original = `sources/owner/source/${digest}/original`,
+      extracted = `sources/owner/source/${digest}/text.json`,
+      pdf = `workspace/owner/exports/export/${digest}.pdf`;
+    db.prepare("INSERT INTO sources VALUES(?,?,'Ready')").run(original, digest);
+    db.prepare("INSERT INTO source_processing_results VALUES(?,?)").run(extracted, digest);
+    db.prepare("INSERT INTO workspace_exports VALUES(?,?,'Complete')").run(
+      pdf,
+      JSON.stringify({ digest }),
+    );
+    db.prepare("INSERT INTO workspace_exports VALUES(?,?,'Prepared')").run(
+      "not-uploaded",
+      JSON.stringify({ digest }),
+    );
+    const references = retainedObjects(db);
+    assert.deepEqual(
+      references.map((item) => item.key),
+      [original, extracted, pdf].sort(),
+    );
+    assert.ok(references.every((item) => item.digest === digest));
+    db.prepare("INSERT INTO sources VALUES(?,?,'Ready')").run("transient/preview", digest);
+    assert.throws(() => retainedObjects(db), /transient storage/);
+  } finally {
+    db.close();
+  }
+});
 function fixtureDatabase(migrations) {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys=ON");

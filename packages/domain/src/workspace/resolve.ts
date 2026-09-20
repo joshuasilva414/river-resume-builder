@@ -144,12 +144,7 @@ export function resolveDocument(resume: Resume, placeholders = false): ResolvedD
       const field = definition.fields.find((field) => field.key === node.fieldKey);
       if (!field) return null;
       const values = group.children.filter((child) => child.key === field.key);
-      if (
-        field.required &&
-        !values.some((child) =>
-          child.kind === "field" ? populated(child.value) : child.children.length > 0,
-        )
-      )
+      if (field.required && !values.some(hasPopulatedContent))
         warnings.push(`${definition.label}: ${field.label} is empty.`);
       if (field.type === "group") {
         const children = values.flatMap((value) => {

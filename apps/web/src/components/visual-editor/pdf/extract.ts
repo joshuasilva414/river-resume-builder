@@ -5,8 +5,8 @@ GlobalWorkerOptions.workerSrc = workerUrl;
 /** Preserve PDF stream order rather than sorting by page coordinates. */
 export async function extractPdfText(bytes: ArrayBuffer) {
   const task = getDocument({ data: new Uint8Array(bytes.slice(0)) });
-  const document = await task.promise;
   try {
+    const document = await task.promise;
     const pages: string[] = [];
     for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber++) {
       const page = await document.getPage(pageNumber);

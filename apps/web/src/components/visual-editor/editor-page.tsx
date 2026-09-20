@@ -71,6 +71,7 @@ function DocumentEditor({ initial, ownerId }: { initial: EditorRecord; ownerId: 
     records = useRecordCommands(),
     templates = useRecords("template");
   const [area, setArea] = useState(false),
+    [canvasScale, setCanvasScale] = useState<"fit" | number>("fit"),
     [preview, setPreview] = useState(false),
     [history, setHistory] = useState(false),
     [scorecard, setScorecard] = useState(false),
@@ -131,6 +132,7 @@ function DocumentEditor({ initial, ownerId }: { initial: EditorRecord; ownerId: 
     <div
       className="visual-workspace"
       onKeyDownCapture={(event) => {
+        if (window.matchMedia("(max-width: 1023px)").matches) return;
         if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
           event.preventDefault();
           event.stopPropagation();
@@ -184,7 +186,7 @@ function DocumentEditor({ initial, ownerId }: { initial: EditorRecord; ownerId: 
           <div>
             <input
               aria-label="Document name"
-              className="w-full border-0 bg-transparent font-serif text-2xl outline-none"
+              className="hidden w-full border-0 bg-transparent font-serif text-2xl outline-none lg:block"
               value={c.draft.payload.data.name}
               onChange={(event) =>
                 c.draft.change(
@@ -197,6 +199,7 @@ function DocumentEditor({ initial, ownerId }: { initial: EditorRecord; ownerId: 
                 )
               }
             />
+            <p className="font-serif text-2xl lg:hidden">{c.draft.payload.data.name}</p>
             <p role="status" className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
               {c.draft.status === "saved" && <Check size={12} />}
               {
@@ -216,6 +219,7 @@ function DocumentEditor({ initial, ownerId }: { initial: EditorRecord; ownerId: 
             size="sm"
             variant="ghost"
             aria-label="Undo"
+            className="hidden lg:inline-flex"
             disabled={!c.draft.canUndo}
             onClick={c.draft.undo}
           >
@@ -225,6 +229,7 @@ function DocumentEditor({ initial, ownerId }: { initial: EditorRecord; ownerId: 
             size="sm"
             variant="ghost"
             aria-label="Redo"
+            className="hidden lg:inline-flex"
             disabled={!c.draft.canRedo}
             onClick={c.draft.redo}
           >
@@ -247,11 +252,11 @@ function DocumentEditor({ initial, ownerId }: { initial: EditorRecord; ownerId: 
             </Button>
           )}
           {c.mode === "template" ? (
-            <Button size="sm" onClick={() => void createResume()}>
+            <Button className="hidden lg:inline-flex" size="sm" onClick={() => void createResume()}>
               Use template
             </Button>
           ) : (
-            <Button variant="outline" size="sm" asChild>
+            <Button className="hidden lg:inline-flex" variant="outline" size="sm" asChild>
               <a href={`/templates/${c.resume.template.id}`}>Edit template</a>
             </Button>
           )}
@@ -511,6 +516,22 @@ function DocumentEditor({ initial, ownerId }: { initial: EditorRecord; ownerId: 
                 <p className="text-xs text-muted-foreground">
                   {c.mode === "template" ? "Design template" : "Build résumé"}
                 </p>
+                <select
+                  aria-label="Canvas zoom"
+                  className="rounded border bg-background px-2 py-1 text-xs"
+                  value={canvasScale}
+                  onChange={(event) =>
+                    setCanvasScale(
+                      event.target.value === "fit" ? "fit" : Number(event.target.value),
+                    )
+                  }
+                >
+                  <option value="fit">Fit width</option>
+                  <option value="0.75">75%</option>
+                  <option value="1">100%</option>
+                  <option value="1.25">125%</option>
+                  <option value="1.5">150%</option>
+                </select>
                 {c.mode === "template" && (
                   <Button
                     size="sm"
@@ -529,7 +550,7 @@ function DocumentEditor({ initial, ownerId }: { initial: EditorRecord; ownerId: 
                 selection={c.selection}
                 onSelection={c.setSelection}
               >
-                <VisualCanvas commands={c.commands} />
+                <VisualCanvas commands={c.commands} scale={canvasScale} />
               </AreaSelection>
             </>
           )}
