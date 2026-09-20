@@ -58,6 +58,14 @@ export const OperationState = Schema.Literals([
 export type OperationState = typeof OperationState.Type;
 
 export const agentScopes = [
+  "facts:read",
+  "facts:write",
+  "content:read",
+  "content:write",
+  "templates:read",
+  "templates:write",
+  "resumes:read",
+  "resumes:write",
   "source:read",
   "source:write",
   "evidence:read",

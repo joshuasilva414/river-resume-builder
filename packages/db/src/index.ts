@@ -35,6 +35,8 @@ import { createTemplateRepository } from "./templates";
 import { createTrashRepository } from "./trash";
 import { createUsageRepository } from "./usage";
 import { createWordingRepository } from "./wording";
+import { createWorkspaceRepository } from "./workspace";
+import { createWorkspaceArchiveRepository } from "./workspace-archive";
 
 export type { RefinementBaseArtifacts, SourceRefinementInput } from "./refinement-types";
 export type { ScoringFailure, ScoringInput, ScoringResult } from "./scoring-types";
@@ -65,6 +67,8 @@ export function createRepository(binding: D1Database) {
 
   return {
     ...createAccessRepository(db),
+    ...createWorkspaceRepository(db),
+    ...createWorkspaceArchiveRepository(db),
     ...createAiSettingsRepository(db),
     ...createUsageRepository(db),
     ...createTrashRepository(db),

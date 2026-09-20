@@ -1460,3 +1460,5 @@ export const jobImports = sqliteTable("job_imports", {
   savedJobId: text("saved_job_id").references(() => jobs.id),
   createdAt: integer("created_at").notNull(),
 });
+
+export * from "./workspace-schema";

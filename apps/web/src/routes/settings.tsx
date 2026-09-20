@@ -55,6 +55,14 @@ export const Route = createFileRoute("/settings")({
   component: Settings,
 });
 const labels: Record<AgentScope, string> = {
+  "facts:read": "Read facts and contexts",
+  "facts:write": "Add and edit facts and contexts",
+  "content:read": "Read reusable content",
+  "content:write": "Add and edit reusable content",
+  "templates:read": "Read visual templates",
+  "templates:write": "Add and edit visual templates",
+  "resumes:read": "Read résumés and saved versions",
+  "resumes:write": "Add and edit résumés",
   "source:read": "Read sources",
   "source:write": "Add sources",
   "evidence:read": "Read evidence",

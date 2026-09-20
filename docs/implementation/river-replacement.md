@@ -13,7 +13,7 @@ an active browser; server agents submit extracted text.
 ## Milestones
 
 - [x] Browser worker rendering proof and shared typed document resolver.
-- [ ] Records, owner-scoped persistence, revision/idempotency protection, archive.
+- [x] Records, owner-scoped persistence, revision/idempotency protection, archive.
 - [ ] Fact bank, browser imports, nested content, REST/MCP replacement.
 - [ ] Production template/résumé editor and Paper states.
 - [ ] PDF preview/export, history, suggestions, both optional scorecards.
@@ -45,3 +45,21 @@ Focused domain checks cover date precision and invalid dates, copy isolation,
 shared entry layouts, missing separators, mapping retention and text loss/order.
 The web production build includes a separate PDF worker. Vite excludes its React
 document from DOM hot refresh, which cannot execute in a worker.
+
+### Storage and archive boundary
+
+Migration `0039_visual_workspace.sql` adds owner-scoped JSON records, immutable
+record revisions, export manifests and archive records. Existing tables are left
+intact while the replacement is built. The cutover operation snapshots historical
+context, evidence, library and template revisions, drafts, checkpoints, and artifact
+manifests. Counts distinguish archive categories; revision categories count retained
+revisions. Repeated cutovers return the original manifest. No rendering is involved.
+
+Writes use the existing atomic command receipts and revision guards. Agent scopes
+are explicit for facts, content, templates and résumés. Bulk fact imports commit
+contexts and facts together, check source/context ownership, and bind ID sets as
+JSON to stay under D1's per-statement parameter limit. A context in use cannot be
+deleted. Facts and content never update existing copies through their origin IDs.
+
+Four worker/database checks currently cover ownership/scopes, idempotency and
+conflicts, bulk import rollback, saved-version immutability, and archive isolation.
