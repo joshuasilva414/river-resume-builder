@@ -5,6 +5,9 @@ import { getSession } from "~/server/functions";
 
 const FactImport = lazy(() => import("~/components/workspace/fact-import"));
 export const Route = createFileRoute("/facts_/import")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    source: typeof search.source === "string" ? search.source : undefined,
+  }),
   beforeLoad: async () => {
     const session = await getSession();
     if (!session.user) throw redirect({ to: "/sign-in" });
@@ -15,7 +18,7 @@ export const Route = createFileRoute("/facts_/import")({
     return (
       <WorkspaceShell {...session}>
         <Suspense fallback={<p className="p-10">Loading import…</p>}>
-          <FactImport />
+          <FactImport sourceId={Route.useSearch().source} />
         </Suspense>
       </WorkspaceShell>
     );

@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { Effect } from "effect";
 import { beforeAll, expect, it } from "vitest";
 import { authenticatePrincipal } from "../src/server/auth";
-import { Actor, execute, startProof } from "../src/server/services";
+import { Actor, execute } from "../src/server/services";
 
 beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
 it("stores only credential hashes, enforces scopes, and revokes without stale or duplicate writes", async () => {
@@ -34,7 +34,7 @@ it("stores only credential hashes, enforces scopes, and revokes without stale or
     idempotencyKey: "create-once",
     name: "Read-only agent",
     secretHash: await fingerprint(secret),
-    scopes: ["evidence:read"] as const,
+    scopes: ["facts:read"] as const,
     expiresInDays: 30,
   };
   expect(await repository.createCredential(ownerId, input)).toBe(input.id);
@@ -47,27 +47,23 @@ it("stores only credential hashes, enforces scopes, and revokes without stale or
   expect(await authenticatePrincipal(settings, headers)).toMatchObject({
     kind: "agent",
     id: input.id,
-    scopes: ["evidence:read"],
+    scopes: ["facts:read"],
   });
   const readIdentity = Effect.gen(function* () {
     return (yield* Actor).id;
   });
-  expect(await execute(settings, headers, readIdentity, "evidence:read")).toMatchObject({
+  expect(await execute(settings, headers, readIdentity, "facts:read")).toMatchObject({
     ok: true,
     value: input.id,
   });
-  expect(await execute(settings, headers, readIdentity, "evidence:write")).toMatchObject({
+  expect(await execute(settings, headers, readIdentity, "facts:write")).toMatchObject({
     ok: false,
     error: { code: "Forbidden" },
   });
-  expect(
-    await execute(
-      settings,
-      headers,
-      startProof(settings.ENVIRONMENT, { idempotencyKey: "forbidden", theme: "classic" }),
-    ),
-  ).toMatchObject({ ok: false, error: { code: "Forbidden" } });
-  expect(await repository.listOperations(ownerId)).toHaveLength(0);
+  expect(await execute(settings, headers, readIdentity)).toMatchObject({
+    ok: false,
+    error: { code: "Forbidden" },
+  });
   await expect(
     repository.revokeCredential(ownerId, { id: input.id, revision: 1, idempotencyKey: "stale" }),
   ).rejects.toMatchObject({ code: "Conflict" });
@@ -76,7 +72,7 @@ it("stores only credential hashes, enforces scopes, and revokes without stale or
   await repository.revokeCredential(ownerId, revoke);
   await repository.revokeCredential(ownerId, revoke);
   expect(await authenticatePrincipal(settings, headers)).toBeNull();
-  expect(await execute(settings, headers, readIdentity, "evidence:read")).toMatchObject({
+  expect(await execute(settings, headers, readIdentity, "facts:read")).toMatchObject({
     ok: false,
     error: { code: "Unauthorized" },
   });

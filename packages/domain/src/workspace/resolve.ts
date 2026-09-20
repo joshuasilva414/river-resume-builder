@@ -135,9 +135,7 @@ export function resolveDocument(resume: Resume, placeholders = false): ResolvedD
         const visible =
           !node.whenField ||
           group.children.some(
-            (child) =>
-              child.key === node.whenField &&
-              (child.kind === "field" ? populated(child.value) : child.children.length > 0),
+            (child) => child.key === node.whenField && hasPopulatedContent(child),
           );
         return visible && node.text
           ? { ...base, kind: "text", spans: [{ text: node.text }] }
@@ -260,4 +258,8 @@ export function validateRenderedText(expected: string[], actual: string) {
   const wanted = normalize(expected.join(""));
   const received = normalize(actual);
   return { ok: wanted === received, expectedLength: wanted.length, actualLength: received.length };
+}
+
+function hasPopulatedContent(node: ContentNode): boolean {
+  return node.kind === "field" ? populated(node.value) : node.children.some(hasPopulatedContent);
 }

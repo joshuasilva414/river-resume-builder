@@ -8,7 +8,7 @@ assert.ok(process.argv.length <= 4 && (!mode || mode === "--bundle-only"));
 const target = deploymentTarget(environment);
 // Tests use local bindings even when the hosted build selects a release environment.
 if (!mode) {
-  for (const command of ["lint", "check", "test", "test:deployment", "test:documents"]) {
+  for (const command of ["lint", "check", "test", "test:deployment"]) {
     await run([command], { CLOUDFLARE_ENV: undefined });
   }
 }

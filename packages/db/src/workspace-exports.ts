@@ -67,17 +67,15 @@ export function createWorkspaceExportRepository(db: Database) {
           ),
         ],
         writes: [
-          db
-            .insert(exports)
-            .values({
-              id: input.id,
-              ownerId: actor.ownerId,
-              versionId: input.versionId,
-              objectKey: input.objectKey,
-              metadata: input.metadata,
-              state: "Prepared",
-              createdAt: Date.now(),
-            }),
+          db.insert(exports).values({
+            id: input.id,
+            ownerId: actor.ownerId,
+            versionId: input.versionId,
+            objectKey: input.objectKey,
+            metadata: input.metadata,
+            state: "Prepared",
+            createdAt: Date.now(),
+          }),
         ],
         history: [
           { entityId: input.id, after: { versionId: input.versionId, metadata: input.metadata } },

@@ -1,8 +1,6 @@
 import { env } from "cloudflare:workers";
-import { StartSourceAiRequest } from "@river/contracts";
 import { createRepository, schema } from "@river/db";
 import { type AiProvider, defaultWorkspacePreferences, newId, type Principal } from "@river/domain";
-import { Schema } from "effect";
 import { expect, it } from "vitest";
 import { decryptAiKey, encryptAiKey } from "../src/server/ai-credentials";
 import { listProviderModels } from "../src/server/ai-models";
@@ -10,19 +8,6 @@ import { generateAiProposal } from "../src/server/ai-provider";
 import { loadAiCredential, resolveAiModel } from "../src/server/ai-settings";
 
 const encryption = { AI_CREDENTIAL_ENCRYPTION_KEY: "a1".repeat(32) };
-it("accepts the UI's unset model override so an action can use the saved default", () => {
-  const request = {
-    idempotencyKey: "default-ai",
-    sourceId: newId(),
-    revision: 0,
-    processingId: newId(),
-    focus: "",
-    contexts: [],
-    ai: undefined,
-  };
-  expect(Schema.decodeUnknownSync(StartSourceAiRequest)(request)).toMatchObject(request);
-});
-
 async function fixture() {
   const store = createRepository(env.DB),
     id = newId();
@@ -355,45 +340,4 @@ it("rejects provider redirects without following them or exposing response conte
       "Your provider rejected the request for this model. Choose another model for a new task or contact support.",
   });
   expect(calls).toBe(1);
-});
-
-it("saves starters atomically, rejects incomplete fields, and derives onboarding from account work", async () => {
-  const { store, actor } = await fixture();
-  expect(await store.getOnboardingProgress(actor.id)).toEqual({
-    evidence: 0,
-    job: 0,
-    content: 0,
-    draft: 0,
-    review: 0,
-    exported: 0,
-  });
-  const input = {
-    idempotencyKey: "contact",
-    type: "contact" as const,
-    label: "Contact",
-    fields: [
-      { key: "name" as const, values: ["Fictional Test Person"] },
-      { key: "lines" as const, values: ["test@example.test"] },
-    ],
-  };
-  const result = await store.createLibraryStarter(actor, input);
-  expect(await store.createLibraryStarter(actor, input)).toEqual(result);
-  const detail = await store.inspectLibrary(actor.id, { id: result.id });
-  expect(detail.graph).toHaveLength(4);
-  expect((await store.getOnboardingProgress(actor.id)).content).toBe(1);
-  const count = (await store.db.select().from(schema.libraryItems)).length;
-  await expect(
-    store.createLibraryStarter(actor, { ...input, idempotencyKey: "invalid", fields: [] }),
-  ).rejects.toMatchObject({ code: "InvalidInput" });
-  expect(await store.db.select().from(schema.libraryItems)).toHaveLength(count);
-  await expect(
-    store.saveWorkspacePreferences(actor, {
-      revision: 0,
-      idempotencyKey: "foreign",
-      preferences: {
-        ...defaultWorkspacePreferences,
-        defaultAi: { connectionId: newId(), model: "other" },
-      },
-    }),
-  ).rejects.toMatchObject({ code: "Conflict" });
 });

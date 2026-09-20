@@ -8,16 +8,14 @@ async function fixture() {
   const repository = createRepository(env.DB),
     id = newId();
   const actor: Principal = { kind: "owner", id, ownerId: id };
-  await repository.db
-    .insert(schema.user)
-    .values({
-      id,
-      email: `${id}@example.test`,
-      name: "Workspace fixture",
-      emailVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+  await repository.db.insert(schema.user).values({
+    id,
+    email: `${id}@example.test`,
+    name: "Workspace fixture",
+    emailVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
   return { repository, actor };
 }
 function factSave(id = newId()): SaveRecord {
@@ -136,18 +134,16 @@ it("archives once, preserves owner boundaries, and leaves accounts and new facts
   const id = newId(),
     revisionId = newId(),
     now = Date.now();
-  await repository.db
-    .insert(schema.contexts)
-    .values({
-      id,
-      ownerId: actor.ownerId,
-      kind: "Owner Profile",
-      label: "Historical profile",
-      revision: 0,
-      currentRevisionId: revisionId,
-      createdAt: now,
-      updatedAt: now,
-    });
+  await repository.db.insert(schema.contexts).values({
+    id,
+    ownerId: actor.ownerId,
+    kind: "Owner Profile",
+    label: "Historical profile",
+    revision: 0,
+    currentRevisionId: revisionId,
+    createdAt: now,
+    updatedAt: now,
+  });
   await repository.saveWorkspaceRecord(actor, factSave());
   const first = await repository.archiveLegacyWorkspace(actor, newId());
   expect(first?.counts.contexts).toBe(1);

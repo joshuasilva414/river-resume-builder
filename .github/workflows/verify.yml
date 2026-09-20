@@ -31,23 +31,3 @@ jobs:
         run: pnpm ci:build staging --bundle-only
       - name: Build and validate production bundle
         run: pnpm ci:build production --bundle-only
-  documents:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24.20.0
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test:documents
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: document-fixture-results
-          path: apps/documents/test-results
-          retention-days: 7

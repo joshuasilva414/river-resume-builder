@@ -104,3 +104,9 @@ export const workspaceRuns = sqliteTable(
   },
   (table) => [index("workspace_runs_owner").on(table.ownerId, table.kind, table.createdAt)],
 );
+
+export const jobFactSelections = sqliteTable("job_fact_selections", {
+  jobId: text("job_id").primaryKey(),
+  factIds: text("fact_ids", { mode: "json" }).$type<string[]>().notNull(),
+  updatedAt: integer("updated_at").notNull(),
+});

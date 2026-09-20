@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { unwrap } from "~/components/evidence/shared";
-import { getScoringAllowance } from "~/server/scoring-functions";
+import { unwrap } from "~/components/workspace/forms";
+import { getWorkspaceScoringAllowance } from "~/server/workspace-analysis-functions";
 
 export function useScoringAllowance() {
   return useQuery({
     queryKey: ["scoring-allowance"],
-    queryFn: async () => unwrap(await getScoringAllowance()),
+    queryFn: async () => unwrap(await getWorkspaceScoringAllowance()),
     refetchInterval: (query) =>
       query.state.data?.reserved
         ? 3000

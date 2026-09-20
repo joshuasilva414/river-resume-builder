@@ -11,7 +11,7 @@ import {
   type WorkspacePayload,
   type WorkspaceRecord,
 } from "@river/domain/workspace";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { conditionGuard, createCommands, type Guard, type Write } from "./commands";
 import type { Database } from "./index";
 import { sources } from "./schema";
@@ -261,6 +261,53 @@ export function createWorkspaceRepository(db: Database) {
               .where(and(eq(records.id, input.id), eq(records.ownerId, actor.ownerId))),
           ],
           history: [{ entityId: input.id, before: previous.payload, after: { deletedAt: now } }],
+        };
+      });
+    },
+    async listWorkspaceTrash(ownerId: string) {
+      return (
+        await db
+          .select()
+          .from(records)
+          .where(and(eq(records.ownerId, ownerId), isNotNull(records.deletedAt)))
+          .orderBy(desc(records.updatedAt))
+          .limit(500)
+      ).map(view);
+    },
+    async restoreWorkspaceRecord(actor: Principal, input: DeleteRecord) {
+      return commands.commit(actor, "workspace.restore", input.idempotencyKey, input, async () => {
+        const previous = await read(actor.ownerId, input.id);
+        if (!previous?.deletedAt) throw notFound();
+        requireWrite(actor, previous.kind);
+        const payload = parseWorkspacePayload(previous.payload),
+          now = Date.now(),
+          revision = input.revision + 1,
+          revisionId = newId();
+        return {
+          result: { id: input.id, revision, revisionId },
+          guards: [
+            conditionGuard(
+              db,
+              sql`EXISTS(SELECT 1 FROM ${records} WHERE id=${input.id} AND owner_id=${actor.ownerId} AND revision=${input.revision} AND deleted_at IS NOT NULL)`,
+              "This record changed. Reload Trash.",
+            ),
+            ...relationGuards(actor.ownerId, [payload]),
+          ],
+          writes: [
+            db
+              .update(records)
+              .set({ deletedAt: null, updatedAt: now, revision })
+              .where(eq(records.id, input.id)),
+            db.insert(revisions).values({
+              id: revisionId,
+              recordId: input.id,
+              revision,
+              payload,
+              actorId: actor.id,
+              createdAt: now,
+            }),
+          ],
+          history: [{ entityId: input.id, after: { restored: true, revision } }],
         };
       });
     },

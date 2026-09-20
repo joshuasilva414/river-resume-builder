@@ -5,29 +5,11 @@ import {
   scoreCheckpointText,
   scoringProfile,
 } from "../src/server/scoring-provider";
-import { captureScoringFailure } from "../src/server/scoring-runtime";
 import liveFixture from "./fixtures/ats-live-response.json";
 import { syntheticScoringResponse, syntheticScoringVersion } from "./fixtures/scoring";
 
 const profile = scoringProfile("https://score.example.test");
 const input = { resumeText: "  Synthetic résumé 😀\n", jobDescription: "Exact synthetic job\n" };
-it("preserves safe provider failure identity and retry timing across a serialized Workflow step", async () => {
-  const retryAt = Date.now() + 60000;
-  const failure = await captureScoringFailure(async () => {
-    throw new ScoringProviderError("RateLimited", retryAt);
-  });
-  expect(JSON.parse(JSON.stringify(failure))).toEqual({
-    code: "RateLimited",
-    message: "The score provider is rate limited. Retry after the recorded time.",
-    retryAt,
-  });
-  expect(await captureScoringFailure(async () => "done")).toBeNull();
-  const unknown = await captureScoringFailure(async () => {
-    throw new Error("Private provider body must not cross a Workflow boundary");
-  });
-  expect(unknown?.code).toBe("Interrupted");
-  expect(JSON.stringify(unknown)).not.toContain("Private provider body");
-});
 it("accepts the deployed provider's full product name while preserving its original JSON and identity", async () => {
   const transport = vi
     .fn<typeof fetch>()
@@ -210,14 +192,21 @@ it("retains only safe field paths and fixed consistency failures across Workflow
     ...raw,
     results: raw.results.map((result) => ({ ...result, overallScore: "PRIVATE RESUME VALUE" })),
   };
-  const failure = await captureScoringFailure(() =>
-    scoreCheckpointText(
-      profile,
-      input,
-      syntheticScoringVersion,
-      vi.fn<typeof fetch>().mockResolvedValue(Response.json(invalid)),
-    ),
-  );
+  const failure = await (async () => {
+    try {
+      await scoreCheckpointText(
+        profile,
+        input,
+        syntheticScoringVersion,
+        vi.fn<typeof fetch>().mockResolvedValue(Response.json(invalid)),
+      );
+    } catch (error) {
+      if (error instanceof ScoringProviderError)
+        return { code: error.code, message: error.message };
+      throw error;
+    }
+    throw Error("Expected rejection");
+  })();
   expect(JSON.parse(JSON.stringify(failure))).toMatchObject({
     code: "InvalidResponse",
     message: "The score provider returned invalid scoring fields. Field: results.0.overallScore.",
@@ -270,14 +259,21 @@ it("distinguishes transport format failures without exposing provider text", asy
     ],
   ] as const;
   for (const [response, message] of cases) {
-    const failure = await captureScoringFailure(() =>
-      scoreCheckpointText(
-        profile,
-        input,
-        syntheticScoringVersion,
-        vi.fn<typeof fetch>().mockResolvedValue(response),
-      ),
-    );
+    const failure = await (async () => {
+      try {
+        await scoreCheckpointText(
+          profile,
+          input,
+          syntheticScoringVersion,
+          vi.fn<typeof fetch>().mockResolvedValue(response),
+        );
+      } catch (error) {
+        if (error instanceof ScoringProviderError)
+          return { code: error.code, message: error.message };
+        throw error;
+      }
+      throw Error("Expected rejection");
+    })();
     expect(failure?.code).toBe("InvalidResponse");
     expect(failure?.message).toContain(message);
     expect(JSON.stringify(failure)).not.toContain("PRIVATE");

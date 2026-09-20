@@ -2,9 +2,10 @@ import { applyD1Migrations } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { createDatabase, schema } from "@river/db";
 import { eq } from "drizzle-orm";
+import { Effect } from "effect";
 import { beforeAll, expect, it } from "vitest";
 import { authenticate, createAuth } from "../src/server/auth";
-import { execute, listOperations, startProof } from "../src/server/services";
+import { Actor, execute } from "../src/server/services";
 
 beforeAll(async () => {
   await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
@@ -65,30 +66,16 @@ it("requires the allowlisted verified Owner and honors session revocation", asyn
   const result = await execute(
     settings,
     headers,
-    startProof(settings.ENVIRONMENT, { idempotencyKey: "authenticated-proof", theme: "classic" }),
+    Effect.map(Actor, (actor) => actor.ownerId),
   );
   expect(result.ok).toBe(true);
-  const before = await execute(settings, headers, listOperations("staging"));
-  expect(before).toMatchObject({ ok: true, value: [{ id: expect.any(String) }] });
-  expect(
-    await execute(
-      settings,
-      headers,
-      startProof("production", { idempotencyKey: "production-proof", theme: "classic" }),
-    ),
-  ).toMatchObject({ ok: false, error: { code: "NotFound", status: 404 } });
-  expect(await execute(settings, headers, listOperations("production"))).toMatchObject({
-    ok: false,
-    error: { code: "NotFound", status: 404 },
-  });
-  expect(await execute(settings, headers, listOperations("staging"))).toEqual(before);
   await auth.api.signOut({ headers });
   expect(await authenticate(settings, headers)).toBeNull();
   expect(
     await execute(
       settings,
       headers,
-      startProof(settings.ENVIRONMENT, { idempotencyKey: "revoked-proof", theme: "classic" }),
+      Effect.map(Actor, (actor) => actor.ownerId),
     ),
   ).toMatchObject({ ok: false, error: { code: "Unauthorized" } });
 });

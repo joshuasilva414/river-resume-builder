@@ -1,6 +1,6 @@
 import { RecordId, Revision } from "@river/domain";
 import { Schema } from "effect";
-import { CommandKey } from "./evidence";
+import { CommandKey } from "./common";
 
 export const feedbackKinds = ["Bug report", "Feature request"] as const;
 export const feedbackStatuses = ["New", "In review", "Planned", "Resolved", "Closed"] as const;

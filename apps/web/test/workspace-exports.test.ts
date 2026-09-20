@@ -11,16 +11,14 @@ it("archives frozen bytes idempotently, isolates owners, and rejects text loss a
   const repository = createRepository(env.DB),
     ownerId = newId();
   const actor: Principal = { kind: "owner", id: ownerId, ownerId };
-  await repository.db
-    .insert(schema.user)
-    .values({
-      id: ownerId,
-      email: `${ownerId}@test.invalid`,
-      name: "PDF fixture",
-      emailVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+  await repository.db.insert(schema.user).values({
+    id: ownerId,
+    email: `${ownerId}@test.invalid`,
+    name: "PDF fixture",
+    emailVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
   const resumeId = newId(),
     versionId = newId(),
     snapshot = renderingFixture(1);

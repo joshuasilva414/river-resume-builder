@@ -18,7 +18,7 @@ an active browser; server agents submit extracted text.
 - [x] Production template/résumé editor and Paper states.
 - [x] PDF preview/export, history, suggestions, both optional scorecards.
 - [x] Local archive cutover and retained artifact validation.
-- [ ] Retired editor, LaTeX, Paged.js and container dependency removal.
+- [x] Retired editor, LaTeX, Paged.js and container dependency removal.
 - [ ] Architecture/API/setup/runbook documentation and acceptance checks.
 
 Commit each milestone. Preserve unrelated changes in
@@ -161,3 +161,27 @@ retired evidence mutations return an explicit migration error.
 
 This was a local cutover only. Production cutover, deployment, merge, and remote
 container decommission have not been performed.
+
+### Retired runtime and active adapters
+
+The old composition editor, evidence/review machinery, LaTeX template package,
+source-refinement and template-generation AI, Paged.js projection, and document
+container application are removed. Web bindings retain only the database-backup
+workflow. CI and deployment scripts no longer build or deploy the document service.
+Legacy SQL migration history remains; only the table declarations used by active
+services or read-only archival remain in the repository. Historical payloads are
+opaque JSON and never enter new editing commands.
+
+Job targets use preserved posting records and a new fact-selection table. Existing
+job descriptions remain readable; legacy evidence selections are not transferred.
+Sources use browser parsing, text submission, private original downloads, and
+retained text inspection. REST v1 evidence/job mutations and server-extraction
+requests return migration errors. MCP publishes typed fact/content/template/résumé,
+job and source operations; retired credentials remain readable without gaining new
+permissions. New record Trash supports explicit restoration with revision guards.
+
+The authenticated local application loads without the document service. The full
+web suite passes 88 checks, including accounts, credentials, MCP, administrative
+quotas, private archive access, exact-byte exports and optional scorecards. The two
+unrelated documentation diffs retain their original hash. Remaining acceptance work
+covers job matching, browser interaction edge cases and operational documentation.

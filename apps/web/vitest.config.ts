@@ -10,27 +10,7 @@ export default defineConfig(async () => ({
         compatibilityFlags: ["nodejs_compat"],
         d1Databases: ["DB"],
         r2Buckets: ["ARTIFACTS"],
-        workflows: {
-          DOCUMENT_WORKFLOW: { name: "test-documents", className: "DocumentWorkflow" },
-          SOURCE_AI_WORKFLOW: { name: "test-source-ai", className: "SourceAiWorkflow" },
-          AI_FAILURE_WORKFLOW: { name: "test-ai-failure", className: "AiFailureWorkflow" },
-        },
-        serviceBindings: { DOCUMENTS: { name: "test-document-adapter", entrypoint: "Documents" } },
-        workers: [
-          {
-            name: "test-document-adapter",
-            compatibilityDate: "2026-08-22",
-            modules: true,
-            script: `import { WorkerEntrypoint } from 'cloudflare:workers';
-            export class Documents extends WorkerEntrypoint {
-              async run(input) {
-                if (input.type !== 'extract-source') throw new Error('Unexpected fixture job');
-                const text = atob(input.contentBase64);
-                return { type: 'extracted', text, segments: [{ text, start: 0, end: text.length }], parser: 'fixture', parserVersion: '1' };
-              }
-            }`,
-          },
-        ],
+        workflows: {BACKUP_WORKFLOW:{name:"test-backup",className:"BackupWorkflow"}},
         bindings: { TEST_MIGRATIONS: await readD1Migrations("../../packages/db/migrations") },
       },
     }),

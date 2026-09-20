@@ -8,15 +8,16 @@ import {
   valueKindSchema,
 } from "@river/domain/workspace";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
+import { getSource } from "~/server/functions";
 import { importWorkspaceFacts } from "~/server/workspace";
 import { requestFactImport } from "~/server/workspace-ai";
 import { submitExtractedSource } from "~/server/workspace-sources";
 import { fileBase64, type ParsedFile, parseCandidateFile } from "./browser-import";
 import { inputClass, ValueInput } from "./value-input";
 
-export default function FactImport() {
+export default function FactImport({ sourceId }: { sourceId?: string }) {
   const client = useQueryClient();
   const [text, setText] = useState(""),
     [title, setTitle] = useState("Imported candidate information"),
@@ -29,11 +30,29 @@ export default function FactImport() {
     [saved, setSaved] = useState(false),
     [saveSource, setSaveSource] = useState(true);
   const [identity] = useState(() => ({
-    sourceId: newId(),
+    sourceId: sourceId ?? newId(),
     sourceKey: newIdentity(),
     importKey: newIdentity(),
   }));
-  const [sourceSaved, setSourceSaved] = useState(false);
+  const [sourceSaved, setSourceSaved] = useState(!!sourceId);
+  useEffect(() => {
+    if (!sourceId) return;
+    let live = true;
+    void getSource({ data: { id: sourceId } })
+      .then((result) => {
+        if (!live) return;
+        if (result.ok && result.value.extraction) {
+          setText(result.value.extraction.text);
+          setSaveSource(false);
+        } else setError(result.ok ? "This source has no retained text." : result.error.title);
+      })
+      .catch(() => {
+        if (live) setError("Unable to load source text.");
+      });
+    return () => {
+      live = false;
+    };
+  }, [sourceId]);
   const selected = facts.filter((fact) => !excluded.includes(fact.id));
   async function run(label: string, action: () => Promise<void>) {
     setBusy(label);

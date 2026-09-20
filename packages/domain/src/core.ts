@@ -1,53 +1,8 @@
 import { Data, Schema } from "effect";
-import { StructuredContent } from "./content-schema";
 
 export const OperationId = Schema.String.pipe(Schema.brand("OperationId"));
 export type OperationId = typeof OperationId.Type;
 export const Revision = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
-export const Theme = Schema.Literals(["classic", "minimal", "technical"]);
-export type Theme = typeof Theme.Type;
-
-export const contentTypes = [
-  "contact",
-  "summary",
-  "experience",
-  "project",
-  "education",
-  "skill",
-  "credential",
-] as const;
-export const ContentType = Schema.Literals(contentTypes);
-export type ContentType = typeof ContentType.Type;
-
-export const ResumeBlock = Schema.Struct({
-  structured: Schema.optional(StructuredContent),
-  type: Schema.optional(ContentType),
-  locator: Schema.optional(Schema.String),
-  heading: Schema.String,
-  detail: Schema.String,
-  paragraphs: Schema.Array(Schema.String),
-  bullets: Schema.Array(Schema.String),
-});
-export const ResumeSection = Schema.Struct({
-  structured: Schema.optional(StructuredContent),
-  type: Schema.optional(ContentType),
-  locator: Schema.optional(Schema.String),
-  heading: Schema.NonEmptyString,
-  blocks: Schema.Array(ResumeBlock),
-});
-
-/** Fully resolved render input. Historical rendering never reads mutable records. */
-export const ResumeDocument = Schema.Struct({
-  structuredContact: Schema.optional(StructuredContent),
-  textLocators: Schema.optional(
-    Schema.Array(Schema.Struct({ locator: Schema.String, text: Schema.String })),
-  ),
-  name: Schema.NonEmptyString,
-  contact: Schema.Array(Schema.String),
-  sections: Schema.Array(ResumeSection),
-});
-export type ResumeDocument = typeof ResumeDocument.Type;
-
 export const OperationState = Schema.Literals([
   "Pending",
   "Running",
@@ -68,17 +23,20 @@ export const agentScopes = [
   "resumes:write",
   "source:read",
   "source:write",
-  "evidence:read",
-  "evidence:write",
-  "evidence:merge",
-  "evidence:archive",
   "jobs:read",
   "jobs:write",
 ] as const;
 export const AgentScope = Schema.Literals(agentScopes);
 export type AgentScope = typeof AgentScope.Type;
 // Decode retained credentials without advertising retired permissions for new credentials.
-export const legacyAgentScopes = [...agentScopes, "evidence:verify"] as const;
+export const legacyAgentScopes = [
+  ...agentScopes,
+  "evidence:read",
+  "evidence:write",
+  "evidence:merge",
+  "evidence:archive",
+  "evidence:verify",
+] as const;
 export const LegacyAgentScope = Schema.Literals(legacyAgentScopes);
 export type LegacyAgentScope = typeof LegacyAgentScope.Type;
 export type Principal =
@@ -151,3 +109,10 @@ export async function fingerprint(value: string | Uint8Array): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", input);
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
+
+export const RecordId = Schema.String.check(Schema.isUUID(7));
+export type CommandOutcome = {
+  readonly id: string;
+  readonly revision: number;
+  readonly revisionId: string | null;
+};

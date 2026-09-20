@@ -74,5 +74,5 @@ it("reads historical files only through owned archived manifests and leaves expi
   await expect(run(readArchivedFile(env, expired, "pdf"))).rejects.toThrow();
   expect(await run(archivedFileStatus(env, missing))).toMatchObject([{ status: "Unavailable" }]);
   await expect(run(readArchivedFile(env, missing, "pdf"))).rejects.toThrow();
-  expect(await repository.listOperations(id)).toHaveLength(0);
+  expect(await repository.db.select().from(schema.operations)).toHaveLength(0);
 });

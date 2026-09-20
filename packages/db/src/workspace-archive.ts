@@ -1,5 +1,6 @@
 import { ApplicationError, newId, type Principal } from "@river/domain";
 import { and, desc, eq, getTableColumns, sql } from "drizzle-orm";
+import { z } from "zod";
 import { conditionGuard, createCommands } from "./commands";
 import type { Database } from "./index";
 import * as legacy from "./schema";
@@ -156,7 +157,7 @@ export function createWorkspaceArchiveRepository(db: Database) {
                 data: row,
               })),
               ...validationFiles.flatMap((row) =>
-                row.fixture.result.artifacts
+                retainedArtifacts(row.fixture.result)
                   ? [
                       {
                         category: "artifacts",
@@ -165,7 +166,7 @@ export function createWorkspaceArchiveRepository(db: Database) {
                         data: {
                           createdAt: row.createdAt,
                           input: { type: "archived-template-validation" },
-                          artifacts: row.fixture.result.artifacts,
+                          artifacts: retainedArtifacts(row.fixture.result),
                           original: row.fixture,
                         },
                       },
@@ -173,7 +174,7 @@ export function createWorkspaceArchiveRepository(db: Database) {
                   : [],
               ),
               ...scoreFiles.flatMap((row) =>
-                row.fixture.document?.artifacts
+                retainedArtifacts(row.fixture.document)
                   ? [
                       {
                         category: "artifacts",
@@ -182,7 +183,7 @@ export function createWorkspaceArchiveRepository(db: Database) {
                         data: {
                           createdAt: row.createdAt,
                           input: { type: "archived-template-score" },
-                          artifacts: row.fixture.document.artifacts,
+                          artifacts: retainedArtifacts(row.fixture.document),
                           original: row.fixture,
                         },
                       },
@@ -279,4 +280,9 @@ export function createWorkspaceArchiveRepository(db: Database) {
       return record;
     },
   };
+}
+
+function retainedArtifacts(value: unknown) {
+  const parsed = z.object({ artifacts: z.unknown() }).safeParse(value);
+  return parsed.success ? parsed.data.artifacts : null;
 }

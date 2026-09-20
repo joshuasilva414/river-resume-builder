@@ -109,12 +109,6 @@ export const readAiSettings = (env: Env) =>
     };
   });
 
-export const readOnboardingProgress = Effect.gen(function* () {
-  const actor = yield* Actor,
-    store = yield* Store;
-  return yield* attempt(() => store.getOnboardingProgress(actor.ownerId));
-});
-
 export const saveAiConnection = (env: Env, input: SaveAiConnectionRequest) =>
   Effect.gen(function* () {
     const actor = yield* Actor,

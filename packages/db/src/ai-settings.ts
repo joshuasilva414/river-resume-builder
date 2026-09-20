@@ -55,21 +55,6 @@ export function createAiSettingsRepository(db: Database) {
     },
     getAiConnection,
     getWorkspacePreferences,
-    async getOnboardingProgress(ownerId: string) {
-      const exists = (table: string) =>
-        sql<number>`EXISTS (SELECT 1 FROM ${sql.identifier(table)} WHERE owner_id=${ownerId})`;
-      const row = await db.get<{
-        evidence: number;
-        job: number;
-        content: number;
-        draft: number;
-        review: number;
-        exported: number;
-      }>(
-        sql`SELECT ${exists("evidence_claims")} AS evidence, ${exists("job_targets")} AS job, ${exists("library_items")} AS content, ${exists("resume_drafts")} AS draft, EXISTS (SELECT 1 FROM checkpoint_review_reports r JOIN resume_checkpoints c ON c.id=r.checkpoint_id WHERE c.owner_id=${ownerId}) AS review, EXISTS (SELECT 1 FROM checkpoint_exports e JOIN resume_checkpoints c ON c.id=e.checkpoint_id WHERE c.owner_id=${ownerId}) AS exported`,
-      );
-      return row ?? { evidence: 0, job: 0, content: 0, draft: 0, review: 0, exported: 0 };
-    },
     async listAiConnections(ownerId: string) {
       return db
         .select({

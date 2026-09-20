@@ -5,7 +5,7 @@ import { Effect } from "effect";
 import { bindings } from "~/server/env";
 import { jsonResult, readJson } from "~/server/http";
 import { execute, problem } from "~/server/services";
-import { storeExtractedSource } from "~/server/workspace-sources";
+import { storeExtractedSource } from "~/server/workspace-source-storage";
 export const Route = createFileRoute("/api/v2/sources")({
   server: {
     handlers: {
