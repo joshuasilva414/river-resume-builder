@@ -1,5 +1,6 @@
 import { ApplicationError, newId, type Principal } from "@river/domain";
 import {
+  type ContentNode,
   type DeleteRecord,
   type ImportFacts,
   parseWorkspacePayload,
@@ -67,7 +68,14 @@ export function createWorkspaceRepository(db: Database) {
   ): Guard[] => {
     const guards: Guard[] = [],
       contexts = new Set<string>(),
-      sourceIds = new Set<string>();
+      sourceIds = new Set<string>(),
+      factIds = new Set<string>();
+    const origins = (nodes: ContentNode[]) => {
+      for (const node of nodes) {
+        if (node.kind === "field") for (const id of node.factIds) factIds.add(id);
+        else origins(node.children);
+      }
+    };
     for (const payload of payloads) {
       if (payload.kind === "fact") {
         if (!populated(payload.data.value))
@@ -79,6 +87,8 @@ export function createWorkspaceRepository(db: Database) {
         if (contextId && !pendingContexts.includes(contextId)) contexts.add(contextId);
         if (sourceId) sourceIds.add(sourceId);
       }
+      if (payload.kind === "content") origins([payload.data.content]);
+      if (payload.kind === "resume") origins([...payload.data.sections, ...payload.data.unused]);
       if (payload.kind === "version")
         guards.push(revisionGuard(ownerId, payload.data.resumeId, payload.data.draftRevision));
     }
@@ -97,6 +107,14 @@ export function createWorkspaceRepository(db: Database) {
           db,
           sql`NOT EXISTS(SELECT 1 FROM json_each(${JSON.stringify([...sourceIds])}) ids WHERE NOT EXISTS(SELECT 1 FROM ${sources} WHERE id=ids.value AND owner_id=${ownerId} AND archived_at IS NULL))`,
           "Choose sources in your workspace.",
+        ),
+      );
+    if (factIds.size)
+      guards.push(
+        conditionGuard(
+          db,
+          sql`NOT EXISTS(SELECT 1 FROM json_each(${JSON.stringify([...factIds])}) ids WHERE NOT EXISTS(SELECT 1 FROM ${records} WHERE id=ids.value AND owner_id=${ownerId} AND kind='fact'))`,
+          "Originating facts must belong to your workspace.",
         ),
       );
     return guards;
@@ -168,25 +186,21 @@ export function createWorkspaceRepository(db: Database) {
                     eq(records.revision, input.revision),
                   ),
                 )
-            : db
-                .insert(records)
-                .values({
-                  ...values,
-                  id: input.id,
-                  ownerId: actor.ownerId,
-                  kind: payload.kind,
-                  createdAt: now,
-                }),
-          db
-            .insert(revisions)
-            .values({
-              id: revisionId,
-              recordId: input.id,
-              revision,
-              payload,
-              actorId: actor.id,
-              createdAt: now,
-            }),
+            : db.insert(records).values({
+                ...values,
+                id: input.id,
+                ownerId: actor.ownerId,
+                kind: payload.kind,
+                createdAt: now,
+              }),
+          db.insert(revisions).values({
+            id: revisionId,
+            recordId: input.id,
+            revision,
+            payload,
+            actorId: actor.id,
+            createdAt: now,
+          }),
         ];
         return {
           result: { id: input.id, revision, revisionId },
@@ -261,30 +275,26 @@ export function createWorkspaceRepository(db: Database) {
             now = Date.now();
           for (const { id, payload } of payloads) {
             writes.push(
-              db
-                .insert(records)
-                .values({
-                  id,
-                  ownerId: actor.ownerId,
-                  kind: payload.kind,
-                  name: recordName(payload),
-                  revision: 1,
-                  payload,
-                  createdAt: now,
-                  updatedAt: now,
-                }),
+              db.insert(records).values({
+                id,
+                ownerId: actor.ownerId,
+                kind: payload.kind,
+                name: recordName(payload),
+                revision: 1,
+                payload,
+                createdAt: now,
+                updatedAt: now,
+              }),
             );
             writes.push(
-              db
-                .insert(revisions)
-                .values({
-                  id: newId(),
-                  recordId: id,
-                  revision: 1,
-                  payload,
-                  actorId: actor.id,
-                  createdAt: now,
-                }),
+              db.insert(revisions).values({
+                id: newId(),
+                recordId: id,
+                revision: 1,
+                payload,
+                actorId: actor.id,
+                createdAt: now,
+              }),
             );
           }
           return {

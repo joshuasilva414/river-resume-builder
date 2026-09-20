@@ -260,6 +260,7 @@ export const operations = sqliteTable(
         | { type: "database-backup"; date: string }
         | { type: "checkpoint-score"; runId: string }
         | { type: "template-score"; runId: string }
+        | { type: "workspace-task"; runId: string }
       >()
       .notNull(),
     artifacts: text("artifacts", { mode: "json" }).$type<ArtifactManifest>(),

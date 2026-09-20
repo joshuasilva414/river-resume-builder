@@ -81,3 +81,26 @@ export const workspaceArchiveRecords = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.ownerId, table.category, table.id] })],
 );
+
+export type WorkspaceRunKind = "fact-import" | "suggestion" | "resume-score" | "template-score";
+/** Inputs and provider outputs are retained as JSON text to keep transport boundaries explicit. */
+export const workspaceRuns = sqliteTable(
+  "workspace_runs",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id),
+    operationId: text("operation_id").notNull(),
+    kind: text("kind").$type<WorkspaceRunKind>().notNull(),
+    targetId: text("target_id"),
+    input: text("input").notNull(),
+    result: text("result"),
+    metadata: text("metadata"),
+    state: text("state").$type<"Running" | "Complete" | "Failed">().notNull(),
+    error: text("error"),
+    createdAt: integer("created_at").notNull(),
+    completedAt: integer("completed_at"),
+  },
+  (table) => [index("workspace_runs_owner").on(table.ownerId, table.kind, table.createdAt)],
+);

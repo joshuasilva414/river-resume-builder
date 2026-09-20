@@ -293,6 +293,8 @@ function workflowFor(
       return env.TEMPLATE_SCORING_WORKFLOW;
     case "checkpoint-score":
       return env.SCORING_WORKFLOW;
+    case "workspace-task":
+      return undefined;
     default: {
       const exhaustive: never = input;
       return exhaustive;

@@ -14,7 +14,7 @@ an active browser; server agents submit extracted text.
 
 - [x] Browser worker rendering proof and shared typed document resolver.
 - [x] Records, owner-scoped persistence, revision/idempotency protection, archive.
-- [ ] Fact bank, browser imports, nested content, REST/MCP replacement.
+- [x] Fact bank, browser imports, nested content, REST/MCP replacement.
 - [ ] Production template/résumé editor and Paper states.
 - [ ] PDF preview/export, history, suggestions, both optional scorecards.
 - [ ] Local archive cutover and retained artifact validation.
@@ -63,3 +63,31 @@ deleted. Facts and content never update existing copies through their origin IDs
 
 Four worker/database checks currently cover ownership/scopes, idempotency and
 conflicts, bulk import rollback, saved-version immutability, and archive isolation.
+
+### Fact Bank, imports, and content
+
+The `/facts`, `/facts/import`, and `/content` screens use versioned workspace records.
+Browser parsing accepts text PDFs, DOCX, UTF-8 text and Markdown; empty PDFs offer
+pasted text. Originals and extracted text are stored privately without scheduling
+a container operation. The editable preview saves only included facts and their
+used contexts in one transaction. AI extraction is explicit and optional; proposals
+and provider metadata are retained separately from saved facts.
+
+`/api/v2/{facts,contexts,content,templates,resumes,versions}` and their identity
+routes share ownership, scopes, revision guards and command receipts with the UI.
+`/api/v2/facts/import` accepts batches; `/api/v2/sources` requires extracted text.
+MCP exposes equivalent typed record tools and `submit_source`; retired evidence and
+file-extraction tools return a migration error. Legacy REST retirement happens at
+the final cutover so partially built routes cannot become the active workspace.
+
+Paper: River file `01M1PCGGJYH2EC4YRJNZSPRDZK`, page `p-9-0` (River · Facts and visual
+workspace), Fact Bank `CXR-1`, editable import `D1L-1`. The designs preserve River's
+Newsreader/Instrument Sans typography, white surfaces and blue selection.
+
+Validation: seven focused worker/database checks pass for records, sources,
+analysis retention, quota reservations and archive isolation. Domain tests pass.
+TypeScript and production build pass. Browser checks confirmed manual context/fact
+creation, save-as-content, independent copy edits, partial-date import, exclusion of
+an empty proposed fact, and saving supplied source text. Local validation records
+are clearly named and will be removed before delivery. Real-provider and file-format
+failure checks remain part of final acceptance.

@@ -89,3 +89,33 @@ describe("workspace values and resolution", () => {
     expect(validateRenderedText(["A", "B", "C"], "A C B").ok).toBe(false);
   });
 });
+
+it("imports typed values without verification states and rejects malformed dates and dangling contexts", async () => {
+  const { resolveImportPreview, typedValueFromText } = await import("./imports");
+  const preview = resolveImportPreview(
+    {
+      contexts: [{ key: "job", label: "Northstar", kind: "employment" }],
+      facts: [
+        { key: "endDate", label: "End date", type: "date", value: "Present", contextKey: "job" },
+        { key: "gpa", label: "GPA", type: "number", value: "0", contextKey: null },
+        { key: "remote", label: "Remote", type: "boolean", value: "false", contextKey: "job" },
+      ],
+    },
+    null,
+  );
+  expect(preview.facts[0]?.contextId).toBe(preview.contexts[0]?.id);
+  expect(preview.facts[1]?.value).toEqual({ kind: "number", value: 0 });
+  expect(preview.facts[2]?.value).toEqual({ kind: "boolean", value: false });
+  expect(() => typedValueFromText("date", "2023-02-29")).toThrow();
+  expect(() =>
+    resolveImportPreview(
+      {
+        contexts: [],
+        facts: [
+          { key: "role", label: "Role", type: "text", value: "Engineer", contextKey: "missing" },
+        ],
+      },
+      null,
+    ),
+  ).toThrow();
+});
