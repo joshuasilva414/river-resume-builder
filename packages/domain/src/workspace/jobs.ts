@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { canonicalJson } from "../core";
 import { identitySchema, safeLinkSchema } from "./model";
 
 export const jobTargetInputSchema = z.object({
@@ -19,6 +20,30 @@ export const jobTargetInputSchema = z.object({
   archived: z.boolean(),
 });
 export type JobTargetInput = z.infer<typeof jobTargetInputSchema>;
+
+export const jobMatchRequestSchema = z.object({
+  jobId: identitySchema,
+  inputKey: z.string().min(1).max(100000),
+  idempotencyKey: z.string().min(1).max(128),
+});
+export const jobMatchesSchema = z.object({
+  matches: z
+    .array(z.object({ factId: identitySchema, reason: z.string().min(1).max(1000) }))
+    .max(100),
+});
+export type JobMatches = z.infer<typeof jobMatchesSchema>;
+/** Match results belong to this posting and these fact revisions, not later edits. */
+export function jobMatchInputKey(
+  job: { id: string; description: string },
+  facts: { id: string; revision: number }[],
+) {
+  return canonicalJson({
+    job,
+    facts: facts
+      .map(({ id, revision }) => ({ id, revision }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+  });
+}
 
 /** Transparent keyword overlap is navigation help, never a qualification or verification score. */
 export function matchingTerms(description: string, content: string) {

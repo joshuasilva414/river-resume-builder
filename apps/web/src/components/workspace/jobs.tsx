@@ -1,15 +1,17 @@
 import {
   blankResume,
+  type JobMatches,
   type JobTargetInput,
+  jobMatchInputKey,
   matchingTerms,
   newIdentity,
   valueSpans,
 } from "@river/domain/workspace";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { getWorkspaceJob } from "~/server/workspace-analysis-functions";
-import { listJobTargets, saveWorkspaceJob } from "~/server/workspace-jobs";
+import { listJobTargets, requestJobFactMatches, saveWorkspaceJob } from "~/server/workspace-jobs";
 import { useRecordCommands, useRecords } from "./queries";
 import { inputClass, ValueText } from "./value-input";
 
@@ -45,6 +47,7 @@ export default function JobTargets({ id }: { id?: string }) {
         {detail.error && <p role="alert">{detail.error.message}</p>}
         {initial && (
           <JobForm
+            saved
             key={`${initial.id}:${initial.revision}`}
             initial={{
               id: initial.id,
@@ -120,10 +123,12 @@ export default function JobTargets({ id }: { id?: string }) {
 function JobForm({
   initial,
   onSaved,
+  saved = false,
   history = [],
 }: {
   initial: JobTargetInput;
   onSaved: (id: string) => void;
+  saved?: boolean;
   history?: { id: string; text: string; createdAt: number }[];
 }) {
   const [draft, setDraft] = useState(initial),
@@ -131,11 +136,40 @@ function JobForm({
     [busy, setBusy] = useState(false),
     [factSearch, setFactSearch] = useState(""),
     [templateId, setTemplateId] = useState("");
+  const [matching, setMatching] = useState(false),
+    [matches, setMatches] = useState<(JobMatches & { inputKey: string }) | null>(null);
+  const matchAttempt = useRef<{ jobId: string; inputKey: string; idempotencyKey: string } | null>(
+    null,
+  );
   const facts = useRecords("fact"),
     templates = useRecords("template"),
     commands = useRecordCommands();
   const change = (next: Partial<JobTargetInput>) =>
     setDraft({ ...draft, ...next, idempotencyKey: newIdentity() });
+  const matchKey = jobMatchInputKey(
+    { id: initial.id, description: draft.description },
+    facts.data ?? [],
+  );
+  const freshMatches = matches?.inputKey === matchKey ? matches : null;
+  const findMatches = async () => {
+    setMatching(true);
+    setError(null);
+    try {
+      const input =
+        matchAttempt.current?.inputKey === matchKey
+          ? matchAttempt.current
+          : { jobId: initial.id, inputKey: matchKey, idempotencyKey: newIdentity() };
+      matchAttempt.current = input;
+      const result = await requestJobFactMatches({ data: input });
+      matchAttempt.current = null;
+      if (!result.ok) throw Error(result.error.title);
+      setMatches(result.value);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Matching failed. Your selection is unchanged.");
+    } finally {
+      setMatching(false);
+    }
+  };
   const available =
     facts.data
       ?.filter((record) => record.kind === "fact")
@@ -173,9 +207,7 @@ function JobForm({
     <div className="mt-6 space-y-6">
       <div className="grid gap-8 xl:grid-cols-2">
         <section className="space-y-4">
-          <h2 className="font-serif text-3xl">
-            {initial.revision ? initial.details.role : "New job target"}
-          </h2>
+          <h2 className="font-serif text-3xl">{saved ? initial.details.role : "New job target"}</h2>
           {(["role", "company", "location"] as const).map((key) => (
             <label key={key} className="block text-sm capitalize">
               {key}
@@ -224,6 +256,30 @@ function JobForm({
             value={factSearch}
             onChange={(e) => setFactSearch(e.target.value)}
           />
+          <Button
+            variant="outline"
+            disabled={
+              matching || !saved || draft.description !== initial.description || !facts.data?.length
+            }
+            onClick={() => void findMatches()}
+          >
+            {matching ? "Finding relevant facts…" : "Suggest relevant facts"}
+          </Button>
+          {!saved || draft.description !== initial.description ? (
+            <p className="text-xs text-muted-foreground">
+              Save the posting before requesting AI matches.
+            </p>
+          ) : null}
+          {matches && !freshMatches && (
+            <p role="status" className="text-xs text-amber-800">
+              The posting or facts changed. Request new matches.
+            </p>
+          )}
+          {freshMatches?.matches.length === 0 && (
+            <p role="status" className="text-sm">
+              No relevant facts were suggested. You can still select facts yourself.
+            </p>
+          )}
           {available.length === 0 && (
             <p>
               No matching facts.{" "}
@@ -248,6 +304,11 @@ function JobForm({
               <span>
                 <span className="block font-medium">{record.data.label}</span>
                 <ValueText value={record.data.value} />
+                {freshMatches?.matches.find((match) => match.factId === record.id)?.reason && (
+                  <span className="mt-2 block text-sm text-primary">
+                    {freshMatches.matches.find((match) => match.factId === record.id)?.reason}
+                  </span>
+                )}
                 {terms.length > 0 && (
                   <span className="mt-1 block text-xs text-primary">
                     Shared terms: {terms.join(", ")}
@@ -278,7 +339,7 @@ function JobForm({
       <Button disabled={busy} onClick={() => void save()}>
         {busy ? "Saving…" : "Save job and selection"}
       </Button>
-      {initial.revision > 0 && (
+      {saved && (
         <section className="space-y-3 border-t pt-6">
           <h2 className="font-serif text-2xl">Create a tailored résumé</h2>
           <p className="text-sm text-muted-foreground">
