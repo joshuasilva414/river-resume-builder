@@ -1,6 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
-  Activity,
+  Archive,
   BriefcaseBusiness,
   FileCheck,
   FileText,
@@ -22,13 +22,14 @@ import { cn } from "~/lib/utils";
 
 const navigation = [
   { to: "/jobs", label: "Job targets", icon: BriefcaseBusiness },
-  { to: "/evidence", label: "Evidence bank", icon: FileCheck },
-  { to: "/library", label: "Content library", icon: Layers },
+  { to: "/facts", label: "Fact Bank", icon: FileCheck },
+  { to: "/content", label: "Content library", icon: Layers },
+  { to: "/resumes", label: "Résumés", icon: FileText },
   { to: "/templates", label: "Templates", icon: PanelsTopLeft },
   { to: "/sources", label: "Sources", icon: FileText },
   { to: "/trash", label: "Trash", icon: Trash2 },
   { to: "/admin", label: "Administration", icon: Shield },
-  { to: "/runtime", label: "Document runtime", icon: Activity },
+  { to: "/archive", label: "Previous workspace", icon: Archive },
   { to: "/settings", label: "Settings", icon: Settings },
   // DEMO ONLY: remove with the isolated visual editor route; never visible outside development.
   { to: "/demo/visual-editor", label: "Visual editor demo", icon: PanelsTopLeft },
@@ -50,8 +51,7 @@ export function WorkspaceShell({
   const visibleNavigation = navigation.filter(
     (item) =>
       (item.to !== "/admin" || user.isAdmin) &&
-      (item.to !== "/demo/visual-editor" || environment === "development") &&
-      (item.to !== "/runtime" || (user.isAdmin && environment !== "production")),
+      (item.to !== "/demo/visual-editor" || environment === "development"),
   );
   const [failure, setFailure] = useState<string | null>(null);
   return (

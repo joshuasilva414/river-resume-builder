@@ -79,6 +79,43 @@ export function createWorkspaceArchiveRepository(db: Database) {
                     ),
                   ),
               ]);
+            const [validationFiles, scoreFiles, scores, templateScores] = await Promise.all([
+              db
+                .select({
+                  fixture: legacy.templateValidationFixtures,
+                  createdAt: legacy.templateValidations.createdAt,
+                })
+                .from(legacy.templateValidationFixtures)
+                .innerJoin(
+                  legacy.templateValidations,
+                  eq(legacy.templateValidations.id, legacy.templateValidationFixtures.validationId),
+                )
+                .innerJoin(
+                  legacy.templateRevisions,
+                  eq(legacy.templateRevisions.id, legacy.templateValidations.revisionId),
+                )
+                .innerJoin(
+                  legacy.templateDesigns,
+                  eq(legacy.templateDesigns.id, legacy.templateRevisions.designId),
+                )
+                .where(eq(legacy.templateDesigns.ownerId, ownerId)),
+              db
+                .select({
+                  fixture: legacy.templateScoringFixtures,
+                  createdAt: legacy.templateScoringRuns.createdAt,
+                })
+                .from(legacy.templateScoringFixtures)
+                .innerJoin(
+                  legacy.templateScoringRuns,
+                  eq(legacy.templateScoringRuns.id, legacy.templateScoringFixtures.runId),
+                )
+                .where(eq(legacy.templateScoringRuns.ownerId, ownerId)),
+              db.select().from(legacy.scoringRuns).where(eq(legacy.scoringRuns.ownerId, ownerId)),
+              db
+                .select()
+                .from(legacy.templateScoringRuns)
+                .where(eq(legacy.templateScoringRuns.ownerId, ownerId)),
+            ]);
             const now = Date.now();
             type Entry = { category: string; id: string; name: string; data: unknown };
             const entries: Entry[] = [
@@ -118,10 +155,56 @@ export function createWorkspaceArchiveRepository(db: Database) {
                 name: row.label ?? "Saved résumé",
                 data: row,
               })),
+              ...validationFiles.flatMap((row) =>
+                row.fixture.result.artifacts
+                  ? [
+                      {
+                        category: "artifacts",
+                        id: `validation:${row.fixture.validationId}:${row.fixture.fixtureId}`,
+                        name: `Template validation · ${row.fixture.fixtureId}`,
+                        data: {
+                          createdAt: row.createdAt,
+                          input: { type: "archived-template-validation" },
+                          artifacts: row.fixture.result.artifacts,
+                          original: row.fixture,
+                        },
+                      },
+                    ]
+                  : [],
+              ),
+              ...scoreFiles.flatMap((row) =>
+                row.fixture.document?.artifacts
+                  ? [
+                      {
+                        category: "artifacts",
+                        id: `score:${row.fixture.runId}:${row.fixture.fixtureId}`,
+                        name: `Template score · ${row.fixture.fixtureId}`,
+                        data: {
+                          createdAt: row.createdAt,
+                          input: { type: "archived-template-score" },
+                          artifacts: row.fixture.document.artifacts,
+                          original: row.fixture,
+                        },
+                      },
+                    ]
+                  : [],
+              ),
+              ...scores.map((row) => ({
+                category: "scorecards",
+                id: row.id,
+                name: `Résumé score · ${new Date(row.createdAt).toISOString().slice(0, 10)}`,
+                data: row,
+              })),
+              ...templateScores.map((row) => ({
+                category: "scorecards",
+                id: row.id,
+                name: `Template score · ${new Date(row.createdAt).toISOString().slice(0, 10)}`,
+                data: row,
+              })),
               ...artifacts.map((row) => ({
                 category: "artifacts",
                 id: row.id,
-                name: `Retained document ${row.id}`,
+                name: `Saved document · ${new Date(row.createdAt).toISOString().replace("T", " ").slice(0, 16)}`,
                 data: row,
               })),
             ];
@@ -134,6 +217,7 @@ export function createWorkspaceArchiveRepository(db: Database) {
                 "resumes",
                 "versions",
                 "artifacts",
+                "scorecards",
               ].map((category) => [
                 category,
                 entries.filter((entry) => entry.category === category).length,

@@ -17,7 +17,7 @@ an active browser; server agents submit extracted text.
 - [x] Fact bank, browser imports, nested content, REST/MCP replacement.
 - [x] Production template/résumé editor and Paper states.
 - [x] PDF preview/export, history, suggestions, both optional scorecards.
-- [ ] Local archive cutover and retained artifact validation.
+- [x] Local archive cutover and retained artifact validation.
 - [ ] Retired editor, LaTeX, Paged.js and container dependency removal.
 - [ ] Architecture/API/setup/runbook documentation and acceptance checks.
 
@@ -142,3 +142,22 @@ version and successfully archived a generated one-page PDF. All three fictional
 samples passed PDF text checks. A live score request correctly reported that the
 local scoring provider is unconfigured; successful provider behavior is covered
 with the existing contract fixtures. Live-provider scoring remains unvalidated.
+
+### Local archive cutover
+
+The signed-in local owner's cutover completed on September 20, 2026. Manifest
+counts match the retained rows: 1 context, 8 evidence revisions, 8 content revisions,
+6 template revisions, 4 résumés, 3 saved versions, 29 artifact manifests, and 0
+scorecards. Accounts (2), sources (6 including the clearly named import test), and
+job targets (2) are unchanged. Other owners are not included in this cutover.
+
+The read-only archive at `/archive` follows Paper artboard `D5K-1`. A retained PDF
+opened through the owner-scoped archive endpoint without a container call. An
+expired preview correctly shows an unavailable message and no download action.
+Historical preview metadata can contain a draft/revision object rather than a
+boolean; both forms are recognized. Archive tests cover that form, missing files,
+private access, and idempotent snapshots. Old Evidence Bank URLs redirect to facts;
+retired evidence mutations return an explicit migration error.
+
+This was a local cutover only. Production cutover, deployment, merge, and remote
+container decommission have not been performed.

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdvancedRouteImport } from './routes/advanced'
+import { Route as ArchiveRouteImport } from './routes/archive'
 import { Route as ContentRouteImport } from './routes/content'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as EvidenceRouteImport } from './routes/evidence'
@@ -71,6 +72,7 @@ import { Route as ApiTemplateArtifactsValidationIdFixtureIdKindRouteImport } fro
 import { Route as ApiTemplateProposalsTaskIdOperationIdKindRouteImport } from './routes/api/template-proposals/$taskId.$operationId.$kind'
 import { Route as ApiTemplateScoresRunIdFixtureIdKindRouteImport } from './routes/api/template-scores/$runId.$fixtureId.$kind'
 import { Route as ApiV1JobsImportsImportIdRouteImport } from './routes/api/v1/jobs.imports.$importId'
+import { Route as ApiV2ArchiveIdKindRouteImport } from './routes/api/v2/archive.$id.$kind'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -85,6 +87,11 @@ const AdminRoute = AdminRouteImport.update({
 const AdvancedRoute = AdvancedRouteImport.update({
   id: '/advanced',
   path: '/advanced',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArchiveRoute = ArchiveRouteImport.update({
+  id: '/archive',
+  path: '/archive',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContentRoute = ContentRouteImport.update({
@@ -387,11 +394,17 @@ const ApiV1JobsImportsImportIdRoute =
     path: '/$importId',
     getParentRoute: () => ApiV1JobsImportsRoute,
   } as any)
+const ApiV2ArchiveIdKindRoute = ApiV2ArchiveIdKindRouteImport.update({
+  id: '/api/v2/archive/$id/$kind',
+  path: '/api/v2/archive/$id/$kind',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/advanced': typeof AdvancedRoute
+  '/archive': typeof ArchiveRoute
   '/content': typeof ContentRoute
   '/docs': typeof DocsRouteWithChildren
   '/evidence': typeof EvidenceRoute
@@ -451,11 +464,13 @@ export interface FileRoutesByFullPath {
   '/api/template-proposals/$taskId/$operationId/$kind': typeof ApiTemplateProposalsTaskIdOperationIdKindRoute
   '/api/template-scores/$runId/$fixtureId/$kind': typeof ApiTemplateScoresRunIdFixtureIdKindRoute
   '/api/v1/jobs/imports/$importId': typeof ApiV1JobsImportsImportIdRoute
+  '/api/v2/archive/$id/$kind': typeof ApiV2ArchiveIdKindRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/advanced': typeof AdvancedRoute
+  '/archive': typeof ArchiveRoute
   '/content': typeof ContentRoute
   '/evidence': typeof EvidenceRoute
   '/facts': typeof FactsRoute
@@ -514,12 +529,14 @@ export interface FileRoutesByTo {
   '/api/template-proposals/$taskId/$operationId/$kind': typeof ApiTemplateProposalsTaskIdOperationIdKindRoute
   '/api/template-scores/$runId/$fixtureId/$kind': typeof ApiTemplateScoresRunIdFixtureIdKindRoute
   '/api/v1/jobs/imports/$importId': typeof ApiV1JobsImportsImportIdRoute
+  '/api/v2/archive/$id/$kind': typeof ApiV2ArchiveIdKindRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/advanced': typeof AdvancedRoute
+  '/archive': typeof ArchiveRoute
   '/content': typeof ContentRoute
   '/docs': typeof DocsRouteWithChildren
   '/evidence': typeof EvidenceRoute
@@ -579,6 +596,7 @@ export interface FileRoutesById {
   '/api/template-proposals/$taskId/$operationId/$kind': typeof ApiTemplateProposalsTaskIdOperationIdKindRoute
   '/api/template-scores/$runId/$fixtureId/$kind': typeof ApiTemplateScoresRunIdFixtureIdKindRoute
   '/api/v1/jobs/imports/$importId': typeof ApiV1JobsImportsImportIdRoute
+  '/api/v2/archive/$id/$kind': typeof ApiV2ArchiveIdKindRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -586,6 +604,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/advanced'
+    | '/archive'
     | '/content'
     | '/docs'
     | '/evidence'
@@ -645,11 +664,13 @@ export interface FileRouteTypes {
     | '/api/template-proposals/$taskId/$operationId/$kind'
     | '/api/template-scores/$runId/$fixtureId/$kind'
     | '/api/v1/jobs/imports/$importId'
+    | '/api/v2/archive/$id/$kind'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
     | '/advanced'
+    | '/archive'
     | '/content'
     | '/evidence'
     | '/facts'
@@ -708,11 +729,13 @@ export interface FileRouteTypes {
     | '/api/template-proposals/$taskId/$operationId/$kind'
     | '/api/template-scores/$runId/$fixtureId/$kind'
     | '/api/v1/jobs/imports/$importId'
+    | '/api/v2/archive/$id/$kind'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/advanced'
+    | '/archive'
     | '/content'
     | '/docs'
     | '/evidence'
@@ -772,12 +795,14 @@ export interface FileRouteTypes {
     | '/api/template-proposals/$taskId/$operationId/$kind'
     | '/api/template-scores/$runId/$fixtureId/$kind'
     | '/api/v1/jobs/imports/$importId'
+    | '/api/v2/archive/$id/$kind'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AdvancedRoute: typeof AdvancedRoute
+  ArchiveRoute: typeof ArchiveRoute
   ContentRoute: typeof ContentRoute
   DocsRoute: typeof DocsRouteWithChildren
   EvidenceRoute: typeof EvidenceRoute
@@ -821,6 +846,7 @@ export interface RootRouteChildren {
   ApiTemplateArtifactsValidationIdFixtureIdKindRoute: typeof ApiTemplateArtifactsValidationIdFixtureIdKindRoute
   ApiTemplateProposalsTaskIdOperationIdKindRoute: typeof ApiTemplateProposalsTaskIdOperationIdKindRoute
   ApiTemplateScoresRunIdFixtureIdKindRoute: typeof ApiTemplateScoresRunIdFixtureIdKindRoute
+  ApiV2ArchiveIdKindRoute: typeof ApiV2ArchiveIdKindRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -844,6 +870,13 @@ declare module '@tanstack/react-router' {
       path: '/advanced'
       fullPath: '/advanced'
       preLoaderRoute: typeof AdvancedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/archive': {
+      id: '/archive'
+      path: '/archive'
+      fullPath: '/archive'
+      preLoaderRoute: typeof ArchiveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/content': {
@@ -1259,6 +1292,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1JobsImportsImportIdRouteImport
       parentRoute: typeof ApiV1JobsImportsRoute
     }
+    '/api/v2/archive/$id/$kind': {
+      id: '/api/v2/archive/$id/$kind'
+      path: '/api/v2/archive/$id/$kind'
+      fullPath: '/api/v2/archive/$id/$kind'
+      preLoaderRoute: typeof ApiV2ArchiveIdKindRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1415,6 +1455,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AdvancedRoute: AdvancedRoute,
+  ArchiveRoute: ArchiveRoute,
   ContentRoute: ContentRoute,
   DocsRoute: DocsRouteWithChildren,
   EvidenceRoute: EvidenceRoute,
@@ -1461,6 +1502,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiTemplateProposalsTaskIdOperationIdKindRoute,
   ApiTemplateScoresRunIdFixtureIdKindRoute:
     ApiTemplateScoresRunIdFixtureIdKindRoute,
+  ApiV2ArchiveIdKindRoute: ApiV2ArchiveIdKindRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
