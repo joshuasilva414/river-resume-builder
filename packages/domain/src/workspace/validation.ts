@@ -78,5 +78,29 @@ export function parseResume(input: unknown) {
   const resume = resumeSchema.parse(input);
   parseTemplate(resume.template.document);
   assertContent([...resume.sections, ...resume.unused]);
+  const definitions = new Map(resume.template.document.definitions.map((item) => [item.id, item]));
+  const bind = (node: ContentNode, definitionId: string) => {
+    const definition = definitions.get(definitionId);
+    if (node.kind !== "group" || node.definitionId !== definitionId || !definition)
+      throw new Error("Content groups must use their captured entry definition.");
+    const seen = new Set<string>();
+    for (const child of node.children) {
+      const field = definition.fields.find((field) => field.key === child.key);
+      if (!field || (!field.repeat && seen.has(child.key)))
+        throw new Error("Unmatched or excess values must be retained as unused content.");
+      seen.add(child.key);
+      if (field.type === "group" && field.definitionId) bind(child, field.definitionId);
+      else if (child.kind !== "field" || child.value.kind !== field.type)
+        throw new Error("A field value must match its template type.");
+    }
+  };
+  const sections = new Set<string>();
+  for (const node of resume.sections) {
+    const section = resume.template.document.sections.find((section) => section.key === node.key);
+    if (!section || sections.has(node.key))
+      throw new Error("Each résumé section needs one captured template binding.");
+    sections.add(node.key);
+    bind(node, section.definitionId);
+  }
   return resume;
 }

@@ -137,7 +137,9 @@ export function createWorkspaceRunRepository(db: Database) {
     async finishWorkspaceRun(
       ownerId: string,
       id: string,
-      outcome: { result: string; metadata: string | null } | { error: string },
+      outcome:
+        | { result: string; metadata: string | null }
+        | { error: string; metadata?: string | null },
     ) {
       const run = await get(ownerId, id);
       if (run.state !== "Running")
@@ -160,10 +162,18 @@ export function createWorkspaceRunRepository(db: Database) {
           .update(s.workspaceRuns)
           .set({
             state: succeeded ? "Complete" : "Failed",
-            ...(succeeded ? outcome : { error: outcome.error }),
+            ...(succeeded ? outcome : { error: outcome.error, metadata: outcome.metadata ?? null }),
             completedAt: now,
           })
           .where(and(eq(s.workspaceRuns.id, id), eq(s.workspaceRuns.state, "Running"))),
+        // Consume reservations before completing the operation: its terminal-state trigger releases any remaining slots.
+        ...Array.from({ length: run.kind === "template-score" ? 3 : 1 }, (_, index) =>
+          (succeeded ? settleScoringAllowance : releaseScoringAllowance)(
+            db,
+            run.operationId,
+            `${run.id}:${index}`,
+          ),
+        ),
         db
           .update(s.operations)
           .set({
@@ -172,13 +182,6 @@ export function createWorkspaceRunRepository(db: Database) {
             updatedAt: now,
           })
           .where(and(eq(s.operations.id, run.operationId), eq(s.operations.state, "Running"))),
-        ...Array.from({ length: run.kind === "template-score" ? 3 : 1 }, (_, index) =>
-          (succeeded ? settleScoringAllowance : releaseScoringAllowance)(
-            db,
-            run.operationId,
-            `${run.id}:${index}`,
-          ),
-        ),
         db.delete(s.mutationGuards).where(eq(s.mutationGuards.id, guardId)),
       ]);
       return get(ownerId, id);

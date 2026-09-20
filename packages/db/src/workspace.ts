@@ -1,4 +1,4 @@
-import { ApplicationError, newId, type Principal } from "@river/domain";
+import { ApplicationError, canonicalJson, newId, type Principal } from "@river/domain";
 import {
   type ContentNode,
   type DeleteRecord,
@@ -88,7 +88,17 @@ export function createWorkspaceRepository(db: Database) {
         if (sourceId) sourceIds.add(sourceId);
       }
       if (payload.kind === "content") origins([payload.data.content]);
-      if (payload.kind === "resume") origins([...payload.data.sections, ...payload.data.unused]);
+      if (payload.kind === "resume") {
+        origins([...payload.data.sections, ...payload.data.unused]);
+        if (payload.data.job)
+          guards.push(
+            conditionGuard(
+              db,
+              sql`EXISTS(SELECT 1 FROM job_targets WHERE id=${payload.data.job.id} AND owner_id=${ownerId})`,
+              "Choose a job target in your workspace.",
+            ),
+          );
+      }
       if (payload.kind === "version")
         guards.push(revisionGuard(ownerId, payload.data.resumeId, payload.data.draftRevision));
     }
@@ -160,6 +170,17 @@ export function createWorkspaceRepository(db: Database) {
             code: "Conflict",
             message: "Saved versions are immutable. Restore as a new draft revision.",
           });
+        if (payload.kind === "version") {
+          const draft = await read(actor.ownerId, payload.data.resumeId);
+          if (
+            draft?.payload.kind !== "resume" ||
+            canonicalJson(draft.payload.data) !== canonicalJson(payload.data.snapshot)
+          )
+            throw new ApplicationError({
+              code: "Conflict",
+              message: "Save the draft before capturing this version. Its contents changed.",
+            });
+        }
         const now = Date.now(),
           revision = input.revision + 1,
           revisionId = newId();

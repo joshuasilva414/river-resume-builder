@@ -162,3 +162,63 @@ it("applying a new template retains repeated entry counts and unused values", as
   const switched = applyTemplate(resume, { ...resume.template, revision: 3, document: template });
   expect(switched.sections.length + switched.unused.length).toBe(resume.sections.length);
 });
+
+it("rejects suggestion application after target or job changes, and keeps sibling values intact", async () => {
+  const { applySuggestion, findContent, suggestionInputKey, wordingAlternatives } = await import(
+    "./index"
+  );
+  const resume = renderingFixture(1),
+    contact = resume.sections[0];
+  if (contact?.kind !== "group") throw Error("fixture");
+  const target = contact.children.find((item) => item.key === "name");
+  if (target?.kind !== "field") throw Error("fixture");
+  const alternatives = wordingAlternatives(
+    target,
+    {
+      alternatives: [
+        {
+          title: "Short name",
+          explanation: "Use a shorter form.",
+          changes: [
+            { id: target.id, value: { kind: "text", value: [{ text: "Maya" }] }, factIds: [] },
+          ],
+        },
+      ],
+    },
+    [],
+  );
+  const result = {
+    runId: "run",
+    targetId: target.id,
+    inputKey: suggestionInputKey(target, resume.job),
+    alternatives,
+  };
+  const changed = applySuggestion(resume, result, 0);
+  expect(findContent(changed.sections, target.id)).toMatchObject({
+    value: { value: [{ text: "Maya" }] },
+  });
+  expect(changed.sections.slice(1)).toEqual(resume.sections.slice(1));
+  expect(() => applySuggestion(changed, result, 0)).toThrow(/changed/);
+  expect(() =>
+    applySuggestion(
+      { ...resume, job: { id: "new", title: "New job", description: "New description" } },
+      result,
+      0,
+    ),
+  ).toThrow(/changed/);
+  expect(() =>
+    wordingAlternatives(
+      target,
+      {
+        alternatives: [
+          {
+            title: "Bad",
+            explanation: "Bad target",
+            changes: [{ id: "foreign", value: target.value, factIds: [] }],
+          },
+        ],
+      },
+      [],
+    ),
+  ).toThrow(/identity/);
+});

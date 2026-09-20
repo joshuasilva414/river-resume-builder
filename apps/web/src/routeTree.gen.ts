@@ -47,6 +47,7 @@ import { Route as ApiV1MeRouteImport } from './routes/api/v1/me'
 import { Route as ApiV1SourcesRouteImport } from './routes/api/v1/sources'
 import { Route as ApiV2ContentRouteImport } from './routes/api/v2/content'
 import { Route as ApiV2ContextsRouteImport } from './routes/api/v2/contexts'
+import { Route as ApiV2ExportsRouteImport } from './routes/api/v2/exports'
 import { Route as ApiV2FactsRouteImport } from './routes/api/v2/facts'
 import { Route as ApiV2ResumesRouteImport } from './routes/api/v2/resumes'
 import { Route as ApiV2SourcesRouteImport } from './routes/api/v2/sources'
@@ -60,6 +61,7 @@ import { Route as ApiV1JobsImportsRouteImport } from './routes/api/v1/jobs.impor
 import { Route as ApiV1SourcesSourceIdRouteImport } from './routes/api/v1/sources.$sourceId'
 import { Route as ApiV2ContentIdRouteImport } from './routes/api/v2/content.$id'
 import { Route as ApiV2ContextsIdRouteImport } from './routes/api/v2/contexts.$id'
+import { Route as ApiV2ExportsIdRouteImport } from './routes/api/v2/exports.$id'
 import { Route as ApiV2FactsIdRouteImport } from './routes/api/v2/facts.$id'
 import { Route as ApiV2FactsImportRouteImport } from './routes/api/v2/facts.import'
 import { Route as ApiV2ResumesIdRouteImport } from './routes/api/v2/resumes.$id'
@@ -260,6 +262,11 @@ const ApiV2ContextsRoute = ApiV2ContextsRouteImport.update({
   path: '/api/v2/contexts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV2ExportsRoute = ApiV2ExportsRouteImport.update({
+  id: '/api/v2/exports',
+  path: '/api/v2/exports',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV2FactsRoute = ApiV2FactsRouteImport.update({
   id: '/api/v2/facts',
   path: '/api/v2/facts',
@@ -325,6 +332,11 @@ const ApiV2ContextsIdRoute = ApiV2ContextsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => ApiV2ContextsRoute,
+} as any)
+const ApiV2ExportsIdRoute = ApiV2ExportsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiV2ExportsRoute,
 } as any)
 const ApiV2FactsIdRoute = ApiV2FactsIdRouteImport.update({
   id: '/$id',
@@ -415,6 +427,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/sources': typeof ApiV1SourcesRouteWithChildren
   '/api/v2/content': typeof ApiV2ContentRouteWithChildren
   '/api/v2/contexts': typeof ApiV2ContextsRouteWithChildren
+  '/api/v2/exports': typeof ApiV2ExportsRouteWithChildren
   '/api/v2/facts': typeof ApiV2FactsRouteWithChildren
   '/api/v2/resumes': typeof ApiV2ResumesRouteWithChildren
   '/api/v2/sources': typeof ApiV2SourcesRoute
@@ -428,6 +441,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/sources/$sourceId': typeof ApiV1SourcesSourceIdRoute
   '/api/v2/content/$id': typeof ApiV2ContentIdRoute
   '/api/v2/contexts/$id': typeof ApiV2ContextsIdRoute
+  '/api/v2/exports/$id': typeof ApiV2ExportsIdRoute
   '/api/v2/facts/$id': typeof ApiV2FactsIdRoute
   '/api/v2/facts/import': typeof ApiV2FactsImportRoute
   '/api/v2/resumes/$id': typeof ApiV2ResumesIdRoute
@@ -476,6 +490,7 @@ export interface FileRoutesByTo {
   '/api/v1/sources': typeof ApiV1SourcesRouteWithChildren
   '/api/v2/content': typeof ApiV2ContentRouteWithChildren
   '/api/v2/contexts': typeof ApiV2ContextsRouteWithChildren
+  '/api/v2/exports': typeof ApiV2ExportsRouteWithChildren
   '/api/v2/facts': typeof ApiV2FactsRouteWithChildren
   '/api/v2/resumes': typeof ApiV2ResumesRouteWithChildren
   '/api/v2/sources': typeof ApiV2SourcesRoute
@@ -489,6 +504,7 @@ export interface FileRoutesByTo {
   '/api/v1/sources/$sourceId': typeof ApiV1SourcesSourceIdRoute
   '/api/v2/content/$id': typeof ApiV2ContentIdRoute
   '/api/v2/contexts/$id': typeof ApiV2ContextsIdRoute
+  '/api/v2/exports/$id': typeof ApiV2ExportsIdRoute
   '/api/v2/facts/$id': typeof ApiV2FactsIdRoute
   '/api/v2/facts/import': typeof ApiV2FactsImportRoute
   '/api/v2/resumes/$id': typeof ApiV2ResumesIdRoute
@@ -539,6 +555,7 @@ export interface FileRoutesById {
   '/api/v1/sources': typeof ApiV1SourcesRouteWithChildren
   '/api/v2/content': typeof ApiV2ContentRouteWithChildren
   '/api/v2/contexts': typeof ApiV2ContextsRouteWithChildren
+  '/api/v2/exports': typeof ApiV2ExportsRouteWithChildren
   '/api/v2/facts': typeof ApiV2FactsRouteWithChildren
   '/api/v2/resumes': typeof ApiV2ResumesRouteWithChildren
   '/api/v2/sources': typeof ApiV2SourcesRoute
@@ -552,6 +569,7 @@ export interface FileRoutesById {
   '/api/v1/sources/$sourceId': typeof ApiV1SourcesSourceIdRoute
   '/api/v2/content/$id': typeof ApiV2ContentIdRoute
   '/api/v2/contexts/$id': typeof ApiV2ContextsIdRoute
+  '/api/v2/exports/$id': typeof ApiV2ExportsIdRoute
   '/api/v2/facts/$id': typeof ApiV2FactsIdRoute
   '/api/v2/facts/import': typeof ApiV2FactsImportRoute
   '/api/v2/resumes/$id': typeof ApiV2ResumesIdRoute
@@ -603,6 +621,7 @@ export interface FileRouteTypes {
     | '/api/v1/sources'
     | '/api/v2/content'
     | '/api/v2/contexts'
+    | '/api/v2/exports'
     | '/api/v2/facts'
     | '/api/v2/resumes'
     | '/api/v2/sources'
@@ -616,6 +635,7 @@ export interface FileRouteTypes {
     | '/api/v1/sources/$sourceId'
     | '/api/v2/content/$id'
     | '/api/v2/contexts/$id'
+    | '/api/v2/exports/$id'
     | '/api/v2/facts/$id'
     | '/api/v2/facts/import'
     | '/api/v2/resumes/$id'
@@ -664,6 +684,7 @@ export interface FileRouteTypes {
     | '/api/v1/sources'
     | '/api/v2/content'
     | '/api/v2/contexts'
+    | '/api/v2/exports'
     | '/api/v2/facts'
     | '/api/v2/resumes'
     | '/api/v2/sources'
@@ -677,6 +698,7 @@ export interface FileRouteTypes {
     | '/api/v1/sources/$sourceId'
     | '/api/v2/content/$id'
     | '/api/v2/contexts/$id'
+    | '/api/v2/exports/$id'
     | '/api/v2/facts/$id'
     | '/api/v2/facts/import'
     | '/api/v2/resumes/$id'
@@ -726,6 +748,7 @@ export interface FileRouteTypes {
     | '/api/v1/sources'
     | '/api/v2/content'
     | '/api/v2/contexts'
+    | '/api/v2/exports'
     | '/api/v2/facts'
     | '/api/v2/resumes'
     | '/api/v2/sources'
@@ -739,6 +762,7 @@ export interface FileRouteTypes {
     | '/api/v1/sources/$sourceId'
     | '/api/v2/content/$id'
     | '/api/v2/contexts/$id'
+    | '/api/v2/exports/$id'
     | '/api/v2/facts/$id'
     | '/api/v2/facts/import'
     | '/api/v2/resumes/$id'
@@ -787,6 +811,7 @@ export interface RootRouteChildren {
   ApiV1SourcesRoute: typeof ApiV1SourcesRouteWithChildren
   ApiV2ContentRoute: typeof ApiV2ContentRouteWithChildren
   ApiV2ContextsRoute: typeof ApiV2ContextsRouteWithChildren
+  ApiV2ExportsRoute: typeof ApiV2ExportsRouteWithChildren
   ApiV2FactsRoute: typeof ApiV2FactsRouteWithChildren
   ApiV2ResumesRoute: typeof ApiV2ResumesRouteWithChildren
   ApiV2SourcesRoute: typeof ApiV2SourcesRoute
@@ -1066,6 +1091,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV2ContextsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v2/exports': {
+      id: '/api/v2/exports'
+      path: '/api/v2/exports'
+      fullPath: '/api/v2/exports'
+      preLoaderRoute: typeof ApiV2ExportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v2/facts': {
       id: '/api/v2/facts'
       path: '/api/v2/facts'
@@ -1156,6 +1188,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v2/contexts/$id'
       preLoaderRoute: typeof ApiV2ContextsIdRouteImport
       parentRoute: typeof ApiV2ContextsRoute
+    }
+    '/api/v2/exports/$id': {
+      id: '/api/v2/exports/$id'
+      path: '/$id'
+      fullPath: '/api/v2/exports/$id'
+      preLoaderRoute: typeof ApiV2ExportsIdRouteImport
+      parentRoute: typeof ApiV2ExportsRoute
     }
     '/api/v2/facts/$id': {
       id: '/api/v2/facts/$id'
@@ -1310,6 +1349,18 @@ const ApiV2ContextsRouteWithChildren = ApiV2ContextsRoute._addFileChildren(
   ApiV2ContextsRouteChildren,
 )
 
+interface ApiV2ExportsRouteChildren {
+  ApiV2ExportsIdRoute: typeof ApiV2ExportsIdRoute
+}
+
+const ApiV2ExportsRouteChildren: ApiV2ExportsRouteChildren = {
+  ApiV2ExportsIdRoute: ApiV2ExportsIdRoute,
+}
+
+const ApiV2ExportsRouteWithChildren = ApiV2ExportsRoute._addFileChildren(
+  ApiV2ExportsRouteChildren,
+)
+
 interface ApiV2FactsRouteChildren {
   ApiV2FactsIdRoute: typeof ApiV2FactsIdRoute
   ApiV2FactsImportRoute: typeof ApiV2FactsImportRoute
@@ -1397,6 +1448,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1SourcesRoute: ApiV1SourcesRouteWithChildren,
   ApiV2ContentRoute: ApiV2ContentRouteWithChildren,
   ApiV2ContextsRoute: ApiV2ContextsRouteWithChildren,
+  ApiV2ExportsRoute: ApiV2ExportsRouteWithChildren,
   ApiV2FactsRoute: ApiV2FactsRouteWithChildren,
   ApiV2ResumesRoute: ApiV2ResumesRouteWithChildren,
   ApiV2SourcesRoute: ApiV2SourcesRoute,

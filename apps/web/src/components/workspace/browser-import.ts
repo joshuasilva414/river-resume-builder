@@ -52,7 +52,7 @@ export async function parseCandidateFile(file: File): Promise<ParsedFile> {
     );
   return { ...parsed, original: file };
 }
-export async function fileBase64(file: File) {
+export async function fileBase64(file: Blob) {
   const bytes = new Uint8Array(await file.arrayBuffer());
   let binary = "";
   for (let offset = 0; offset < bytes.length; offset += 8192)

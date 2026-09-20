@@ -18,9 +18,13 @@ import { AreaSelection } from "./area-selection";
 import { VisualCanvas } from "./canvas";
 import { ContentPanel } from "./content-panel";
 import { FieldMapping } from "./field-mapping";
+import { HistoryPanel } from "./history-panel";
+import { JobPicker } from "./job-picker";
 import { documentFonts } from "./pdf/fonts";
 import { usePdf } from "./pdf/use-pdf";
 import { contentPath } from "./projection";
+import { ScorePanel } from "./score-panel";
+import { SuggestionPanel } from "./suggestion-panel";
 import { TemplateInspector } from "./template-inspector";
 import type { EditorRecord } from "./use-draft";
 import { useEditorController } from "./use-editor-controller";
@@ -68,13 +72,15 @@ function DocumentEditor({ initial, ownerId }: { initial: EditorRecord; ownerId: 
     templates = useRecords("template");
   const [area, setArea] = useState(false),
     [preview, setPreview] = useState(false),
+    [history, setHistory] = useState(false),
+    [scorecard, setScorecard] = useState(false),
     [sectionName, setSectionName] = useState(""),
     [error, setError] = useState<string | null>(null),
     [switching, setSwitching] = useState<Extract<WorkspaceRecord, { kind: "template" }> | null>(
       null,
     ),
     [mapping, setMapping] = useState<Record<string, string>>({});
-  const pdf = usePdf(preview ? c.resume : null);
+  const pdf = usePdf(preview || history ? c.resume : null);
   const template = c.resume.template.document;
   const templateRows = templates.data?.filter((row) => row.kind === "template") ?? [];
   const captured = templateRows.find((row) => row.id === c.resume.template.id);
@@ -224,9 +230,22 @@ function DocumentEditor({ initial, ownerId }: { initial: EditorRecord; ownerId: 
           >
             <Redo2 />
           </Button>
+          <Button
+            className="hidden lg:inline-flex"
+            variant="ghost"
+            size="sm"
+            onClick={() => setScorecard(true)}
+          >
+            Scorecard
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setPreview(!preview)}>
             {preview ? "Edit canvas" : "PDF preview"}
           </Button>
+          {c.mode === "resume" && (
+            <Button size="sm" variant="outline" onClick={() => setHistory(true)}>
+              Versions & export
+            </Button>
+          )}
           {c.mode === "template" ? (
             <Button size="sm" onClick={() => void createResume()}>
               Use template
@@ -258,6 +277,23 @@ function DocumentEditor({ initial, ownerId }: { initial: EditorRecord; ownerId: 
             )
           )}
         </div>
+      )}
+      {c.mode === "resume" && (
+        <HistoryPanel
+          id={initial.id}
+          controller={c}
+          open={history}
+          onOpenChange={setHistory}
+          pdf={pdf}
+        />
+      )}
+      {scorecard && (
+        <ScorePanel
+          id={initial.id}
+          ownerId={ownerId}
+          controller={c}
+          onClose={() => setScorecard(false)}
+        />
       )}
       <div className="p-8 lg:hidden">
         <h2 className="font-serif text-2xl">Open on a larger screen to edit.</h2>
@@ -379,6 +415,7 @@ function DocumentEditor({ initial, ownerId }: { initial: EditorRecord; ownerId: 
             </>
           ) : (
             <>
+              <JobPicker controller={c} />
               <label className="block text-xs">
                 Add section
                 <select
@@ -570,6 +607,8 @@ function DocumentEditor({ initial, ownerId }: { initial: EditorRecord; ownerId: 
           </aside>
         ) : c.mode === "template" ? (
           <TemplateInspector controller={c} />
+        ) : c.suggestionTarget ? (
+          <SuggestionPanel key={c.suggestionTarget} id={initial.id} controller={c} />
         ) : (
           <ContentPanel controller={c} />
         )}

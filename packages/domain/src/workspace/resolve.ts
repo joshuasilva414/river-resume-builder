@@ -204,21 +204,25 @@ export function resolveDocument(resume: Resume, placeholders = false): ResolvedD
               }
             : null)
         );
+      let populatedBefore = false;
       const spaced = field.separator
-        ? children.flatMap((child, i) =>
-            i
+        ? children.flatMap((child, i) => {
+            const include = printable(child),
+              separate = include && populatedBefore;
+            populatedBefore ||= include;
+            return separate
               ? [
                   {
                     ...base,
                     id: `${base.id}:item-separator:${i}`,
                     kind: "text" as const,
                     style: { grow: 0 },
-                    spans: [{ text: field.separator }],
+                    spans: [{ text: field.separator ?? "" }],
                   },
                   child,
                 ]
-              : [child],
-          )
+              : [child];
+          })
         : children;
       return spaced.length || placeholders
         ? {

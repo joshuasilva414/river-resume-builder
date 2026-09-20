@@ -16,7 +16,7 @@ an active browser; server agents submit extracted text.
 - [x] Records, owner-scoped persistence, revision/idempotency protection, archive.
 - [x] Fact bank, browser imports, nested content, REST/MCP replacement.
 - [x] Production template/résumé editor and Paper states.
-- [ ] PDF preview/export, history, suggestions, both optional scorecards.
+- [x] PDF preview/export, history, suggestions, both optional scorecards.
 - [ ] Local archive cutover and retained artifact validation.
 - [ ] Retired editor, LaTeX, Paged.js and container dependency removal.
 - [ ] Architecture/API/setup/runbook documentation and acceptance checks.
@@ -112,3 +112,33 @@ blank résumé creation, double-click editing, Escape, add-entry, Control undo/r
 Backspace deletion and a one-page PDF text-completeness check. Focused domain tests
 cover unwrapping, movement cycle protection and layout application retaining IDs,
 values and entry counts. Broader browser interaction checks remain in final acceptance.
+
+### Exports, versions, suggestions, and scorecards
+
+Exports capture a saved immutable version, retain the exact browser PDF blob for
+upload retries, verify its SHA-256/size and resolved text, and publish a private
+Download action only after R2 archival succeeds. Restoring a named version edits
+the current draft without changing the captured version or older exported bytes.
+The server verifies snapshot content against the observed saved draft revision.
+
+Suggestions run on explicit requests. Library alternatives and AI wording return
+before/after replacements scoped to one stable target. Target/job fingerprints use
+canonical JSON so serialization order cannot create false stale-input failures.
+AI may change values within the target, never schema, layout, or field identities.
+
+Both scorecards submit checked PDF text and captured job descriptions to the
+existing provider adapter. Template scorecards use three editable fictional pairs;
+custom fields are filled in the fixture editor and reviewed before submission.
+Fixture edits use separate browser storage and never create candidate facts.
+Input/provider/rendering metadata and raw responses are retained. Reservation
+consumption precedes terminal operation updates because their trigger releases
+unused slots. Scoring failures leave saving and export available.
+
+Validation: domain tests pass (42 checks), web TypeScript and production build pass.
+Worker checks cover archive byte identity, owner isolation, incomplete uploads,
+immutable snapshots, three-result quota accounting, replay without extra provider
+calls, stale text rejection and failed-provider release. The browser saved a named
+version and successfully archived a generated one-page PDF. All three fictional
+samples passed PDF text checks. A live score request correctly reported that the
+local scoring provider is unconfigured; successful provider behavior is covered
+with the existing contract fixtures. Live-provider scoring remains unvalidated.

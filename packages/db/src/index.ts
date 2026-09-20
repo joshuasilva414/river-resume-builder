@@ -37,6 +37,8 @@ import { createUsageRepository } from "./usage";
 import { createWordingRepository } from "./wording";
 import { createWorkspaceRepository } from "./workspace";
 import { createWorkspaceArchiveRepository } from "./workspace-archive";
+import { createWorkspaceExportRepository } from "./workspace-exports";
+import { createWorkspaceJobRepository } from "./workspace-jobs";
 import { createWorkspaceRunRepository } from "./workspace-runs";
 import { createWorkspaceSourceRepository } from "./workspace-sources";
 
@@ -70,6 +72,8 @@ export function createRepository(binding: D1Database) {
   return {
     ...createAccessRepository(db),
     ...createWorkspaceRepository(db),
+    ...createWorkspaceJobRepository(db),
+    ...createWorkspaceExportRepository(db),
     ...createWorkspaceRunRepository(db),
     ...createWorkspaceSourceRepository(db),
     ...createWorkspaceArchiveRepository(db),
