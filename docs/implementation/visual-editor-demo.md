@@ -1,3 +1,5 @@
+> Historical release record. The current replacement is described in [river-replacement.md](river-replacement.md). This file does not describe or authorize the replacement deployment.
+
 # River visual editor demo
 
 This is an isolated, mid-fidelity interaction demonstration. All résumé content, jobs, library entries, and suggestions are fictional. It does not call AI providers, write production résumés or templates, publish layouts, compile documents, or export PDFs.

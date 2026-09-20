@@ -1,3 +1,5 @@
+> Superseded for active workflows by [ADR 0016](0016-use-facts-visual-documents-and-browser-pdf.md). Retained as historical context.
+
 # Compose content schemas independently of layouts
 
 River v1.2 separates a named, versioned content schema from the layouts that render it. A schema can contain scalar values, scalar lists, and references to single or repeated nested records. An Experience section owns its inline Experience Entry records; a Summary owns its text directly. Users save the complete section once, without creating intermediary wording records or blocks.
