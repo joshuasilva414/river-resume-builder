@@ -20,6 +20,10 @@ pnpm dev                      # 4
 3. Apply local D1 migrations through the replacement model.
 4. Open `http://127.0.0.1:3000`. Only the web application runs; PDF rendering and file parsing run in the active browser.
 
+`http://localhost:3000` also works. Development authentication accepts both loopback
+hostnames on the configured port. Verification/reset links use `APP_URL`; sessions
+are separate for each hostname. Hosted authentication trusts only its configured origin.
+
 Create an account admitted by `ADMIN_EMAIL` or `ALLOWED_EMAILS`. Development verification and password-reset mail is retained privately in local R2. Use `pnpm auth:mail -- you@example.test` to read its link. This adapter is restricted to development and a loopback origin.
 
 AI requires a personal provider connection and default model in Settings, plus the server encryption secret. Optional scorecards require `ATS_SCREENER_ORIGIN`. Missing providers do not block manual authoring, saving, or export. See [workspace architecture](docs/adr/0016-use-facts-visual-documents-and-browser-pdf.md).
