@@ -23,7 +23,7 @@ test("hosted builds reject dev, missing branches, and cross-environment deployme
 test("rejects a stale staging bundle or production bundle with foreign storage", () => {
   const target = deploymentTarget("production", {});
   assert.throws(() => validateBundle(bundleFor("staging"), source, target));
-  for (const key of ["d1_databases", "r2_buckets", "services", "workflows", "routes"]) {
+  for (const key of ["d1_databases", "r2_buckets", "workflows", "routes"]) {
     const bundle = bundleFor("production");
     bundle[key] = source.env.staging[key];
     assert.throws(() => validateBundle(bundle, source, target), key);
@@ -43,9 +43,15 @@ test("accepts correct environment bindings with Vite-resolved migration paths", 
 
 test("rejects bundles that persist unsanitized URL metadata or omit the sanitizer", () => {
   for (const modify of [
-    (bundle) => { bundle.observability.logs.persist = true; },
-    (bundle) => { bundle.observability.redact_query_string = false; },
-    (bundle) => { bundle.tail_consumers = []; },
+    (bundle) => {
+      bundle.observability.logs.persist = true;
+    },
+    (bundle) => {
+      bundle.observability.redact_query_string = false;
+    },
+    (bundle) => {
+      bundle.tail_consumers = [];
+    },
   ]) {
     const bundle = bundleFor("production");
     modify(bundle);

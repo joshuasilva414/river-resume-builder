@@ -1,6 +1,5 @@
 import { Schema } from "effect";
-import { Revision } from "./core";
-import { RecordId } from "./evidence";
+import { RecordId, Revision } from "./core";
 
 export const aiProviders = ["openai", "anthropic", "google", "openrouter"] as const;
 export const AiProvider = Schema.Literals(aiProviders);

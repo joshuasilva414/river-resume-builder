@@ -1,54 +1,65 @@
 # River
 
-Private workspaces for turning job postings and experience into tailored résumés, ready to review and export. Product behavior lives in [SPEC.md](SPEC.md); architecture and delivery gates live in [PLAN.md](PLAN.md).
+Private workspaces for turning candidate facts into reusable content, tailored résumés, and browser-generated PDFs.
 
-**Implementation status:** V1 and the private-account extension are deployed to staging and production. See the [implementation status](docs/implementation/status.md) and [multi-user operation](docs/implementation/multi-user.md) for verification and account admission.
-
-See [Contributing to River](contributions.md) for the Git workflow, local checks, and release process. [CI and automatic deployments](docs/implementation/ci-cd.md) covers Cloudflare settings and release safeguards.
+This branch implements the visual workspace replacement. It has not been deployed. Existing hosted releases remain unchanged. See the [implementation and acceptance record](docs/implementation/river-replacement.md) and [cutover runbook](docs/implementation/workspace-cutover.md).
 
 ## Run locally
 
-Use Node **24.20.0**, pnpm **10.33.0**, and a running Docker Desktop engine. All application dependencies are pinned in `pnpm-lock.yaml`.
+Use Node 24 and pnpm 10.33.0. CI pins Node 24.20.0. Docker is no longer required.
 
 ```sh
-pnpm install --frozen-lockfile
-pnpm setup:local
-pnpm db:migrate:local
-WRANGLER_DOCKER_BIN=/Applications/Docker.app/Contents/Resources/bin/docker pnpm dev
+pnpm install --frozen-lockfile # 1
+pnpm setup:local               # 2
+pnpm db:migrate:local          # 3
+pnpm dev                      # 4
 ```
 
-1. Install the workspace dependencies from the lockfile.
-2. Generate a local authentication secret, preserving any existing `.dev.vars`.
-3. Apply the D1 migrations to the local database.
-4. Start the web app on `http://127.0.0.1:3000` and the private document Worker on port 8788. The first Container build downloads and pins the compiler resources. On Linux, use your installed Docker CLI path.
+1. Install the pinned workspace dependencies.
+2. Create a local authentication secret, preserving existing `.dev.vars`.
+3. Apply local D1 migrations through the replacement model.
+4. Open `http://127.0.0.1:3000`. Only the web application runs; PDF rendering and file parsing run in the active browser.
 
-Create an account using `ADMIN_EMAIL` or an address in the comma-separated `ALLOWED_EMAILS` configuration. Development verification and reset messages are written to private local R2 instead of sending email. Run `pnpm auth:mail -- you@example.test` to read the latest local message for that address and open its verification link in the same local browser. This delivery adapter is restricted to development and a loopback application origin.
+`http://localhost:3000` also works. Development authentication accepts both loopback
+hostnames on the configured port. Verification/reset links use `APP_URL`; sessions
+are separate for each hostname. Hosted authentication trusts only its configured origin.
+
+Create an account admitted by `ADMIN_EMAIL` or `ALLOWED_EMAILS`. Development verification and password-reset mail is retained privately in local R2. Use `pnpm auth:mail -- you@example.test` to read its link. This adapter is restricted to development and a loopback origin.
+
+AI requires a personal provider connection and default model in Settings, plus the server encryption secret. Optional scorecards require `ATS_SCREENER_ORIGIN`. Missing providers do not block manual authoring, saving, or export. See [workspace architecture](docs/adr/0016-use-facts-visual-documents-and-browser-pdf.md).
+
+## Workflows
+
+- `/facts`: typed facts grouped by employer, project, education, profile, or a custom context.
+- `/content`: reusable bullets, skills, entries, and sections. Insertion copies values.
+- `/templates`: custom visual structures, repeating entry layouts, labels, and formatting.
+- `/resumes`: captured templates, direct authoring, contextual suggestions, versions, and private PDF exports.
+- `/sources` and `/jobs`: retained candidate sources and job descriptions.
+- `/archive`: read-only previous workspace, including available historical PDF bytes.
+
+The editor supports desktop keyboard and mouse use. Smaller screens support browsing and retained downloads. OCR, collaborative editing, automatic fact propagation, template-design AI, and old-template conversion are excluded. The bundled document fonts support Latin text; unsupported glyphs fail the PDF completeness check instead of producing a successful export.
 
 ## Verify
 
-- `pnpm lint`: Biome across the workspace.
-- `pnpm check`: strict TypeScript across all six packages.
-- `pnpm test`: domain/composition and Workers/D1 service tests.
-- `pnpm test:documents`: build a Linux/amd64 image, run offline PDF/DOCX fixtures with a 512 MiB memory limit and one CPU, then remove the temporary test Container. Results are under `apps/documents/test-results/`.
-- `pnpm --filter @river/web build`: build the application for Workers.
+| Command | Purpose |
+| --- | --- |
+| `pnpm lint` | Formatting and lint across active packages |
+| `pnpm check` | Strict TypeScript across four packages |
+| `pnpm test` | Domain, Workers/D1, API/MCP, and recovery checks |
+| `pnpm test:deployment` | Environment and bundle guards |
+| `pnpm --filter @river/web build` | Production web bundle and dedicated PDF worker |
 
-GitHub Actions runs verification on pull requests and pushes to `dev`, `staging`, and `main`. Cloudflare independently checks and deploys pushes to `staging` and `main`; see [the contribution guide](contributions.md#cloudflare-deployments) for deployment triggers and exclusions.
+The authenticated development fixture `/demo/pdf-proof` checks repeated entries, fonts, rich text, Unicode handling, multi-page PDFs, and browser PDF/DOCX/text imports. It never saves fictional candidate records. Production URLs do not expose this fixture.
 
-## Workspace boundaries
+## Code boundaries
 
 | Location | Responsibility |
 | --- | --- |
-| `apps/web` | TanStack Start UI, Owner/Agent authentication, Effect services, Workflows, REST/MCP transports |
-| `apps/documents` | Private document Worker, Container, Tectonic, PDF.js and Mammoth adapters |
-| `packages/domain` | Domain values, invariants, identifiers and typed failures |
-| `packages/contracts` | Effect Schema request/result contracts |
-| `packages/db` | Drizzle schema, migrations, D1 repositories and atomic commands |
-| `packages/templates` | Deterministic LaTeX composition and synthetic fixtures |
+| `apps/web` | React/Tiptap UI, browser PDF worker/parsers, authentication, server AI/scoring and transports |
+| `packages/domain/src/workspace` | Typed records, copy/mapping commands, shared document resolver |
+| `packages/contracts` | Retained authentication/source contracts; workspace contracts are Zod schemas in domain |
+| `packages/db` | Drizzle, D1 migrations, atomic commands, archives, private artifact manifests |
 
-## Deployment and current limitations
+Sources, exports, and backups use private R2. D1 stores versioned JSON aggregates and immutable snapshots. Accounts, settings, sources, and job targets survive the cutover. Historical editor data is archived without conversion or re-rendering.
 
-`ADMIN_EMAIL` identifies the service administrator; `ALLOWED_EMAILS` admits additional private accounts. The administrator has no cross-workspace content access. See [multi-user operation](docs/implementation/multi-user.md) for admission, migration and usage limits. Resources belong exclusively to the personal Cloudflare account configured in both Wrangler files. The ACM UTSA workspace is outside this project.
-
-Staging: [river-staging.jilva.workers.dev](https://river-staging.jilva.workers.dev). Production: [river.jilva.dev](https://river.jilva.dev).
-
-See [the runtime proof](docs/implementation/phase-0.md) for measurements, exact resource identities, reproducible deployment steps, and remaining acceptance checks. See [the implementation ledger](docs/implementation/status.md) before continuing work.
+See [API and MCP](docs/implementation/workspace-api.md), [contributing](contributions.md), and [CI/deployment](docs/implementation/ci-cd.md). Deployment, merge, and remote container decommission require separate authorization.

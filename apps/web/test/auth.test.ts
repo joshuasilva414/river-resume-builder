@@ -2,9 +2,10 @@ import { applyD1Migrations } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { createDatabase, schema } from "@river/db";
 import { eq } from "drizzle-orm";
+import { Effect } from "effect";
 import { beforeAll, expect, it } from "vitest";
 import { authenticate, createAuth } from "../src/server/auth";
-import { execute, listOperations, startProof } from "../src/server/services";
+import { Actor, execute } from "../src/server/services";
 
 beforeAll(async () => {
   await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
@@ -18,6 +19,85 @@ const settings = {
   AUTH_SECRET: "river-test-only-secret-at-least-thirty-two-characters",
   EMAIL_FROM: "River <test@example.test>",
 };
+
+it("accepts both loopback hostnames on the configured development port", async () => {
+  for (const [hostIndex, host] of ["127.0.0.1", "localhost"].entries()) {
+    const auth = createAuth({ ...settings, APP_URL: `http://${host}:3000` });
+    for (const [originIndex, origin] of [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+    ].entries()) {
+      const response = await auth.handler(
+        new Request(`${origin}/api/auth/sign-in/email`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Origin: origin,
+            Cookie: "origin-check=fixture",
+            "cf-connecting-ip": `192.0.2.${hostIndex * 2 + originIndex + 1}`,
+          },
+          body: JSON.stringify({
+            email: "origin-fixture@example.test",
+            password: "not-an-account-password",
+          }),
+        }),
+      );
+      // The request reaches credential validation instead of failing the origin guard.
+      expect(response.status).toBe(401);
+      expect(await response.json()).toMatchObject({ code: "INVALID_EMAIL_OR_PASSWORD" });
+    }
+  }
+});
+
+it("rejects other ports, lookalike hosts, and local origins outside loopback development", async () => {
+  const cases = [
+    {
+      environment: "development",
+      appUrl: "http://127.0.0.1:3000",
+      origin: "http://localhost:3001",
+    },
+    {
+      environment: "development",
+      appUrl: "http://127.0.0.1:3000",
+      origin: "http://localhost.example.test:3000",
+    },
+    {
+      environment: "development",
+      appUrl: "https://dev.example.test",
+      origin: "http://localhost:3000",
+    },
+    {
+      environment: "staging",
+      appUrl: "https://staging.example.test",
+      origin: "http://localhost:3000",
+    },
+    {
+      environment: "production",
+      appUrl: "https://river.example.test",
+      origin: "http://127.0.0.1:3000",
+    },
+  ] as const;
+  for (const [index, { environment, appUrl, origin }] of cases.entries()) {
+    const auth = createAuth({ ...settings, ENVIRONMENT: environment, APP_URL: appUrl });
+    const response = await auth.handler(
+      new Request(`${appUrl}/api/auth/sign-in/email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: origin,
+          Cookie: "origin-check=fixture",
+          "cf-connecting-ip": `198.51.100.${index + 1}`,
+        },
+        body: JSON.stringify({
+          email: "origin-fixture@example.test",
+          password: "not-an-account-password",
+        }),
+      }),
+    );
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ code: "INVALID_ORIGIN" });
+  }
+});
 
 it("requires the allowlisted verified Owner and honors session revocation", async () => {
   const deliveries: string[] = [];
@@ -65,30 +145,16 @@ it("requires the allowlisted verified Owner and honors session revocation", asyn
   const result = await execute(
     settings,
     headers,
-    startProof(settings.ENVIRONMENT, { idempotencyKey: "authenticated-proof", theme: "classic" }),
+    Effect.map(Actor, (actor) => actor.ownerId),
   );
   expect(result.ok).toBe(true);
-  const before = await execute(settings, headers, listOperations("staging"));
-  expect(before).toMatchObject({ ok: true, value: [{ id: expect.any(String) }] });
-  expect(
-    await execute(
-      settings,
-      headers,
-      startProof("production", { idempotencyKey: "production-proof", theme: "classic" }),
-    ),
-  ).toMatchObject({ ok: false, error: { code: "NotFound", status: 404 } });
-  expect(await execute(settings, headers, listOperations("production"))).toMatchObject({
-    ok: false,
-    error: { code: "NotFound", status: 404 },
-  });
-  expect(await execute(settings, headers, listOperations("staging"))).toEqual(before);
   await auth.api.signOut({ headers });
   expect(await authenticate(settings, headers)).toBeNull();
   expect(
     await execute(
       settings,
       headers,
-      startProof(settings.ENVIRONMENT, { idempotencyKey: "revoked-proof", theme: "classic" }),
+      Effect.map(Actor, (actor) => actor.ownerId),
     ),
   ).toMatchObject({ ok: false, error: { code: "Unauthorized" } });
 });

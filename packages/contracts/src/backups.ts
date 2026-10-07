@@ -1,6 +1,6 @@
 import { Revision } from "@river/domain";
 import { Schema } from "effect";
-import { CommandKey } from "./evidence";
+import { CommandKey } from "./common";
 
 const BackupDate = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/));
 

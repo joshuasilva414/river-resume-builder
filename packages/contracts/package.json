@@ -13,8 +13,7 @@
   },
   "dependencies": {
     "effect": "4.0.0-rc.112",
-    "@river/domain": "workspace:*",
-    "@river/templates": "workspace:*"
+    "@river/domain": "workspace:*"
   },
   "devDependencies": {}
 }

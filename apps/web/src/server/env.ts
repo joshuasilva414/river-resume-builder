@@ -1,5 +1,4 @@
 import { env } from "cloudflare:workers";
-import type { DocumentJob, DocumentResult } from "@river/contracts";
 import { Schema } from "effect";
 
 export const Configuration = Schema.Struct({
@@ -24,20 +23,8 @@ export type Configuration = typeof Configuration.Type;
 
 export interface Env extends Configuration {
   DB: D1Database;
-  BROWSER?: BrowserRun;
   ARTIFACTS: R2Bucket;
-  DOCUMENT_WORKFLOW: Workflow<{ operationId: string }>;
-  JOB_AI_WORKFLOW?: Workflow<{ operationId: string }>;
-  SOURCE_AI_WORKFLOW?: Workflow<{ operationId: string }>;
-  DUPLICATE_AI_WORKFLOW?: Workflow<{ operationId: string }>;
-  TEMPLATE_VALIDATION_WORKFLOW?: Workflow<{ operationId: string }>;
-  TEMPLATE_AI_WORKFLOW?: Workflow<{ operationId: string }>;
-  SOURCE_REFINEMENT_WORKFLOW?: Workflow<{ operationId: string }>;
-  WORDING_WORKFLOW?: Workflow<{ operationId: string }>;
   BACKUP_WORKFLOW?: Workflow<{ operationId: string }>;
-  TEMPLATE_SCORING_WORKFLOW?: Workflow<{ operationId: string }>;
-  SCORING_WORKFLOW?: Workflow<{ operationId: string }>;
-  DOCUMENTS: { run: (job: DocumentJob) => Promise<DocumentResult> };
   EMAIL?: SendEmail;
 }
 

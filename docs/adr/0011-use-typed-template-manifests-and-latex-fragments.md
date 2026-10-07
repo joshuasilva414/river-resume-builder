@@ -1,3 +1,5 @@
+> Superseded for active workflows by [ADR 0016](0016-use-facts-visual-documents-and-browser-pdf.md). Retained as historical context.
+
 # Use typed template manifests and LaTeX fragments
 
 Each Template Revision will combine an Effect-Schema-validated Template Manifest with LaTeX fragments. The manifest declares the template level, compatible content and child types, style contract, inherited and overridden tokens, assets, typed slots, and validation metadata. A deterministic compositor builds the document from Document, Section, and Block fragments. Scalar slots are escaped according to their declared types, and only explicit child-output slots may contain already-rendered LaTeX.

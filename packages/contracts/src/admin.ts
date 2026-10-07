@@ -1,6 +1,6 @@
 import { Revision } from "@river/domain";
 import { Schema } from "effect";
-import { CommandKey } from "./evidence";
+import { CommandKey } from "./common";
 
 const AccountId = Schema.NonEmptyString.check(Schema.isMaxLength(200));
 const DailyLimit = Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 10000 }));

@@ -1,0 +1,296 @@
+.visual-workspace {
+  --visual-blue: #1e5eff;
+  color: #111318;
+  background: #fff;
+}
+.visual-stage {
+  background: #f6f7f9;
+  padding: 28px 36px;
+  overflow: auto;
+  min-width: 0;
+  outline: none;
+}
+.visual-paper {
+  background: white;
+  color: #111318;
+  min-height: 792pt;
+  margin: 0 auto;
+  border: 1px solid #d9dde3;
+  box-shadow: 0 2px 8px #11131804;
+  box-sizing: border-box;
+  line-height: 1.35;
+}
+.visual-canvas {
+  outline: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12pt;
+}
+.visual-node {
+  position: relative;
+  min-width: 0;
+  border-radius: 2px;
+  outline-offset: 3px;
+  line-height: 1.35;
+  flex: 0 1 auto;
+}
+.visual-node:focus {
+  outline: 1px solid #1e5eff;
+  outline-offset: 3px;
+}
+.visual-node[data-selectable="true"]:hover:not(:has(.visual-node[data-selectable="true"]:hover)) {
+  outline: 1px solid #adc4ff;
+}
+.visual-node.visual-selected {
+  outline: 1px solid #1e5eff;
+  background: #1e5eff08;
+}
+.visual-node.visual-selected:has(.visual-node.visual-selected) {
+  outline-color: transparent;
+  background: transparent;
+}
+.visual-prose {
+  white-space: pre-wrap;
+  min-height: 1.35em;
+  user-select: none;
+}
+.visual-placeholder {
+  color: #98a0af;
+  font-style: normal;
+  font-weight: 400;
+  min-height: 1.35em;
+}
+.visual-empty {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font:
+    11px / 1.5 "Instrument Sans Variable",
+    sans-serif;
+}
+.visual-empty button {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  color: #1e5eff;
+}
+.visual-children-row,
+.visual-children-column {
+  display: flex;
+  gap: inherit;
+  align-items: stretch;
+  min-width: 0;
+}
+.visual-children-row {
+  flex-direction: row;
+}
+.visual-children-column {
+  flex-direction: column;
+}
+.visual-children-row > [data-node-view-content-react],
+.visual-children-column > [data-node-view-content-react] {
+  display: contents;
+}
+.visual-canvas .react-renderer {
+  display: contents;
+}
+.visual-node-tools {
+  display: none;
+  position: absolute;
+  right: calc(100% + 5px);
+  top: 0;
+  gap: 2px;
+  align-items: center;
+  white-space: nowrap;
+  color: #7c8492;
+  font:
+    10px / 16px "Instrument Sans Variable",
+    sans-serif;
+  z-index: 8;
+  background: white;
+  border-radius: 3px;
+}
+.visual-selected > .visual-node-tools,
+.visual-node:focus-within > .visual-node-tools,
+.visual-node:hover:not(:has(.visual-node:hover)) > .visual-node-tools {
+  display: flex;
+}
+.visual-node:has(.visual-node:focus-within) > .visual-node-tools:not(.visual-block-tools) {
+  display: none;
+}
+.visual-node-tools button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 21px;
+  height: 22px;
+  padding: 2px;
+  border: 1px solid #d9dde3;
+  border-radius: 3px;
+  background: white;
+  cursor: pointer;
+}
+.visual-node-tools button:hover {
+  background: #eef3ff;
+  color: #1e5eff;
+}
+.visual-block-tools {
+  position: relative;
+  inset: auto;
+  display: flex;
+  z-index: 1;
+  height: 24px;
+  margin-bottom: 7px;
+  opacity: 0.85;
+  background: transparent;
+}
+.visual-block-tools .visual-group-label {
+  border: none;
+  background: transparent;
+  padding: 0 4px;
+  text-overflow: ellipsis;
+  max-width: 75%;
+  overflow: hidden;
+  justify-content: flex-start;
+}
+.visual-inline-editor {
+  font-family: inherit;
+  font-size: inherit;
+  background: white;
+  user-select: text;
+}
+.visual-inline-editor .tiptap {
+  font: inherit;
+  line-height: inherit;
+}
+.visual-inline-editor .tiptap p {
+  margin: 0;
+}
+.visual-inline-editor .tiptap a {
+  text-decoration: underline;
+}
+.visual-section + .visual-section {
+  margin-top: 8pt;
+}
+.visual-inspector {
+  width: 290px;
+  min-width: 290px;
+  padding: 20px;
+  border-left: 1px solid #d9dde3;
+  overflow: auto;
+  background: white;
+  max-height: calc(100vh - 160px);
+  position: sticky;
+  top: 0;
+}
+.visual-tree {
+  max-height: 270px;
+  overflow: auto;
+  border: 1px solid #d9dde3;
+  border-radius: 4px;
+  padding: 4px;
+}
+.visual-tree button {
+  font:
+    12px / 18px "Instrument Sans Variable",
+    sans-serif;
+  text-align: left;
+  width: 100%;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  border-radius: 3px;
+}
+.visual-tree button[aria-selected="true"] {
+  background: #eef3ff;
+  color: #1e5eff;
+}
+.visual-tree button:hover {
+  background: #f6f7f9;
+}
+.visual-selection-box {
+  position: fixed;
+  z-index: 100;
+  pointer-events: none;
+  border: 1px solid #1e5eff;
+  background: #1e5eff12;
+  border-radius: 2px;
+}
+.visual-area-active,
+.visual-area-active .visual-node,
+.visual-area-dragging * {
+  cursor: crosshair;
+}
+.visual-area-dragging {
+  user-select: none;
+}
+.document-is-dragging,
+.document-is-dragging * {
+  cursor: grabbing;
+  user-select: none;
+}
+[data-document-dragging="true"] {
+  opacity: 0.25;
+}
+.document-drag-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+}
+.document-drag-ghost {
+  position: fixed;
+  min-width: 120px;
+  border: 1px solid #a9c2ff;
+  border-radius: 6px;
+  background: white;
+  color: #111318;
+  box-shadow: 0 12px 36px #152e6033;
+  overflow: hidden;
+  opacity: 0.96;
+}
+.document-drag-title,
+.document-drag-status {
+  font:
+    11px / 17px "Instrument Sans Variable",
+    sans-serif;
+  padding: 7px 12px;
+  color: #2352bd;
+  background: #eef3ff;
+}
+.document-drag-preview {
+  padding: 12px;
+  max-height: 245px;
+  overflow: hidden;
+}
+.document-drop-line {
+  position: fixed;
+  background: #1e5eff;
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px #ffffffaa;
+}
+.document-drop-line::before,
+.document-drop-line::after {
+  content: "";
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #1e5eff;
+  top: -2px;
+}
+.document-drop-line::before {
+  left: -3px;
+}
+.document-drop-line::after {
+  right: -3px;
+}
+.document-drop-line-vertical::before {
+  left: -2px;
+  top: -3px;
+}
+.document-drop-line-vertical::after {
+  left: -2px;
+  top: auto;
+  bottom: -3px;
+}

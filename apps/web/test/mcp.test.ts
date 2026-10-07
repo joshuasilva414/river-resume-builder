@@ -76,82 +76,46 @@ const CallResponse = Schema.Struct({
     content: Schema.Array(Schema.Struct({ type: Schema.String, text: Schema.String })),
   }),
 });
-it("authenticates MCP, exposes only permitted tools, and rejects unknown mutation surfaces", async () => {
-  const { call, settings } = await fixture(["evidence:read"]);
+it("authenticates MCP and exposes only scoped fact tools", async () => {
+  const { call, settings } = await fixture(["facts:read"]);
   expect((await handleMcp(new Request(`${settings.APP_URL}/mcp`), settings)).status).toBe(401);
-  const listing = await call("tools/list");
-  expect(listing.status).toBe(200);
-  const tools = Schema.decodeUnknownSync(ToolsResponse)(listing.json).result.tools;
-  expect(tools.map((tool) => tool.name)).toEqual([
-    "search_evidence",
-    "get_evidence",
-    "list_contexts",
-    "list_duplicates",
-  ]);
-  expect(tools[0]?.inputSchema).toMatchObject({
-    type: "object",
-    properties: { query: { type: "string" } },
-  });
-  const forbidden = await call("tools/call", {
-    name: "evidence_command",
-    arguments: { command: { type: "create" } },
-  });
-  expect(JSON.stringify(forbidden.json)).toMatch(/not found|Unknown tool/i);
+  const tools = Schema.decodeUnknownSync(ToolsResponse)(
+    (await call("tools/list")).json,
+  ).result.tools.map((t) => t.name);
+  expect(tools).toEqual(["list_fact_contexts", "get_fact_context", "list_facts", "get_fact"]);
+  const retired = await call("tools/call", { name: "evidence_command", arguments: {} });
+  expect(JSON.stringify(retired.json)).toContain("RIVER_WORKSPACE_REPLACED");
 });
-it("shares command idempotency, validates arguments, checks subcommand scopes, and revokes immediately", async () => {
-  const { call, repository, ownerId, credentialId } = await fixture([
-    "evidence:read",
-    "evidence:write",
-  ]);
-  const command = {
-    type: "create",
+it("shares typed write receipts, validates payloads and revokes immediately", async () => {
+  const { call, repository, ownerId, credentialId } = await fixture(["facts:read", "facts:write"]),
+    id = newId();
+  const input = {
+    id,
+    revision: 0,
     idempotencyKey: "once",
-    metadata: { label: "Fixture", tags: [], notes: "" },
-    material: { assertion: "Synthetic MCP claim", citations: [], contexts: [] },
+    payload: {
+      kind: "fact",
+      data: {
+        id,
+        key: "skill",
+        label: "Skill",
+        contextId: null,
+        sourceId: null,
+        value: { kind: "skill", value: "TypeScript" },
+      },
+    },
   };
-  const first = await call("tools/call", { name: "evidence_command", arguments: { command } });
-  const repeated = await call("tools/call", { name: "evidence_command", arguments: { command } });
-  expect(first.json).toEqual(repeated.json);
+  const first = await call("tools/call", { name: "save_fact", arguments: input });
   expect(Schema.decodeUnknownSync(CallResponse)(first.json).result.isError).toBe(false);
-  const claims = await repository.searchEvidence(ownerId, {
-    query: "",
-    status: "All",
-    archived: false,
-    contextId: null,
-    offset: 0,
-  });
-  expect(claims.items).toHaveLength(1);
-  const claim = claims.items[0];
-  if (!claim) throw Error("Missing created claim");
-  const forbidden = await call("tools/call", {
-    name: "evidence_command",
-    arguments: {
-      command: {
-        type: "archive",
-        id: claim.id,
-        revision: 0,
-        archived: true,
-        rationale: "Fixture",
-        idempotencyKey: "forbidden",
-      },
-    },
-  });
-  expect(Schema.decodeUnknownSync(CallResponse)(forbidden.json).result).toMatchObject({
-    isError: true,
-  });
-  expect(JSON.stringify(forbidden.json)).toContain("Forbidden");
+  expect((await call("tools/call", { name: "save_fact", arguments: input })).json).toEqual(
+    first.json,
+  );
+  expect(await repository.listWorkspaceRecords(ownerId, "fact")).toHaveLength(1);
   const invalid = await call("tools/call", {
-    name: "evidence_command",
-    arguments: {
-      command: {
-        ...command,
-        idempotencyKey: "invalid",
-        material: { ...command.material, assertion: "" },
-      },
-    },
+    name: "save_fact",
+    arguments: { ...input, revision: "invalid" },
   });
   expect(JSON.stringify(invalid.json)).toMatch(/validation|invalid/i);
-  expect((await repository.getClaim(ownerId, claim.id))?.revision).toBe(0);
   await repository.revokeCredential(ownerId, {
     id: credentialId,
     revision: 0,
@@ -159,55 +123,41 @@ it("shares command idempotency, validates arguments, checks subcommand scopes, a
   });
   expect((await call("tools/list")).status).toBe(401);
 });
-
-it("exposes scoped job tools and shares immutable posting command outcomes", async () => {
+it("shares immutable job descriptions and rejects foreign fact selection", async () => {
   const { call, repository, ownerId } = await fixture(["jobs:read", "jobs:write"]);
-  const listing = Schema.decodeUnknownSync(ToolsResponse)((await call("tools/list")).json);
-  expect(listing.result.tools.map((tool) => tool.name)).toEqual([
-    "list_jobs",
-    "get_job",
-    "job_command",
-  ]);
-  const command = {
-    type: "create",
+  const input = {
+    id: newId(),
+    revision: 0,
     idempotencyKey: "job-once",
     details: { role: "Synthetic role", company: "Fixture", location: "" },
-    posting: { text: "Synthetic posting. Not a real opening.", url: null },
+    description: "Synthetic posting. Not a real opening.",
+    url: null,
+    factIds: [],
+    archived: false,
   };
-  const first = await call("tools/call", { name: "job_command", arguments: { command } });
+  const first = await call("tools/call", { name: "save_job", arguments: input });
   expect(Schema.decodeUnknownSync(CallResponse)(first.json).result.isError).toBe(false);
-  expect((await call("tools/call", { name: "job_command", arguments: { command } })).json).toEqual(
+  expect((await call("tools/call", { name: "save_job", arguments: input })).json).toEqual(
     first.json,
   );
-  expect(
-    (await repository.listJobs(ownerId, { query: "", archived: false, offset: 0 })).items,
-  ).toHaveLength(1);
-  const readOnly = await fixture(["jobs:read"]);
-  expect(
-    Schema.decodeUnknownSync(ToolsResponse)(
-      (await readOnly.call("tools/list")).json,
-    ).result.tools.map((tool) => tool.name),
-  ).toEqual(["list_jobs", "get_job"]);
+  expect(await repository.listWorkspaceJobs(ownerId)).toHaveLength(1);
+  const bad = await call("tools/call", {
+    name: "save_job",
+    arguments: { ...input, revision: 1, idempotencyKey: "foreign-fact", factIds: [newId()] },
+  });
+  expect(Schema.decodeUnknownSync(CallResponse)(bad.json).result.isError).toBe(true);
+  expect((await repository.getWorkspaceJob(ownerId, input.id)).revision).toBe(1);
 });
-
-it("keeps legacy credentials readable but omits verification and explains retired calls", async () => {
-  const { repository, call, credentialId } = await fixture(["evidence:write"]);
+it("keeps retired credentials readable without advertising obsolete tools", async () => {
+  const { repository, call, credentialId } = await fixture(["facts:read"]);
   await repository.db
     .update(schema.credentials)
-    .set({ scopes: ["evidence:write", "evidence:verify"] })
+    .set({ scopes: ["evidence:read", "evidence:verify"] })
     .where(eq(schema.credentials.id, credentialId));
-  const listing = Schema.decodeUnknownSync(ToolsResponse)((await call("tools/list")).json);
-  const command = listing.result.tools.find((tool) => tool.name === "evidence_command");
-  expect(command).toBeDefined();
-  expect(JSON.stringify(command?.inputSchema)).not.toContain('"review"');
-  const retired = Schema.decodeUnknownSync(CallResponse)(
-    (
-      await call("tools/call", {
-        name: "evidence_command",
-        arguments: { command: { type: "review" } },
-      })
-    ).json,
-  );
-  expect(retired.result.isError).toBe(true);
-  expect(retired.result.content[0]?.text).toContain("retired in River v1.2");
+  expect(
+    Schema.decodeUnknownSync(ToolsResponse)((await call("tools/list")).json).result.tools,
+  ).toEqual([]);
+  expect(
+    JSON.stringify((await call("tools/call", { name: "evidence_command", arguments: {} })).json),
+  ).toContain("RIVER_WORKSPACE_REPLACED");
 });

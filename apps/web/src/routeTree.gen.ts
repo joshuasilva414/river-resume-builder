@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdvancedRouteImport } from './routes/advanced'
+import { Route as ArchiveRouteImport } from './routes/archive'
+import { Route as ContentRouteImport } from './routes/content'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as EvidenceRouteImport } from './routes/evidence'
+import { Route as FactsRouteImport } from './routes/facts'
 import { Route as FeedbackRouteImport } from './routes/feedback'
 import { Route as JobsRouteImport } from './routes/jobs'
 import { Route as LibraryRouteImport } from './routes/library'
@@ -26,11 +29,16 @@ import { Route as SourcesRouteImport } from './routes/sources'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as TrashRouteImport } from './routes/trash'
 import { Route as CheckpointsCheckpointIdRouteImport } from './routes/checkpoints.$checkpointId'
+import { Route as DemoPdfProofRouteImport } from './routes/demo.pdf-proof'
+import { Route as DemoVisualEditorRouteImport } from './routes/demo.visual-editor'
 import { Route as DocsIndexRouteImport } from './routes/docs.index'
 import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
+import { Route as FactsImportRouteImport } from './routes/facts_.import'
 import { Route as JobsJobIdRouteImport } from './routes/jobs_.$jobId'
+import { Route as ResumesIndexRouteImport } from './routes/resumes.index'
 import { Route as ResumesResumeIdRouteImport } from './routes/resumes.$resumeId'
 import { Route as SourceRefinementsTaskIdRouteImport } from './routes/source-refinements.$taskId'
+import { Route as TemplatesTemplateIdRouteImport } from './routes/templates_.$templateId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiV1ContextsRouteImport } from './routes/api/v1/contexts'
 import { Route as ApiV1DuplicatesRouteImport } from './routes/api/v1/duplicates'
@@ -38,16 +46,36 @@ import { Route as ApiV1EvidenceRouteImport } from './routes/api/v1/evidence'
 import { Route as ApiV1JobsRouteImport } from './routes/api/v1/jobs'
 import { Route as ApiV1MeRouteImport } from './routes/api/v1/me'
 import { Route as ApiV1SourcesRouteImport } from './routes/api/v1/sources'
+import { Route as ApiV2ContentRouteImport } from './routes/api/v2/content'
+import { Route as ApiV2ContextsRouteImport } from './routes/api/v2/contexts'
+import { Route as ApiV2ExportsRouteImport } from './routes/api/v2/exports'
+import { Route as ApiV2FactsRouteImport } from './routes/api/v2/facts'
+import { Route as ApiV2JobsRouteImport } from './routes/api/v2/jobs'
+import { Route as ApiV2ResumesRouteImport } from './routes/api/v2/resumes'
+import { Route as ApiV2SourcesRouteImport } from './routes/api/v2/sources'
+import { Route as ApiV2TemplatesRouteImport } from './routes/api/v2/templates'
+import { Route as ApiV2VersionsRouteImport } from './routes/api/v2/versions'
 import { Route as ApiArtifactsOperationIdKindRouteImport } from './routes/api/artifacts/$operationId.$kind'
 import { Route as ApiV1EvidenceClaimIdRouteImport } from './routes/api/v1/evidence.$claimId'
 import { Route as ApiV1EvidenceImportRouteImport } from './routes/api/v1/evidence.import'
 import { Route as ApiV1JobsJobIdRouteImport } from './routes/api/v1/jobs.$jobId'
 import { Route as ApiV1JobsImportsRouteImport } from './routes/api/v1/jobs.imports'
 import { Route as ApiV1SourcesSourceIdRouteImport } from './routes/api/v1/sources.$sourceId'
+import { Route as ApiV2ContentIdRouteImport } from './routes/api/v2/content.$id'
+import { Route as ApiV2ContextsIdRouteImport } from './routes/api/v2/contexts.$id'
+import { Route as ApiV2ExportsIdRouteImport } from './routes/api/v2/exports.$id'
+import { Route as ApiV2FactsIdRouteImport } from './routes/api/v2/facts.$id'
+import { Route as ApiV2FactsImportRouteImport } from './routes/api/v2/facts.import'
+import { Route as ApiV2JobsIdRouteImport } from './routes/api/v2/jobs.$id'
+import { Route as ApiV2ResumesIdRouteImport } from './routes/api/v2/resumes.$id'
+import { Route as ApiV2SourcesSourceIdRouteImport } from './routes/api/v2/sources.$sourceId'
+import { Route as ApiV2TemplatesIdRouteImport } from './routes/api/v2/templates.$id'
+import { Route as ApiV2VersionsIdRouteImport } from './routes/api/v2/versions.$id'
 import { Route as ApiTemplateArtifactsValidationIdFixtureIdKindRouteImport } from './routes/api/template-artifacts/$validationId.$fixtureId.$kind'
 import { Route as ApiTemplateProposalsTaskIdOperationIdKindRouteImport } from './routes/api/template-proposals/$taskId.$operationId.$kind'
 import { Route as ApiTemplateScoresRunIdFixtureIdKindRouteImport } from './routes/api/template-scores/$runId.$fixtureId.$kind'
 import { Route as ApiV1JobsImportsImportIdRouteImport } from './routes/api/v1/jobs.imports.$importId'
+import { Route as ApiV2ArchiveIdKindRouteImport } from './routes/api/v2/archive.$id.$kind'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -64,6 +92,16 @@ const AdvancedRoute = AdvancedRouteImport.update({
   path: '/advanced',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArchiveRoute = ArchiveRouteImport.update({
+  id: '/archive',
+  path: '/archive',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContentRoute = ContentRouteImport.update({
+  id: '/content',
+  path: '/content',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocsRoute = DocsRouteImport.update({
   id: '/docs',
   path: '/docs',
@@ -72,6 +110,11 @@ const DocsRoute = DocsRouteImport.update({
 const EvidenceRoute = EvidenceRouteImport.update({
   id: '/evidence',
   path: '/evidence',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FactsRoute = FactsRouteImport.update({
+  id: '/facts',
+  path: '/facts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FeedbackRoute = FeedbackRouteImport.update({
@@ -134,6 +177,16 @@ const CheckpointsCheckpointIdRoute = CheckpointsCheckpointIdRouteImport.update({
   path: '/checkpoints/$checkpointId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DemoPdfProofRoute = DemoPdfProofRouteImport.update({
+  id: '/demo/pdf-proof',
+  path: '/demo/pdf-proof',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoVisualEditorRoute = DemoVisualEditorRouteImport.update({
+  id: '/demo/visual-editor',
+  path: '/demo/visual-editor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocsIndexRoute = DocsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -144,9 +197,19 @@ const DocsSlugRoute = DocsSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => DocsRoute,
 } as any)
+const FactsImportRoute = FactsImportRouteImport.update({
+  id: '/facts_/import',
+  path: '/facts/import',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JobsJobIdRoute = JobsJobIdRouteImport.update({
   id: '/jobs_/$jobId',
   path: '/jobs/$jobId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResumesIndexRoute = ResumesIndexRouteImport.update({
+  id: '/resumes/',
+  path: '/resumes/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResumesResumeIdRoute = ResumesResumeIdRouteImport.update({
@@ -157,6 +220,11 @@ const ResumesResumeIdRoute = ResumesResumeIdRouteImport.update({
 const SourceRefinementsTaskIdRoute = SourceRefinementsTaskIdRouteImport.update({
   id: '/source-refinements/$taskId',
   path: '/source-refinements/$taskId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TemplatesTemplateIdRoute = TemplatesTemplateIdRouteImport.update({
+  id: '/templates_/$templateId',
+  path: '/templates/$templateId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -194,6 +262,51 @@ const ApiV1SourcesRoute = ApiV1SourcesRouteImport.update({
   path: '/api/v1/sources',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV2ContentRoute = ApiV2ContentRouteImport.update({
+  id: '/api/v2/content',
+  path: '/api/v2/content',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV2ContextsRoute = ApiV2ContextsRouteImport.update({
+  id: '/api/v2/contexts',
+  path: '/api/v2/contexts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV2ExportsRoute = ApiV2ExportsRouteImport.update({
+  id: '/api/v2/exports',
+  path: '/api/v2/exports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV2FactsRoute = ApiV2FactsRouteImport.update({
+  id: '/api/v2/facts',
+  path: '/api/v2/facts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV2JobsRoute = ApiV2JobsRouteImport.update({
+  id: '/api/v2/jobs',
+  path: '/api/v2/jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV2ResumesRoute = ApiV2ResumesRouteImport.update({
+  id: '/api/v2/resumes',
+  path: '/api/v2/resumes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV2SourcesRoute = ApiV2SourcesRouteImport.update({
+  id: '/api/v2/sources',
+  path: '/api/v2/sources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV2TemplatesRoute = ApiV2TemplatesRouteImport.update({
+  id: '/api/v2/templates',
+  path: '/api/v2/templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV2VersionsRoute = ApiV2VersionsRouteImport.update({
+  id: '/api/v2/versions',
+  path: '/api/v2/versions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiArtifactsOperationIdKindRoute =
   ApiArtifactsOperationIdKindRouteImport.update({
     id: '/api/artifacts/$operationId/$kind',
@@ -225,6 +338,56 @@ const ApiV1SourcesSourceIdRoute = ApiV1SourcesSourceIdRouteImport.update({
   path: '/$sourceId',
   getParentRoute: () => ApiV1SourcesRoute,
 } as any)
+const ApiV2ContentIdRoute = ApiV2ContentIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiV2ContentRoute,
+} as any)
+const ApiV2ContextsIdRoute = ApiV2ContextsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiV2ContextsRoute,
+} as any)
+const ApiV2ExportsIdRoute = ApiV2ExportsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiV2ExportsRoute,
+} as any)
+const ApiV2FactsIdRoute = ApiV2FactsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiV2FactsRoute,
+} as any)
+const ApiV2FactsImportRoute = ApiV2FactsImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => ApiV2FactsRoute,
+} as any)
+const ApiV2JobsIdRoute = ApiV2JobsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiV2JobsRoute,
+} as any)
+const ApiV2ResumesIdRoute = ApiV2ResumesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiV2ResumesRoute,
+} as any)
+const ApiV2SourcesSourceIdRoute = ApiV2SourcesSourceIdRouteImport.update({
+  id: '/$sourceId',
+  path: '/$sourceId',
+  getParentRoute: () => ApiV2SourcesRoute,
+} as any)
+const ApiV2TemplatesIdRoute = ApiV2TemplatesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiV2TemplatesRoute,
+} as any)
+const ApiV2VersionsIdRoute = ApiV2VersionsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiV2VersionsRoute,
+} as any)
 const ApiTemplateArtifactsValidationIdFixtureIdKindRoute =
   ApiTemplateArtifactsValidationIdFixtureIdKindRouteImport.update({
     id: '/api/template-artifacts/$validationId/$fixtureId/$kind',
@@ -249,13 +412,21 @@ const ApiV1JobsImportsImportIdRoute =
     path: '/$importId',
     getParentRoute: () => ApiV1JobsImportsRoute,
   } as any)
+const ApiV2ArchiveIdKindRoute = ApiV2ArchiveIdKindRouteImport.update({
+  id: '/api/v2/archive/$id/$kind',
+  path: '/api/v2/archive/$id/$kind',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/advanced': typeof AdvancedRoute
+  '/archive': typeof ArchiveRoute
+  '/content': typeof ContentRoute
   '/docs': typeof DocsRouteWithChildren
   '/evidence': typeof EvidenceRoute
+  '/facts': typeof FactsRoute
   '/feedback': typeof FeedbackRoute
   '/jobs': typeof JobsRoute
   '/library': typeof LibraryRoute
@@ -268,11 +439,16 @@ export interface FileRoutesByFullPath {
   '/templates': typeof TemplatesRoute
   '/trash': typeof TrashRoute
   '/checkpoints/$checkpointId': typeof CheckpointsCheckpointIdRoute
+  '/demo/pdf-proof': typeof DemoPdfProofRoute
+  '/demo/visual-editor': typeof DemoVisualEditorRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/facts/import': typeof FactsImportRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/resumes/$resumeId': typeof ResumesResumeIdRoute
   '/source-refinements/$taskId': typeof SourceRefinementsTaskIdRoute
+  '/templates/$templateId': typeof TemplatesTemplateIdRoute
   '/docs/': typeof DocsIndexRoute
+  '/resumes/': typeof ResumesIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/contexts': typeof ApiV1ContextsRoute
   '/api/v1/duplicates': typeof ApiV1DuplicatesRoute
@@ -280,22 +456,45 @@ export interface FileRoutesByFullPath {
   '/api/v1/jobs': typeof ApiV1JobsRouteWithChildren
   '/api/v1/me': typeof ApiV1MeRoute
   '/api/v1/sources': typeof ApiV1SourcesRouteWithChildren
+  '/api/v2/content': typeof ApiV2ContentRouteWithChildren
+  '/api/v2/contexts': typeof ApiV2ContextsRouteWithChildren
+  '/api/v2/exports': typeof ApiV2ExportsRouteWithChildren
+  '/api/v2/facts': typeof ApiV2FactsRouteWithChildren
+  '/api/v2/jobs': typeof ApiV2JobsRouteWithChildren
+  '/api/v2/resumes': typeof ApiV2ResumesRouteWithChildren
+  '/api/v2/sources': typeof ApiV2SourcesRouteWithChildren
+  '/api/v2/templates': typeof ApiV2TemplatesRouteWithChildren
+  '/api/v2/versions': typeof ApiV2VersionsRouteWithChildren
   '/api/artifacts/$operationId/$kind': typeof ApiArtifactsOperationIdKindRoute
   '/api/v1/evidence/$claimId': typeof ApiV1EvidenceClaimIdRoute
   '/api/v1/evidence/import': typeof ApiV1EvidenceImportRoute
   '/api/v1/jobs/$jobId': typeof ApiV1JobsJobIdRoute
   '/api/v1/jobs/imports': typeof ApiV1JobsImportsRouteWithChildren
   '/api/v1/sources/$sourceId': typeof ApiV1SourcesSourceIdRoute
+  '/api/v2/content/$id': typeof ApiV2ContentIdRoute
+  '/api/v2/contexts/$id': typeof ApiV2ContextsIdRoute
+  '/api/v2/exports/$id': typeof ApiV2ExportsIdRoute
+  '/api/v2/facts/$id': typeof ApiV2FactsIdRoute
+  '/api/v2/facts/import': typeof ApiV2FactsImportRoute
+  '/api/v2/jobs/$id': typeof ApiV2JobsIdRoute
+  '/api/v2/resumes/$id': typeof ApiV2ResumesIdRoute
+  '/api/v2/sources/$sourceId': typeof ApiV2SourcesSourceIdRoute
+  '/api/v2/templates/$id': typeof ApiV2TemplatesIdRoute
+  '/api/v2/versions/$id': typeof ApiV2VersionsIdRoute
   '/api/template-artifacts/$validationId/$fixtureId/$kind': typeof ApiTemplateArtifactsValidationIdFixtureIdKindRoute
   '/api/template-proposals/$taskId/$operationId/$kind': typeof ApiTemplateProposalsTaskIdOperationIdKindRoute
   '/api/template-scores/$runId/$fixtureId/$kind': typeof ApiTemplateScoresRunIdFixtureIdKindRoute
   '/api/v1/jobs/imports/$importId': typeof ApiV1JobsImportsImportIdRoute
+  '/api/v2/archive/$id/$kind': typeof ApiV2ArchiveIdKindRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/advanced': typeof AdvancedRoute
+  '/archive': typeof ArchiveRoute
+  '/content': typeof ContentRoute
   '/evidence': typeof EvidenceRoute
+  '/facts': typeof FactsRoute
   '/feedback': typeof FeedbackRoute
   '/jobs': typeof JobsRoute
   '/library': typeof LibraryRoute
@@ -308,11 +507,16 @@ export interface FileRoutesByTo {
   '/templates': typeof TemplatesRoute
   '/trash': typeof TrashRoute
   '/checkpoints/$checkpointId': typeof CheckpointsCheckpointIdRoute
+  '/demo/pdf-proof': typeof DemoPdfProofRoute
+  '/demo/visual-editor': typeof DemoVisualEditorRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/facts/import': typeof FactsImportRoute
   '/jobs/$jobId': typeof JobsJobIdRoute
   '/resumes/$resumeId': typeof ResumesResumeIdRoute
   '/source-refinements/$taskId': typeof SourceRefinementsTaskIdRoute
+  '/templates/$templateId': typeof TemplatesTemplateIdRoute
   '/docs': typeof DocsIndexRoute
+  '/resumes': typeof ResumesIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/contexts': typeof ApiV1ContextsRoute
   '/api/v1/duplicates': typeof ApiV1DuplicatesRoute
@@ -320,24 +524,47 @@ export interface FileRoutesByTo {
   '/api/v1/jobs': typeof ApiV1JobsRouteWithChildren
   '/api/v1/me': typeof ApiV1MeRoute
   '/api/v1/sources': typeof ApiV1SourcesRouteWithChildren
+  '/api/v2/content': typeof ApiV2ContentRouteWithChildren
+  '/api/v2/contexts': typeof ApiV2ContextsRouteWithChildren
+  '/api/v2/exports': typeof ApiV2ExportsRouteWithChildren
+  '/api/v2/facts': typeof ApiV2FactsRouteWithChildren
+  '/api/v2/jobs': typeof ApiV2JobsRouteWithChildren
+  '/api/v2/resumes': typeof ApiV2ResumesRouteWithChildren
+  '/api/v2/sources': typeof ApiV2SourcesRouteWithChildren
+  '/api/v2/templates': typeof ApiV2TemplatesRouteWithChildren
+  '/api/v2/versions': typeof ApiV2VersionsRouteWithChildren
   '/api/artifacts/$operationId/$kind': typeof ApiArtifactsOperationIdKindRoute
   '/api/v1/evidence/$claimId': typeof ApiV1EvidenceClaimIdRoute
   '/api/v1/evidence/import': typeof ApiV1EvidenceImportRoute
   '/api/v1/jobs/$jobId': typeof ApiV1JobsJobIdRoute
   '/api/v1/jobs/imports': typeof ApiV1JobsImportsRouteWithChildren
   '/api/v1/sources/$sourceId': typeof ApiV1SourcesSourceIdRoute
+  '/api/v2/content/$id': typeof ApiV2ContentIdRoute
+  '/api/v2/contexts/$id': typeof ApiV2ContextsIdRoute
+  '/api/v2/exports/$id': typeof ApiV2ExportsIdRoute
+  '/api/v2/facts/$id': typeof ApiV2FactsIdRoute
+  '/api/v2/facts/import': typeof ApiV2FactsImportRoute
+  '/api/v2/jobs/$id': typeof ApiV2JobsIdRoute
+  '/api/v2/resumes/$id': typeof ApiV2ResumesIdRoute
+  '/api/v2/sources/$sourceId': typeof ApiV2SourcesSourceIdRoute
+  '/api/v2/templates/$id': typeof ApiV2TemplatesIdRoute
+  '/api/v2/versions/$id': typeof ApiV2VersionsIdRoute
   '/api/template-artifacts/$validationId/$fixtureId/$kind': typeof ApiTemplateArtifactsValidationIdFixtureIdKindRoute
   '/api/template-proposals/$taskId/$operationId/$kind': typeof ApiTemplateProposalsTaskIdOperationIdKindRoute
   '/api/template-scores/$runId/$fixtureId/$kind': typeof ApiTemplateScoresRunIdFixtureIdKindRoute
   '/api/v1/jobs/imports/$importId': typeof ApiV1JobsImportsImportIdRoute
+  '/api/v2/archive/$id/$kind': typeof ApiV2ArchiveIdKindRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/advanced': typeof AdvancedRoute
+  '/archive': typeof ArchiveRoute
+  '/content': typeof ContentRoute
   '/docs': typeof DocsRouteWithChildren
   '/evidence': typeof EvidenceRoute
+  '/facts': typeof FactsRoute
   '/feedback': typeof FeedbackRoute
   '/jobs': typeof JobsRoute
   '/library': typeof LibraryRoute
@@ -350,11 +577,16 @@ export interface FileRoutesById {
   '/templates': typeof TemplatesRoute
   '/trash': typeof TrashRoute
   '/checkpoints/$checkpointId': typeof CheckpointsCheckpointIdRoute
+  '/demo/pdf-proof': typeof DemoPdfProofRoute
+  '/demo/visual-editor': typeof DemoVisualEditorRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/facts_/import': typeof FactsImportRoute
   '/jobs_/$jobId': typeof JobsJobIdRoute
   '/resumes/$resumeId': typeof ResumesResumeIdRoute
   '/source-refinements/$taskId': typeof SourceRefinementsTaskIdRoute
+  '/templates_/$templateId': typeof TemplatesTemplateIdRoute
   '/docs/': typeof DocsIndexRoute
+  '/resumes/': typeof ResumesIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/v1/contexts': typeof ApiV1ContextsRoute
   '/api/v1/duplicates': typeof ApiV1DuplicatesRoute
@@ -362,16 +594,36 @@ export interface FileRoutesById {
   '/api/v1/jobs': typeof ApiV1JobsRouteWithChildren
   '/api/v1/me': typeof ApiV1MeRoute
   '/api/v1/sources': typeof ApiV1SourcesRouteWithChildren
+  '/api/v2/content': typeof ApiV2ContentRouteWithChildren
+  '/api/v2/contexts': typeof ApiV2ContextsRouteWithChildren
+  '/api/v2/exports': typeof ApiV2ExportsRouteWithChildren
+  '/api/v2/facts': typeof ApiV2FactsRouteWithChildren
+  '/api/v2/jobs': typeof ApiV2JobsRouteWithChildren
+  '/api/v2/resumes': typeof ApiV2ResumesRouteWithChildren
+  '/api/v2/sources': typeof ApiV2SourcesRouteWithChildren
+  '/api/v2/templates': typeof ApiV2TemplatesRouteWithChildren
+  '/api/v2/versions': typeof ApiV2VersionsRouteWithChildren
   '/api/artifacts/$operationId/$kind': typeof ApiArtifactsOperationIdKindRoute
   '/api/v1/evidence/$claimId': typeof ApiV1EvidenceClaimIdRoute
   '/api/v1/evidence/import': typeof ApiV1EvidenceImportRoute
   '/api/v1/jobs/$jobId': typeof ApiV1JobsJobIdRoute
   '/api/v1/jobs/imports': typeof ApiV1JobsImportsRouteWithChildren
   '/api/v1/sources/$sourceId': typeof ApiV1SourcesSourceIdRoute
+  '/api/v2/content/$id': typeof ApiV2ContentIdRoute
+  '/api/v2/contexts/$id': typeof ApiV2ContextsIdRoute
+  '/api/v2/exports/$id': typeof ApiV2ExportsIdRoute
+  '/api/v2/facts/$id': typeof ApiV2FactsIdRoute
+  '/api/v2/facts/import': typeof ApiV2FactsImportRoute
+  '/api/v2/jobs/$id': typeof ApiV2JobsIdRoute
+  '/api/v2/resumes/$id': typeof ApiV2ResumesIdRoute
+  '/api/v2/sources/$sourceId': typeof ApiV2SourcesSourceIdRoute
+  '/api/v2/templates/$id': typeof ApiV2TemplatesIdRoute
+  '/api/v2/versions/$id': typeof ApiV2VersionsIdRoute
   '/api/template-artifacts/$validationId/$fixtureId/$kind': typeof ApiTemplateArtifactsValidationIdFixtureIdKindRoute
   '/api/template-proposals/$taskId/$operationId/$kind': typeof ApiTemplateProposalsTaskIdOperationIdKindRoute
   '/api/template-scores/$runId/$fixtureId/$kind': typeof ApiTemplateScoresRunIdFixtureIdKindRoute
   '/api/v1/jobs/imports/$importId': typeof ApiV1JobsImportsImportIdRoute
+  '/api/v2/archive/$id/$kind': typeof ApiV2ArchiveIdKindRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -379,8 +631,11 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/advanced'
+    | '/archive'
+    | '/content'
     | '/docs'
     | '/evidence'
+    | '/facts'
     | '/feedback'
     | '/jobs'
     | '/library'
@@ -393,11 +648,16 @@ export interface FileRouteTypes {
     | '/templates'
     | '/trash'
     | '/checkpoints/$checkpointId'
+    | '/demo/pdf-proof'
+    | '/demo/visual-editor'
     | '/docs/$slug'
+    | '/facts/import'
     | '/jobs/$jobId'
     | '/resumes/$resumeId'
     | '/source-refinements/$taskId'
+    | '/templates/$templateId'
     | '/docs/'
+    | '/resumes/'
     | '/api/auth/$'
     | '/api/v1/contexts'
     | '/api/v1/duplicates'
@@ -405,22 +665,45 @@ export interface FileRouteTypes {
     | '/api/v1/jobs'
     | '/api/v1/me'
     | '/api/v1/sources'
+    | '/api/v2/content'
+    | '/api/v2/contexts'
+    | '/api/v2/exports'
+    | '/api/v2/facts'
+    | '/api/v2/jobs'
+    | '/api/v2/resumes'
+    | '/api/v2/sources'
+    | '/api/v2/templates'
+    | '/api/v2/versions'
     | '/api/artifacts/$operationId/$kind'
     | '/api/v1/evidence/$claimId'
     | '/api/v1/evidence/import'
     | '/api/v1/jobs/$jobId'
     | '/api/v1/jobs/imports'
     | '/api/v1/sources/$sourceId'
+    | '/api/v2/content/$id'
+    | '/api/v2/contexts/$id'
+    | '/api/v2/exports/$id'
+    | '/api/v2/facts/$id'
+    | '/api/v2/facts/import'
+    | '/api/v2/jobs/$id'
+    | '/api/v2/resumes/$id'
+    | '/api/v2/sources/$sourceId'
+    | '/api/v2/templates/$id'
+    | '/api/v2/versions/$id'
     | '/api/template-artifacts/$validationId/$fixtureId/$kind'
     | '/api/template-proposals/$taskId/$operationId/$kind'
     | '/api/template-scores/$runId/$fixtureId/$kind'
     | '/api/v1/jobs/imports/$importId'
+    | '/api/v2/archive/$id/$kind'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
     | '/advanced'
+    | '/archive'
+    | '/content'
     | '/evidence'
+    | '/facts'
     | '/feedback'
     | '/jobs'
     | '/library'
@@ -433,11 +716,16 @@ export interface FileRouteTypes {
     | '/templates'
     | '/trash'
     | '/checkpoints/$checkpointId'
+    | '/demo/pdf-proof'
+    | '/demo/visual-editor'
     | '/docs/$slug'
+    | '/facts/import'
     | '/jobs/$jobId'
     | '/resumes/$resumeId'
     | '/source-refinements/$taskId'
+    | '/templates/$templateId'
     | '/docs'
+    | '/resumes'
     | '/api/auth/$'
     | '/api/v1/contexts'
     | '/api/v1/duplicates'
@@ -445,23 +733,46 @@ export interface FileRouteTypes {
     | '/api/v1/jobs'
     | '/api/v1/me'
     | '/api/v1/sources'
+    | '/api/v2/content'
+    | '/api/v2/contexts'
+    | '/api/v2/exports'
+    | '/api/v2/facts'
+    | '/api/v2/jobs'
+    | '/api/v2/resumes'
+    | '/api/v2/sources'
+    | '/api/v2/templates'
+    | '/api/v2/versions'
     | '/api/artifacts/$operationId/$kind'
     | '/api/v1/evidence/$claimId'
     | '/api/v1/evidence/import'
     | '/api/v1/jobs/$jobId'
     | '/api/v1/jobs/imports'
     | '/api/v1/sources/$sourceId'
+    | '/api/v2/content/$id'
+    | '/api/v2/contexts/$id'
+    | '/api/v2/exports/$id'
+    | '/api/v2/facts/$id'
+    | '/api/v2/facts/import'
+    | '/api/v2/jobs/$id'
+    | '/api/v2/resumes/$id'
+    | '/api/v2/sources/$sourceId'
+    | '/api/v2/templates/$id'
+    | '/api/v2/versions/$id'
     | '/api/template-artifacts/$validationId/$fixtureId/$kind'
     | '/api/template-proposals/$taskId/$operationId/$kind'
     | '/api/template-scores/$runId/$fixtureId/$kind'
     | '/api/v1/jobs/imports/$importId'
+    | '/api/v2/archive/$id/$kind'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/advanced'
+    | '/archive'
+    | '/content'
     | '/docs'
     | '/evidence'
+    | '/facts'
     | '/feedback'
     | '/jobs'
     | '/library'
@@ -474,11 +785,16 @@ export interface FileRouteTypes {
     | '/templates'
     | '/trash'
     | '/checkpoints/$checkpointId'
+    | '/demo/pdf-proof'
+    | '/demo/visual-editor'
     | '/docs/$slug'
+    | '/facts_/import'
     | '/jobs_/$jobId'
     | '/resumes/$resumeId'
     | '/source-refinements/$taskId'
+    | '/templates_/$templateId'
     | '/docs/'
+    | '/resumes/'
     | '/api/auth/$'
     | '/api/v1/contexts'
     | '/api/v1/duplicates'
@@ -486,24 +802,47 @@ export interface FileRouteTypes {
     | '/api/v1/jobs'
     | '/api/v1/me'
     | '/api/v1/sources'
+    | '/api/v2/content'
+    | '/api/v2/contexts'
+    | '/api/v2/exports'
+    | '/api/v2/facts'
+    | '/api/v2/jobs'
+    | '/api/v2/resumes'
+    | '/api/v2/sources'
+    | '/api/v2/templates'
+    | '/api/v2/versions'
     | '/api/artifacts/$operationId/$kind'
     | '/api/v1/evidence/$claimId'
     | '/api/v1/evidence/import'
     | '/api/v1/jobs/$jobId'
     | '/api/v1/jobs/imports'
     | '/api/v1/sources/$sourceId'
+    | '/api/v2/content/$id'
+    | '/api/v2/contexts/$id'
+    | '/api/v2/exports/$id'
+    | '/api/v2/facts/$id'
+    | '/api/v2/facts/import'
+    | '/api/v2/jobs/$id'
+    | '/api/v2/resumes/$id'
+    | '/api/v2/sources/$sourceId'
+    | '/api/v2/templates/$id'
+    | '/api/v2/versions/$id'
     | '/api/template-artifacts/$validationId/$fixtureId/$kind'
     | '/api/template-proposals/$taskId/$operationId/$kind'
     | '/api/template-scores/$runId/$fixtureId/$kind'
     | '/api/v1/jobs/imports/$importId'
+    | '/api/v2/archive/$id/$kind'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AdvancedRoute: typeof AdvancedRoute
+  ArchiveRoute: typeof ArchiveRoute
+  ContentRoute: typeof ContentRoute
   DocsRoute: typeof DocsRouteWithChildren
   EvidenceRoute: typeof EvidenceRoute
+  FactsRoute: typeof FactsRoute
   FeedbackRoute: typeof FeedbackRoute
   JobsRoute: typeof JobsRoute
   LibraryRoute: typeof LibraryRoute
@@ -516,9 +855,14 @@ export interface RootRouteChildren {
   TemplatesRoute: typeof TemplatesRoute
   TrashRoute: typeof TrashRoute
   CheckpointsCheckpointIdRoute: typeof CheckpointsCheckpointIdRoute
+  DemoPdfProofRoute: typeof DemoPdfProofRoute
+  DemoVisualEditorRoute: typeof DemoVisualEditorRoute
+  FactsImportRoute: typeof FactsImportRoute
   JobsJobIdRoute: typeof JobsJobIdRoute
   ResumesResumeIdRoute: typeof ResumesResumeIdRoute
   SourceRefinementsTaskIdRoute: typeof SourceRefinementsTaskIdRoute
+  TemplatesTemplateIdRoute: typeof TemplatesTemplateIdRoute
+  ResumesIndexRoute: typeof ResumesIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiV1ContextsRoute: typeof ApiV1ContextsRoute
   ApiV1DuplicatesRoute: typeof ApiV1DuplicatesRoute
@@ -526,10 +870,20 @@ export interface RootRouteChildren {
   ApiV1JobsRoute: typeof ApiV1JobsRouteWithChildren
   ApiV1MeRoute: typeof ApiV1MeRoute
   ApiV1SourcesRoute: typeof ApiV1SourcesRouteWithChildren
+  ApiV2ContentRoute: typeof ApiV2ContentRouteWithChildren
+  ApiV2ContextsRoute: typeof ApiV2ContextsRouteWithChildren
+  ApiV2ExportsRoute: typeof ApiV2ExportsRouteWithChildren
+  ApiV2FactsRoute: typeof ApiV2FactsRouteWithChildren
+  ApiV2JobsRoute: typeof ApiV2JobsRouteWithChildren
+  ApiV2ResumesRoute: typeof ApiV2ResumesRouteWithChildren
+  ApiV2SourcesRoute: typeof ApiV2SourcesRouteWithChildren
+  ApiV2TemplatesRoute: typeof ApiV2TemplatesRouteWithChildren
+  ApiV2VersionsRoute: typeof ApiV2VersionsRouteWithChildren
   ApiArtifactsOperationIdKindRoute: typeof ApiArtifactsOperationIdKindRoute
   ApiTemplateArtifactsValidationIdFixtureIdKindRoute: typeof ApiTemplateArtifactsValidationIdFixtureIdKindRoute
   ApiTemplateProposalsTaskIdOperationIdKindRoute: typeof ApiTemplateProposalsTaskIdOperationIdKindRoute
   ApiTemplateScoresRunIdFixtureIdKindRoute: typeof ApiTemplateScoresRunIdFixtureIdKindRoute
+  ApiV2ArchiveIdKindRoute: typeof ApiV2ArchiveIdKindRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -555,6 +909,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdvancedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/archive': {
+      id: '/archive'
+      path: '/archive'
+      fullPath: '/archive'
+      preLoaderRoute: typeof ArchiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/content': {
+      id: '/content'
+      path: '/content'
+      fullPath: '/content'
+      preLoaderRoute: typeof ContentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs': {
       id: '/docs'
       path: '/docs'
@@ -567,6 +935,13 @@ declare module '@tanstack/react-router' {
       path: '/evidence'
       fullPath: '/evidence'
       preLoaderRoute: typeof EvidenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/facts': {
+      id: '/facts'
+      path: '/facts'
+      fullPath: '/facts'
+      preLoaderRoute: typeof FactsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/feedback': {
@@ -653,6 +1028,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckpointsCheckpointIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/demo/pdf-proof': {
+      id: '/demo/pdf-proof'
+      path: '/demo/pdf-proof'
+      fullPath: '/demo/pdf-proof'
+      preLoaderRoute: typeof DemoPdfProofRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo/visual-editor': {
+      id: '/demo/visual-editor'
+      path: '/demo/visual-editor'
+      fullPath: '/demo/visual-editor'
+      preLoaderRoute: typeof DemoVisualEditorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs/': {
       id: '/docs/'
       path: '/'
@@ -667,11 +1056,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsSlugRouteImport
       parentRoute: typeof DocsRoute
     }
+    '/facts_/import': {
+      id: '/facts_/import'
+      path: '/facts/import'
+      fullPath: '/facts/import'
+      preLoaderRoute: typeof FactsImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/jobs_/$jobId': {
       id: '/jobs_/$jobId'
       path: '/jobs/$jobId'
       fullPath: '/jobs/$jobId'
       preLoaderRoute: typeof JobsJobIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/resumes/': {
+      id: '/resumes/'
+      path: '/resumes'
+      fullPath: '/resumes/'
+      preLoaderRoute: typeof ResumesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/resumes/$resumeId': {
@@ -686,6 +1089,13 @@ declare module '@tanstack/react-router' {
       path: '/source-refinements/$taskId'
       fullPath: '/source-refinements/$taskId'
       preLoaderRoute: typeof SourceRefinementsTaskIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/templates_/$templateId': {
+      id: '/templates_/$templateId'
+      path: '/templates/$templateId'
+      fullPath: '/templates/$templateId'
+      preLoaderRoute: typeof TemplatesTemplateIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -737,6 +1147,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1SourcesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v2/content': {
+      id: '/api/v2/content'
+      path: '/api/v2/content'
+      fullPath: '/api/v2/content'
+      preLoaderRoute: typeof ApiV2ContentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v2/contexts': {
+      id: '/api/v2/contexts'
+      path: '/api/v2/contexts'
+      fullPath: '/api/v2/contexts'
+      preLoaderRoute: typeof ApiV2ContextsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v2/exports': {
+      id: '/api/v2/exports'
+      path: '/api/v2/exports'
+      fullPath: '/api/v2/exports'
+      preLoaderRoute: typeof ApiV2ExportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v2/facts': {
+      id: '/api/v2/facts'
+      path: '/api/v2/facts'
+      fullPath: '/api/v2/facts'
+      preLoaderRoute: typeof ApiV2FactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v2/jobs': {
+      id: '/api/v2/jobs'
+      path: '/api/v2/jobs'
+      fullPath: '/api/v2/jobs'
+      preLoaderRoute: typeof ApiV2JobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v2/resumes': {
+      id: '/api/v2/resumes'
+      path: '/api/v2/resumes'
+      fullPath: '/api/v2/resumes'
+      preLoaderRoute: typeof ApiV2ResumesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v2/sources': {
+      id: '/api/v2/sources'
+      path: '/api/v2/sources'
+      fullPath: '/api/v2/sources'
+      preLoaderRoute: typeof ApiV2SourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v2/templates': {
+      id: '/api/v2/templates'
+      path: '/api/v2/templates'
+      fullPath: '/api/v2/templates'
+      preLoaderRoute: typeof ApiV2TemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v2/versions': {
+      id: '/api/v2/versions'
+      path: '/api/v2/versions'
+      fullPath: '/api/v2/versions'
+      preLoaderRoute: typeof ApiV2VersionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/artifacts/$operationId/$kind': {
       id: '/api/artifacts/$operationId/$kind'
       path: '/api/artifacts/$operationId/$kind'
@@ -779,6 +1252,76 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1SourcesSourceIdRouteImport
       parentRoute: typeof ApiV1SourcesRoute
     }
+    '/api/v2/content/$id': {
+      id: '/api/v2/content/$id'
+      path: '/$id'
+      fullPath: '/api/v2/content/$id'
+      preLoaderRoute: typeof ApiV2ContentIdRouteImport
+      parentRoute: typeof ApiV2ContentRoute
+    }
+    '/api/v2/contexts/$id': {
+      id: '/api/v2/contexts/$id'
+      path: '/$id'
+      fullPath: '/api/v2/contexts/$id'
+      preLoaderRoute: typeof ApiV2ContextsIdRouteImport
+      parentRoute: typeof ApiV2ContextsRoute
+    }
+    '/api/v2/exports/$id': {
+      id: '/api/v2/exports/$id'
+      path: '/$id'
+      fullPath: '/api/v2/exports/$id'
+      preLoaderRoute: typeof ApiV2ExportsIdRouteImport
+      parentRoute: typeof ApiV2ExportsRoute
+    }
+    '/api/v2/facts/$id': {
+      id: '/api/v2/facts/$id'
+      path: '/$id'
+      fullPath: '/api/v2/facts/$id'
+      preLoaderRoute: typeof ApiV2FactsIdRouteImport
+      parentRoute: typeof ApiV2FactsRoute
+    }
+    '/api/v2/facts/import': {
+      id: '/api/v2/facts/import'
+      path: '/import'
+      fullPath: '/api/v2/facts/import'
+      preLoaderRoute: typeof ApiV2FactsImportRouteImport
+      parentRoute: typeof ApiV2FactsRoute
+    }
+    '/api/v2/jobs/$id': {
+      id: '/api/v2/jobs/$id'
+      path: '/$id'
+      fullPath: '/api/v2/jobs/$id'
+      preLoaderRoute: typeof ApiV2JobsIdRouteImport
+      parentRoute: typeof ApiV2JobsRoute
+    }
+    '/api/v2/resumes/$id': {
+      id: '/api/v2/resumes/$id'
+      path: '/$id'
+      fullPath: '/api/v2/resumes/$id'
+      preLoaderRoute: typeof ApiV2ResumesIdRouteImport
+      parentRoute: typeof ApiV2ResumesRoute
+    }
+    '/api/v2/sources/$sourceId': {
+      id: '/api/v2/sources/$sourceId'
+      path: '/$sourceId'
+      fullPath: '/api/v2/sources/$sourceId'
+      preLoaderRoute: typeof ApiV2SourcesSourceIdRouteImport
+      parentRoute: typeof ApiV2SourcesRoute
+    }
+    '/api/v2/templates/$id': {
+      id: '/api/v2/templates/$id'
+      path: '/$id'
+      fullPath: '/api/v2/templates/$id'
+      preLoaderRoute: typeof ApiV2TemplatesIdRouteImport
+      parentRoute: typeof ApiV2TemplatesRoute
+    }
+    '/api/v2/versions/$id': {
+      id: '/api/v2/versions/$id'
+      path: '/$id'
+      fullPath: '/api/v2/versions/$id'
+      preLoaderRoute: typeof ApiV2VersionsIdRouteImport
+      parentRoute: typeof ApiV2VersionsRoute
+    }
     '/api/template-artifacts/$validationId/$fixtureId/$kind': {
       id: '/api/template-artifacts/$validationId/$fixtureId/$kind'
       path: '/api/template-artifacts/$validationId/$fixtureId/$kind'
@@ -806,6 +1349,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/v1/jobs/imports/$importId'
       preLoaderRoute: typeof ApiV1JobsImportsImportIdRouteImport
       parentRoute: typeof ApiV1JobsImportsRoute
+    }
+    '/api/v2/archive/$id/$kind': {
+      id: '/api/v2/archive/$id/$kind'
+      path: '/api/v2/archive/$id/$kind'
+      fullPath: '/api/v2/archive/$id/$kind'
+      preLoaderRoute: typeof ApiV2ArchiveIdKindRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -873,12 +1423,125 @@ const ApiV1SourcesRouteWithChildren = ApiV1SourcesRoute._addFileChildren(
   ApiV1SourcesRouteChildren,
 )
 
+interface ApiV2ContentRouteChildren {
+  ApiV2ContentIdRoute: typeof ApiV2ContentIdRoute
+}
+
+const ApiV2ContentRouteChildren: ApiV2ContentRouteChildren = {
+  ApiV2ContentIdRoute: ApiV2ContentIdRoute,
+}
+
+const ApiV2ContentRouteWithChildren = ApiV2ContentRoute._addFileChildren(
+  ApiV2ContentRouteChildren,
+)
+
+interface ApiV2ContextsRouteChildren {
+  ApiV2ContextsIdRoute: typeof ApiV2ContextsIdRoute
+}
+
+const ApiV2ContextsRouteChildren: ApiV2ContextsRouteChildren = {
+  ApiV2ContextsIdRoute: ApiV2ContextsIdRoute,
+}
+
+const ApiV2ContextsRouteWithChildren = ApiV2ContextsRoute._addFileChildren(
+  ApiV2ContextsRouteChildren,
+)
+
+interface ApiV2ExportsRouteChildren {
+  ApiV2ExportsIdRoute: typeof ApiV2ExportsIdRoute
+}
+
+const ApiV2ExportsRouteChildren: ApiV2ExportsRouteChildren = {
+  ApiV2ExportsIdRoute: ApiV2ExportsIdRoute,
+}
+
+const ApiV2ExportsRouteWithChildren = ApiV2ExportsRoute._addFileChildren(
+  ApiV2ExportsRouteChildren,
+)
+
+interface ApiV2FactsRouteChildren {
+  ApiV2FactsIdRoute: typeof ApiV2FactsIdRoute
+  ApiV2FactsImportRoute: typeof ApiV2FactsImportRoute
+}
+
+const ApiV2FactsRouteChildren: ApiV2FactsRouteChildren = {
+  ApiV2FactsIdRoute: ApiV2FactsIdRoute,
+  ApiV2FactsImportRoute: ApiV2FactsImportRoute,
+}
+
+const ApiV2FactsRouteWithChildren = ApiV2FactsRoute._addFileChildren(
+  ApiV2FactsRouteChildren,
+)
+
+interface ApiV2JobsRouteChildren {
+  ApiV2JobsIdRoute: typeof ApiV2JobsIdRoute
+}
+
+const ApiV2JobsRouteChildren: ApiV2JobsRouteChildren = {
+  ApiV2JobsIdRoute: ApiV2JobsIdRoute,
+}
+
+const ApiV2JobsRouteWithChildren = ApiV2JobsRoute._addFileChildren(
+  ApiV2JobsRouteChildren,
+)
+
+interface ApiV2ResumesRouteChildren {
+  ApiV2ResumesIdRoute: typeof ApiV2ResumesIdRoute
+}
+
+const ApiV2ResumesRouteChildren: ApiV2ResumesRouteChildren = {
+  ApiV2ResumesIdRoute: ApiV2ResumesIdRoute,
+}
+
+const ApiV2ResumesRouteWithChildren = ApiV2ResumesRoute._addFileChildren(
+  ApiV2ResumesRouteChildren,
+)
+
+interface ApiV2SourcesRouteChildren {
+  ApiV2SourcesSourceIdRoute: typeof ApiV2SourcesSourceIdRoute
+}
+
+const ApiV2SourcesRouteChildren: ApiV2SourcesRouteChildren = {
+  ApiV2SourcesSourceIdRoute: ApiV2SourcesSourceIdRoute,
+}
+
+const ApiV2SourcesRouteWithChildren = ApiV2SourcesRoute._addFileChildren(
+  ApiV2SourcesRouteChildren,
+)
+
+interface ApiV2TemplatesRouteChildren {
+  ApiV2TemplatesIdRoute: typeof ApiV2TemplatesIdRoute
+}
+
+const ApiV2TemplatesRouteChildren: ApiV2TemplatesRouteChildren = {
+  ApiV2TemplatesIdRoute: ApiV2TemplatesIdRoute,
+}
+
+const ApiV2TemplatesRouteWithChildren = ApiV2TemplatesRoute._addFileChildren(
+  ApiV2TemplatesRouteChildren,
+)
+
+interface ApiV2VersionsRouteChildren {
+  ApiV2VersionsIdRoute: typeof ApiV2VersionsIdRoute
+}
+
+const ApiV2VersionsRouteChildren: ApiV2VersionsRouteChildren = {
+  ApiV2VersionsIdRoute: ApiV2VersionsIdRoute,
+}
+
+const ApiV2VersionsRouteWithChildren = ApiV2VersionsRoute._addFileChildren(
+  ApiV2VersionsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AdvancedRoute: AdvancedRoute,
+  ArchiveRoute: ArchiveRoute,
+  ContentRoute: ContentRoute,
   DocsRoute: DocsRouteWithChildren,
   EvidenceRoute: EvidenceRoute,
+  FactsRoute: FactsRoute,
   FeedbackRoute: FeedbackRoute,
   JobsRoute: JobsRoute,
   LibraryRoute: LibraryRoute,
@@ -891,9 +1554,14 @@ const rootRouteChildren: RootRouteChildren = {
   TemplatesRoute: TemplatesRoute,
   TrashRoute: TrashRoute,
   CheckpointsCheckpointIdRoute: CheckpointsCheckpointIdRoute,
+  DemoPdfProofRoute: DemoPdfProofRoute,
+  DemoVisualEditorRoute: DemoVisualEditorRoute,
+  FactsImportRoute: FactsImportRoute,
   JobsJobIdRoute: JobsJobIdRoute,
   ResumesResumeIdRoute: ResumesResumeIdRoute,
   SourceRefinementsTaskIdRoute: SourceRefinementsTaskIdRoute,
+  TemplatesTemplateIdRoute: TemplatesTemplateIdRoute,
+  ResumesIndexRoute: ResumesIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiV1ContextsRoute: ApiV1ContextsRoute,
   ApiV1DuplicatesRoute: ApiV1DuplicatesRoute,
@@ -901,6 +1569,15 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1JobsRoute: ApiV1JobsRouteWithChildren,
   ApiV1MeRoute: ApiV1MeRoute,
   ApiV1SourcesRoute: ApiV1SourcesRouteWithChildren,
+  ApiV2ContentRoute: ApiV2ContentRouteWithChildren,
+  ApiV2ContextsRoute: ApiV2ContextsRouteWithChildren,
+  ApiV2ExportsRoute: ApiV2ExportsRouteWithChildren,
+  ApiV2FactsRoute: ApiV2FactsRouteWithChildren,
+  ApiV2JobsRoute: ApiV2JobsRouteWithChildren,
+  ApiV2ResumesRoute: ApiV2ResumesRouteWithChildren,
+  ApiV2SourcesRoute: ApiV2SourcesRouteWithChildren,
+  ApiV2TemplatesRoute: ApiV2TemplatesRouteWithChildren,
+  ApiV2VersionsRoute: ApiV2VersionsRouteWithChildren,
   ApiArtifactsOperationIdKindRoute: ApiArtifactsOperationIdKindRoute,
   ApiTemplateArtifactsValidationIdFixtureIdKindRoute:
     ApiTemplateArtifactsValidationIdFixtureIdKindRoute,
@@ -908,6 +1585,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiTemplateProposalsTaskIdOperationIdKindRoute,
   ApiTemplateScoresRunIdFixtureIdKindRoute:
     ApiTemplateScoresRunIdFixtureIdKindRoute,
+  ApiV2ArchiveIdKindRoute: ApiV2ArchiveIdKindRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

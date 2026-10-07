@@ -1,3 +1,5 @@
+> Historical release record. The current replacement is described in [river-replacement.md](river-replacement.md). This file does not describe or authorize the replacement deployment.
+
 # ATS scoring implementation
 
 Scoring persistence, bounded Workflows, atomic Save & score, finding decisions, comparisons and the Paper-based interface are implemented on staging. Hosted checkpoint scoring, cached identity preservation, compatible comparison, finding-review persistence and canonical bounded retry pass. Earlier sections retain the state at each milestone; current release blockers are listed in `release-gates.md`. The design contract is `history-scoring-design.md`.

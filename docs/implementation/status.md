@@ -1,3 +1,5 @@
+> Historical release record. The current replacement is described in [river-replacement.md](river-replacement.md). This file does not describe or authorize the replacement deployment.
+
 # Implementation status
 
 Updated 2026-09-06 (America/Chicago). V1 is released at https://river.jilva.dev. This page describes current state; milestone documents retain earlier deployment and verification history. [Release evidence](release-gates.md) records completed acceptance and its limits.

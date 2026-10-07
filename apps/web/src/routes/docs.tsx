@@ -69,7 +69,7 @@ function Documentation() {
         >
           <Outlet />
           <footer className="mt-16 flex flex-wrap items-center justify-between gap-4 border-t pt-6 text-xs text-muted-foreground">
-            <p>River user guide · Updated September 6, 2026</p>
+            <p>River user guide · Updated September 20, 2026</p>
             <Link
               to="/docs/$slug"
               params={{ slug: "troubleshooting" }}

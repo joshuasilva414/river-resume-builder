@@ -7,7 +7,6 @@ import {
   type WorkspacePreferences,
 } from "@river/domain";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   connectAiProvider,
@@ -16,9 +15,9 @@ import {
   updateWorkspacePreferences,
 } from "~/server/ai-settings-functions";
 import { AiModelPicker, useAiSettings } from "./ai-selection";
-import { EvidenceDialog, Failure, FormField, unwrap } from "./evidence/shared";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { Failure, FormField, unwrap, WorkspaceDialog } from "./workspace/forms";
 
 export function AiSettings() {
   const query = useAiSettings(),
@@ -167,7 +166,7 @@ export function AiSettings() {
             </section>
           </div>
           {editing && (
-            <EvidenceDialog
+            <WorkspaceDialog
               title={`${connection ? "Manage" : "Connect"} ${aiProviderLabels[editing]}`}
               description="Use your own provider account for AI suggestions."
               dirty={Boolean(apiKey)}
@@ -233,47 +232,12 @@ export function AiSettings() {
                   </Button>
                 </div>
               )}
-            </EvidenceDialog>
+            </WorkspaceDialog>
           )}
           <p className="max-w-2xl text-sm text-muted-foreground">
             ATS scoring uses River’s separate scoring service and does not use your AI key. River’s
             usage limits still apply to AI suggestions.
           </p>
-          <section className="space-y-4 border-t pt-7">
-            <h3 className="text-lg font-semibold">Advanced tools</h3>
-            <p className="max-w-2xl text-sm text-muted-foreground">
-              Optional tools for editing template code and inspecting document internals.
-            </p>
-            <label className="flex min-h-11 items-center gap-3 text-sm">
-              <input
-                type="checkbox"
-                className="size-5"
-                checked={query.data.preferences.advancedTools}
-                disabled={preferences.isPending}
-                onChange={(event) =>
-                  preferences.mutate({
-                    ...query.data.preferences,
-                    advancedTools: event.target.checked,
-                  })
-                }
-              />
-              Enable advanced tools
-            </label>
-            {query.data.preferences.advancedTools && (
-              <Link to="/advanced" className="block text-primary underline">
-                Open advanced tools
-              </Link>
-            )}
-            <Button
-              variant="outline"
-              disabled={preferences.isPending}
-              onClick={() =>
-                preferences.mutate({ ...query.data.preferences, onboardingDismissed: false })
-              }
-            >
-              Reopen getting started
-            </Button>
-          </section>
         </>
       )}
     </div>

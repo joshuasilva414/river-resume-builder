@@ -5,14 +5,7 @@ assert.equal(process.argv.length, 3, "Use: pnpm ci:deploy staging|production");
 const target = deploymentTarget(process.argv[2]);
 const source = await readJson("apps/web/wrangler.jsonc");
 const bundle = await readJson("apps/web/dist/server/wrangler.json");
-const documents = await readJson("apps/documents/wrangler.jsonc");
 validateBundle(bundle, source, target);
-assert.equal(documents.account_id, source.account_id);
-assert.equal(documents.env[target.environment].name, `river-documents-${target.environment}`);
-assert.equal(
-  bundle.services.find((service) => service.binding === "DOCUMENTS").service,
-  documents.env[target.environment].name,
-);
 
 await run([`backup:${target.environment}`], { CLOUDFLARE_ENV: undefined });
 await run(
@@ -35,15 +28,17 @@ await run(
 // This is the private companion Worker, not the web Worker attached to Workers Builds.
 // Keep Cloudflare's name/tag guards for the web deploy; remove them only for this command.
 await run(
-  ["--filter", "@river/web", "exec", "wrangler", "deploy", "--config", "wrangler.telemetry.jsonc", "--env", target.environment],
-  {
-    CLOUDFLARE_ENV: undefined,
-    WRANGLER_CI_MATCH_TAG: undefined,
-    WRANGLER_CI_OVERRIDE_NAME: undefined,
-  },
-);
-await run(
-  ["--filter", "@river/documents", "exec", "wrangler", "deploy", "--env", target.environment],
+  [
+    "--filter",
+    "@river/web",
+    "exec",
+    "wrangler",
+    "deploy",
+    "--config",
+    "wrangler.telemetry.jsonc",
+    "--env",
+    target.environment,
+  ],
   {
     CLOUDFLARE_ENV: undefined,
     WRANGLER_CI_MATCH_TAG: undefined,

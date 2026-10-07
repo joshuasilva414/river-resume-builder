@@ -1,3 +1,5 @@
+> Superseded for active workflows by [ADR 0016](0016-use-facts-visual-documents-and-browser-pdf.md). Retained as historical context.
+
 # Use simple, immediately usable evidence
 
 River v1.2 evidence consists of text, keywords, optional sources, and a type: Skill, Achievement, Experience, Education, Credential, or Other. Saving makes evidence usable; AI extraction requires one editable import review, while manual entry requires neither a source nor verification. This removes repeated review gates that obstruct tailoring without establishing factual accuracy.

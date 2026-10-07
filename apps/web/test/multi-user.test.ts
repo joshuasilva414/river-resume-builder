@@ -1,4 +1,4 @@
-import { applyD1Migrations, introspectWorkflowInstance } from "cloudflare:test";
+import { applyD1Migrations } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { createRepository, schema } from "@river/db";
 import { fingerprint, newId } from "@river/domain";
@@ -6,11 +6,9 @@ import { Effect } from "effect";
 import { beforeAll, expect, it } from "vitest";
 import { authenticate, authenticatePrincipal, createAuth } from "../src/server/auth";
 import { readBackupStatus, retryBackup } from "../src/server/backups";
-import { runEvidenceCommand, searchEvidence } from "../src/server/evidence";
 import { handleMcp } from "../src/server/mcp";
 import { secureRequest } from "../src/server/request-security";
-import { execute, listOperations, startProof } from "../src/server/services";
-import { createSource, inspectSource, sourceDownload } from "../src/server/sources";
+import { execute } from "../src/server/services";
 
 beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
 
@@ -106,7 +104,7 @@ async function accounts() {
 }
 
 it("admits two verified accounts, isolates recovery and distinguishes the administrator", async () => {
-  const { a, b, settings, deliveries, auth, password, bob, store } = await accounts();
+  const { a, b, settings, deliveries, auth, password, bob } = await accounts();
   expect(a.principal.isAdmin).toBe(true);
   expect(b.principal.isAdmin).toBe(false);
   expect((await authenticate(settings, b.headers))?.user.name).toBe("Bob Fixture");
@@ -122,17 +120,6 @@ it("admits two verified accounts, isolates recovery and distinguishes the admini
       retryBackup(settings, { date: "2026-09-06", attempt: 1, idempotencyKey: "admin-only" }),
     ),
   ).toMatchObject({ ok: false, error: { status: 403 } });
-  expect(
-    await execute(
-      settings,
-      b.headers,
-      startProof("staging", { idempotencyKey: "proof", theme: "classic" }),
-    ),
-  ).toMatchObject({ ok: false, error: { status: 403 } });
-  expect(await execute(settings, b.headers, listOperations("staging"))).toMatchObject({
-    ok: false,
-    error: { status: 403 },
-  });
   expect(await execute(settings, a.headers, readBackupStatus(settings, {}))).toMatchObject({
     ok: true,
   });
@@ -150,78 +137,6 @@ it("admits two verified accounts, isolates recovery and distinguishes the admini
   });
   expect(await authenticate(settings, b.headers)).toBeNull();
   expect(await authenticate(settings, a.headers)).not.toBeNull();
-  expect(await store.listOperations(b.principal.id)).toHaveLength(0);
-});
-
-it("keeps sources, downloads, evidence and identical command keys private between authenticated users", async () => {
-  const { a, b, settings, store } = await accounts();
-  const sourceInput = {
-    idempotencyKey: "same-key",
-    title: "Private original",
-    filename: "notes.txt",
-    mime: "text/plain" as const,
-    kind: "pasted" as const,
-    provenanceUrl: null,
-    note: "",
-    contentBase64: btoa("Alice private source"),
-  };
-  const first = await execute(
-    settings,
-    a.headers,
-    createSource(settings, sourceInput),
-    "source:write",
-  );
-  const second = await execute(
-    settings,
-    b.headers,
-    createSource(settings, { ...sourceInput, contentBase64: btoa("Bob private source") }),
-    "source:write",
-  );
-  if (!first.ok || !second.ok) throw Error("Both uploads must succeed");
-  expect(first.value.id).not.toBe(second.value.id);
-  const source = await store.getSource(a.principal.id, first.value.id);
-  if (!source) throw Error("Expected source");
-  expect(source.objectKey).toContain(a.principal.id);
-  const download = await execute(
-    settings,
-    a.headers,
-    sourceDownload(settings, source.id),
-    "source:read",
-  );
-  if (!download.ok) throw Error("Expected own download");
-  expect(await download.value.text()).toBe("Alice private source");
-  expect(download.value.headers.get("cache-control")).toBe("private, no-store");
-  expect(
-    await execute(settings, b.headers, sourceDownload(settings, source.id), "source:read"),
-  ).toMatchObject({ ok: false, error: { status: 404 } });
-  expect(
-    await execute(settings, b.headers, inspectSource(settings, source.id), "source:read"),
-  ).toMatchObject({ ok: false, error: { status: 404 } });
-  for (const [account, assertion] of [
-    [a, "Alice private achievement"],
-    [b, "Bob private achievement"],
-  ] as const) {
-    expect(
-      await execute(
-        settings,
-        account.headers,
-        runEvidenceCommand(settings, {
-          type: "create",
-          idempotencyKey: "same-key",
-          metadata: { label: "Private claim", tags: [], notes: "" },
-          material: { assertion, contexts: [], citations: [] },
-        }),
-        "evidence:write",
-      ),
-    ).toMatchObject({ ok: true });
-  }
-  const query = { query: "", status: "All" as const, archived: false, contextId: null, offset: 0 };
-  const found = await execute(settings, b.headers, searchEvidence(query), "evidence:read");
-  expect(JSON.stringify(found)).toContain("Bob private achievement");
-  expect(JSON.stringify(found)).not.toContain("Alice private achievement");
-  expect((await store.listSources(b.principal.id)).map((item) => item.id)).toEqual([
-    second.value.id,
-  ]);
 });
 
 it("scopes MCP agents to their account and disables existing sessions and agents when admission is removed", async () => {
@@ -233,7 +148,7 @@ it("scopes MCP agents to their account and disables existing sessions and agents
     await store.createCredential(account.principal.id, {
       id,
       name: "Private agent",
-      scopes: ["evidence:read", "evidence:write"],
+      scopes: ["facts:read", "facts:write"],
       secretHash: await fingerprint(secret),
       expiresInDays: 1,
       idempotencyKey: "same-agent-key",
@@ -242,18 +157,24 @@ it("scopes MCP agents to their account and disables existing sessions and agents
   }
   const [aliceAgent, bobAgent] = credentials;
   if (!aliceAgent || !bobAgent) throw Error("Expected both credentials");
-  const claim = await execute(
-    settings,
-    a.headers,
-    runEvidenceCommand(settings, {
-      type: "create",
-      idempotencyKey: "alice-claim",
-      metadata: { label: "Secret claim", tags: [], notes: "" },
-      material: { assertion: "Alice only", contexts: [], citations: [] },
-    }),
-    "evidence:write",
-  );
-  if (!claim.ok) throw Error("Expected claim");
+  const factId = newId();
+  const factInput = {
+    id: factId,
+    revision: 0,
+    idempotencyKey: "alice-fact",
+    payload: {
+      kind: "fact" as const,
+      data: {
+        id: factId,
+        key: "skill",
+        label: "Secret fact",
+        value: { kind: "skill" as const, value: "Alice only" },
+        contextId: null,
+        sourceId: null,
+      },
+    },
+  };
+  const saved = await store.saveWorkspaceRecord(a.principal, factInput);
   const call = async (headers: Headers, name: string, args: unknown, config = settings) => {
     const requestHeaders = new Headers(headers);
     requestHeaders.set("content-type", "application/json");
@@ -273,27 +194,21 @@ it("scopes MCP agents to their account and disables existing sessions and agents
     );
     return { status: response.status, text: await response.text() };
   };
-  expect((await call(aliceAgent, "get_evidence", { id: claim.value.id })).text).toContain(
-    "Alice only",
-  );
-  const forbidden = await call(bobAgent, "get_evidence", { id: claim.value.id });
+  expect((await call(aliceAgent, "get_fact", { id: saved.id })).text).toContain("Alice only");
+  const forbidden = await call(bobAgent, "get_fact", { id: saved.id });
   expect(forbidden.text).toContain("NotFound");
   expect(forbidden.text).not.toContain("Alice only");
-  const edited = await call(bobAgent, "evidence_command", {
-    command: {
-      type: "metadata",
-      id: claim.value.id,
-      revision: 0,
-      idempotencyKey: "foreign-write",
-      metadata: { label: "Hijacked", tags: [], notes: "" },
-    },
+  const edited = await call(bobAgent, "save_fact", {
+    ...factInput,
+    revision: 1,
+    idempotencyKey: "foreign-write",
   });
   expect(edited.text).toContain("NotFound");
-  expect((await store.getClaim(a.principal.id, claim.value.id))?.revision).toBe(0);
+  expect((await store.getWorkspaceRecord(a.principal.id, saved.id)).revision).toBe(1);
   const removed = { ...settings, ALLOWED_EMAILS: "" };
   expect(await authenticate(removed, b.headers)).toBeNull();
   expect(await authenticatePrincipal(removed, bobAgent)).toBeNull();
-  expect((await call(bobAgent, "get_evidence", { id: claim.value.id }, removed)).status).toBe(401);
+  expect((await call(bobAgent, "get_fact", { id: saved.id }, removed)).status).toBe(401);
   expect(await authenticate(removed, a.headers)).not.toBeNull();
   expect(await authenticatePrincipal(removed, aliceAgent)).not.toBeNull();
   await expect(
@@ -332,64 +247,6 @@ it("shares database-backed email throttles across fresh auth instances", async (
     ok: false,
     error: { status: 401 },
   });
-});
-
-it("runs simultaneous durable extraction workflows without mixing originals or processing results", async () => {
-  const { a, b, settings, store } = await accounts();
-  const sources = [];
-  for (const [account, text] of [
-    [a, "Alice confidential extraction"],
-    [b, "Bob confidential extraction"],
-  ] as const) {
-    const result = await execute(
-      settings,
-      account.headers,
-      createSource(settings, {
-        idempotencyKey: "workflow-source",
-        title: "Private workflow",
-        filename: "private.txt",
-        mime: "text/plain",
-        kind: "pasted",
-        provenanceUrl: null,
-        note: "",
-        contentBase64: btoa(text),
-      }),
-      "source:write",
-    );
-    if (!result.ok) throw Error("Expected original");
-    const source = await store.getSource(account.principal.id, result.value.id);
-    if (!source) throw Error("Expected saved source");
-    sources.push({ source, account, text });
-  }
-  await Promise.all(
-    sources.map(async ({ source, account, text }) => {
-      await using workflow = await introspectWorkflowInstance(
-        env.DOCUMENT_WORKFLOW,
-        source.operationId,
-      );
-      await workflow.modify(async (m) => {
-        await m.disableSleeps();
-      });
-      await env.DOCUMENT_WORKFLOW.create({
-        id: source.operationId,
-        params: { operationId: source.operationId },
-      });
-      await workflow.waitForStatus("complete");
-      const detail = await execute(
-        settings,
-        account.headers,
-        inspectSource(settings, source.id),
-        "source:read",
-      );
-      expect(JSON.stringify(detail)).toContain(text);
-      const other = account.principal.id === a.principal.id ? b : a;
-      expect(
-        await execute(settings, other.headers, inspectSource(settings, source.id), "source:read"),
-      ).toMatchObject({ ok: false, error: { status: 404 } });
-      expect((await store.getOperation(source.operationId))?.ownerId).toBe(account.principal.id);
-      expect((await store.getSource(account.principal.id, source.id))?.state).toBe("Ready");
-    }),
-  );
 });
 
 it("delivers verification and recovery through the hosted email adapter for both admitted recipients", async () => {

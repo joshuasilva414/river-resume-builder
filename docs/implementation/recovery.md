@@ -1,3 +1,5 @@
+> Historical release record. The current replacement is described in [workspace-cutover.md](workspace-cutover.md). This file does not describe or authorize the replacement deployment.
+
 # Backup, restore, and deployment recovery
 
 Updated 2026-09-05. All commands target the personal River account. Staging and production use separate pinned D1/R2 resources; ACM UTSA is unsupported. Production is published, and its first scheduled backup plus isolated restore pass. See `production.md`.

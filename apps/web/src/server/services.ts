@@ -1,23 +1,11 @@
-import type {
-  CancelOperationRequest,
-  OperationView,
-  ProblemDetails,
-  StartProofRequest,
-} from "@river/contracts";
+import type { ProblemDetails } from "@river/contracts";
 import { createRepository, type Repository, usageFailure } from "@river/db";
-import {
-  type AgentScope,
-  ApplicationError,
-  newId,
-  type Principal,
-  requireAdministrator,
-} from "@river/domain";
-import { syntheticResume } from "@river/templates";
+import type { Principal } from "@river/domain";
+import { type AgentScope, ApplicationError, newId } from "@river/domain";
 import { Context, Effect, Layer } from "effect";
 import { authenticatePrincipal } from "./auth";
 import { withDiagnostics } from "./diagnostics";
-import type { Configuration, Env } from "./env";
-
+import type { Env } from "./env";
 export class Store extends Context.Service<Store, Repository>()("river/Store") {}
 export class Actor extends Context.Service<Actor, Principal>()("river/Actor") {}
 
@@ -34,62 +22,6 @@ export function attempt<A>(run: () => Promise<A>): Effect.Effect<A, ApplicationE
           })),
   });
 }
-
-const requireRuntime = (environment: Configuration["ENVIRONMENT"]) =>
-  Effect.gen(function* () {
-    if (environment === "production")
-      return yield* Effect.fail(
-        new ApplicationError({
-          code: "NotFound",
-          message: "Document runtime is unavailable in production.",
-        }),
-      );
-  });
-
-export const startProof = (environment: Configuration["ENVIRONMENT"], input: StartProofRequest) =>
-  Effect.gen(function* () {
-    yield* requireRuntime(environment);
-    const actor = yield* Actor;
-    yield* attempt(async () => requireAdministrator(actor));
-    const store = yield* Store;
-    return yield* attempt(() =>
-      store.startCompile(actor.id, input.idempotencyKey, {
-        document: syntheticResume,
-        theme: input.theme,
-      }),
-    );
-  });
-
-export const cancelOperation = (input: typeof CancelOperationRequest.Type) =>
-  Effect.gen(function* () {
-    const actor = yield* Actor;
-    const store = yield* Store;
-    return yield* attempt(() =>
-      store.cancelOperation(actor.id, input.operationId, input.idempotencyKey),
-    );
-  });
-
-export const listOperations = (environment: Configuration["ENVIRONMENT"]) =>
-  Effect.gen(function* () {
-    yield* requireRuntime(environment);
-    const actor = yield* Actor;
-    yield* attempt(async () => requireAdministrator(actor));
-    const store = yield* Store;
-    const operations = yield* attempt(() => store.listOperations(actor.id));
-    return operations
-      .filter((operation) => "document" in operation.input)
-      .map(
-        (operation): OperationView => ({
-          id: operation.id,
-          state: operation.state,
-          stage: operation.stage,
-          createdAt: new Date(operation.createdAt).toISOString(),
-          updatedAt: new Date(operation.updatedAt).toISOString(),
-          failure: operation.failure,
-          artifacts: operation.artifacts,
-        }),
-      );
-  });
 
 export function problem(error: ApplicationError, traceId: string): ProblemDetails {
   const statuses = {
@@ -154,148 +86,45 @@ export async function execute<A>(
   );
 }
 
-/** Rotate bounded checks so abandoned uploads or one R2 failure cannot starve later originals. */
-export async function recoverSourceUploads(env: Pick<Env, "DB" | "ARTIFACTS">) {
-  const repository = createRepository(env.DB);
-  for (const source of await repository.uploadingSources()) {
-    await Effect.runPromise(
-      attempt(async () => {
-        // Advance maintenance progress before I/O; source metadata and retry receipts stay unchanged.
-        await repository.recordSourceUploadCheck(source.id);
-        const object = await env.ARTIFACTS.head(source.objectKey);
-        if (object?.size === source.byteLength && object.customMetadata?.sha256 === source.digest)
-          await repository.finalizeSourceUpload(source.ownerId, source.id);
-      }).pipe(
-        withDiagnostics({
-          scope: "source-upload-recovery",
-          sourceId: source.id,
-          ownerId: source.ownerId,
-        }),
-        Effect.exit,
-      ),
-    );
-  }
-}
-
-/** Reconciliation retries durable dispatch after a commit, using the Operation's stable ID. */
+/** Only database backups need a background workflow. Browser documents never enter dispatch. */
 export async function dispatchPending(env: Env) {
-  const repository = createRepository(env.DB);
-  const pending = await repository.pendingDispatches();
-  await recoverSourceUploads(env);
-  for (const dispatch of pending) {
-    const operation = await repository.getOperation(dispatch.operationId);
+  if (!env.BACKUP_WORKFLOW) return;
+  const store = createRepository(env.DB);
+  for (const dispatch of await store.pendingDispatches()) {
+    const operation = await store.getOperation(dispatch.operationId);
     if (!operation) continue;
-    if ("sourceId" in operation.input) {
-      const source = await repository.getSource(operation.ownerId, operation.input.sourceId);
-      if (!source || source.state === "Uploading") continue;
-    }
-    if (operation.state !== "Pending" && operation.state !== "Cancelled") {
-      await repository.markDispatched(dispatch.operationId, operation.state);
+    if (!["Pending", "Cancelled"].includes(operation.state)) {
+      await store.markDispatched(operation.id, operation.state);
       continue;
     }
-    const workflow = workflowFor(env, operation.input);
-    if (!workflow) continue;
-    await Effect.runPromise(
-      attempt(async () => {
-        await workflow.createBatch([
-          { id: dispatch.operationId, params: { operationId: dispatch.operationId } },
-        ]);
-        if (operation.state === "Cancelled") {
-          const instance = await workflow.get(operation.id);
-          const status = await instance.status();
-          if (!["complete", "errored", "terminated"].includes(status.status))
-            await instance.terminate();
-        }
-        await repository.markDispatched(dispatch.operationId, operation.state);
-      }).pipe(
-        withDiagnostics({
-          scope: "workflow-dispatch",
-          operationId: dispatch.operationId,
-          ownerId: operation.ownerId,
-        }),
-      ),
-    );
+    await env.BACKUP_WORKFLOW.createBatch([
+      { id: operation.id, params: { operationId: operation.id } },
+    ]);
+    if (operation.state === "Cancelled") {
+      const instance = await env.BACKUP_WORKFLOW.get(operation.id);
+      const status = await instance.status();
+      if (!["complete", "errored", "terminated"].includes(status.status))
+        await instance.terminate();
+    }
+    await store.markDispatched(operation.id, operation.state);
   }
 }
-
-/** Reconcile interrupted executions without replacing a completed result or an Owner cancellation. */
 export async function reconcileOperations(env: Env) {
   await dispatchPending(env);
-  const repository = createRepository(env.DB);
-  for (const operation of await repository.activeOperations()) {
-    const workflow = workflowFor(env, operation.input);
-    if (!workflow) continue;
-    const instance = await workflow.get(operation.id);
-    const status = await instance.status();
-    const terminal = ["complete", "errored", "terminated"].includes(status.status);
-    const expired = Date.now() - operation.updatedAt > 10 * 60_000;
+  if (!env.BACKUP_WORKFLOW) return;
+  const store = createRepository(env.DB);
+  for (const operation of await store.activeOperations()) {
+    const instance = await env.BACKUP_WORKFLOW.get(operation.id),
+      status = await instance.status();
+    const terminal = ["complete", "errored", "terminated"].includes(status.status),
+      expired = Date.now() - operation.updatedAt > 10 * 60_000;
     if (!terminal && !expired) continue;
     if (!terminal) await instance.terminate();
-    if ("type" in operation.input && operation.input.type === "checkpoint-score") {
-      await repository.failScoring(operation.id, {
-        code: "Interrupted",
-        message:
-          "Scoring stopped before publication. Any retained response is preserved for recovery; review this attempt before retrying.",
-        retryAt: null,
-      });
-      continue;
-    }
-    if ("type" in operation.input && operation.input.type === "template-score") {
-      await repository.failTemplateScoring(operation.id);
-      continue;
-    }
-    await repository.failSource(
-      operation.id,
-      "Text extraction was interrupted. The original is preserved; retry extraction.",
-    );
-    await repository.updateOperation(operation.id, {
+    await store.updateOperation(operation.id, {
       state: "Failed",
-      stage: "Background operation interrupted",
+      stage: "Database backup interrupted",
       failure:
-        "type" in operation.input
-          ? operation.input.type === "template-validation"
-            ? "Template validation stopped before every fixture finished. Published results and the Draft are preserved; retry validation if attempts remain."
-            : operation.input.type === "template-ai"
-              ? "Template generation or preview was interrupted. Any saved candidate is preserved; inspect the task and retry the unfinished stage if attempts remain."
-              : operation.input.type === "database-backup"
-                ? "The daily backup was interrupted. Inspect its attempt in Settings before requesting a bounded retry."
-                : "This analysis stopped before saving a proposal. Your input is preserved; retry analysis if attempts remain."
-          : "This operation stopped before publishing its artifacts. Your input is preserved; compile again to retry.",
+        "The backup stopped before completion. Inspect the retained attempt before retrying.",
     });
-  }
-}
-
-function workflowFor(
-  env: Env,
-  input: NonNullable<Awaited<ReturnType<Repository["getOperation"]>>>["input"],
-) {
-  if (!("type" in input)) return env.DOCUMENT_WORKFLOW;
-  switch (input.type) {
-    case "job-import":
-    case "job-ai":
-      return env.JOB_AI_WORKFLOW;
-    case "source-ai":
-      return env.SOURCE_AI_WORKFLOW;
-    case "duplicate-ai":
-      return env.DUPLICATE_AI_WORKFLOW;
-    case "template-validation":
-      return env.TEMPLATE_VALIDATION_WORKFLOW;
-    case "template-ai":
-      return env.TEMPLATE_AI_WORKFLOW;
-    case "source-refinement":
-    case "source-refinement-accept":
-      return env.SOURCE_REFINEMENT_WORKFLOW;
-    case "wording-ai":
-      return env.WORDING_WORKFLOW;
-    case "database-backup":
-      return env.BACKUP_WORKFLOW;
-    case "template-score":
-      return env.TEMPLATE_SCORING_WORKFLOW;
-    case "checkpoint-score":
-      return env.SCORING_WORKFLOW;
-    default: {
-      const exhaustive: never = input;
-      return exhaustive;
-    }
   }
 }

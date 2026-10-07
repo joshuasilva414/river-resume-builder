@@ -7,3 +7,11 @@ beforeEach(async () => {
   await reset();
   await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
 });
+
+declare global {
+  namespace Cloudflare {
+    interface Env {
+      TEST_MIGRATIONS: import("@cloudflare/vitest-pool-workers").D1Migration[];
+    }
+  }
+}
