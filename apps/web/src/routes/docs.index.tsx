@@ -20,10 +20,10 @@ export const Route = createFileRoute("/docs/")({
 });
 
 const groupDescriptions = {
-  Tutorials: "Complete a guided example with fictional content.",
+  Tutorials: "Build a document with the visual editor.",
   "How-to guides": "Follow the steps for a specific task in your workspace.",
   Reference: "Look up supported formats, fields, states, and limits.",
-  Explanation: "Understand how River connects evidence, content, and saved versions.",
+  Explanation: "Understand how River connects facts, content, and saved versions.",
 } satisfies Record<(typeof guideGroups)[number], string>;
 
 function Overview() {

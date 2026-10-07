@@ -10,7 +10,6 @@ import { Schema } from "effect";
 import {
   readAiModels,
   readAiSettings,
-  readOnboardingProgress,
   removeAiConnection,
   saveAiConnection,
   saveWorkspacePreferences,
@@ -20,9 +19,6 @@ import { execute } from "./services";
 
 export const getAiSettings = createServerFn({ method: "GET" }).handler(() =>
   execute(bindings(), getRequestHeaders(), readAiSettings(bindings())),
-);
-export const getOnboardingProgress = createServerFn({ method: "GET" }).handler(() =>
-  execute(bindings(), getRequestHeaders(), readOnboardingProgress),
 );
 export const getAiModels = createServerFn({ method: "GET" })
   .validator(Schema.decodeUnknownSync(AiConnectionRequest))

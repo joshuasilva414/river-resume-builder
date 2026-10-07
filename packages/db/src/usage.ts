@@ -240,19 +240,19 @@ export function createUsageRepository(db: Database) {
       const active = sql`EXISTS (SELECT 1 FROM session se WHERE se.user_id=u.id AND se.updated_at >= unixepoch('now','-30 days')*1000)`;
       const metricColumns = sql`
         (SELECT count(*) FROM job_targets j WHERE j.owner_id=u.id) AS jobs,
-        (SELECT count(*) FROM sources so WHERE so.owner_id=u.id)+(SELECT count(*) FROM job_imports ji WHERE ji.owner_id=u.id) AS imports,
-        (SELECT count(*) FROM evidence_claims e WHERE e.owner_id=u.id) AS evidence,
-        (SELECT count(*) FROM template_designs t WHERE t.owner_id=u.id) AS templates,
-        (SELECT count(*) FROM checkpoint_exports e JOIN resume_checkpoints c ON c.id=e.checkpoint_id WHERE c.owner_id=u.id) AS exports,
+        (SELECT count(*) FROM sources so WHERE so.owner_id=u.id) AS imports,
+        (SELECT count(*) FROM workspace_records r WHERE r.owner_id=u.id AND r.kind='fact' AND r.deleted_at IS NULL) AS facts,
+        (SELECT count(*) FROM workspace_records r WHERE r.owner_id=u.id AND r.kind='template' AND r.deleted_at IS NULL) AS templates,
+        (SELECT count(*) FROM workspace_exports e WHERE e.owner_id=u.id AND e.state='Complete') AS exports,
         (SELECT count(*) FROM operations o WHERE o.owner_id=u.id AND o.state='Succeeded' AND COALESCE(json_extract(o.input,'$.type'),'') <> 'database-backup') AS succeeded,
         (SELECT count(*) FROM operations o WHERE o.owner_id=u.id AND o.state='Failed' AND COALESCE(json_extract(o.input,'$.type'),'') <> 'database-backup') AS failed,
         (SELECT count(*) FROM operations o WHERE o.owner_id=u.id AND o.state='Cancelled' AND COALESCE(json_extract(o.input,'$.type'),'') <> 'database-backup') AS cancelled,
         (SELECT count(*) FROM operations o WHERE o.owner_id=u.id AND o.state IN ('Pending','Running') AND COALESCE(json_extract(o.input,'$.type'),'') <> 'database-backup') AS processing,
-        (SELECT count(*) FROM scoring_runs r WHERE r.owner_id=u.id AND r.result IS NOT NULL)+(SELECT count(*) FROM template_scoring_fixtures f JOIN template_scoring_runs r ON r.id=f.run_id WHERE r.owner_id=u.id AND f.raw_response_json IS NOT NULL) AS scores`;
+        (SELECT COALESCE(sum(CASE WHEN r.kind='template-score' THEN 3 ELSE 1 END),0) FROM workspace_runs r WHERE r.owner_id=u.id AND r.kind IN ('resume-score','template-score') AND r.state='Complete') AS scores`;
       type Metrics = {
         jobs: number;
         imports: number;
-        evidence: number;
+        facts: number;
         templates: number;
         exports: number;
         succeeded: number;
@@ -282,7 +282,7 @@ export function createUsageRepository(db: Database) {
       const totals = await db.get<
         Metrics & { users: number; activeUsers: number }
       >(sql`SELECT count(*) AS users,COALESCE(sum(active),0) AS activeUsers,
-        COALESCE(sum(jobs),0) AS jobs,COALESCE(sum(imports),0) AS imports,COALESCE(sum(evidence),0) AS evidence,COALESCE(sum(templates),0) AS templates,COALESCE(sum(exports),0) AS exports,
+        COALESCE(sum(jobs),0) AS jobs,COALESCE(sum(imports),0) AS imports,COALESCE(sum(facts),0) AS facts,COALESCE(sum(templates),0) AS templates,COALESCE(sum(exports),0) AS exports,
         COALESCE(sum(succeeded),0) AS succeeded,COALESCE(sum(failed),0) AS failed,COALESCE(sum(cancelled),0) AS cancelled,COALESCE(sum(processing),0) AS processing,COALESCE(sum(scores),0) AS scores
         FROM (SELECT ${active} AS active,${metricColumns} FROM user u)`);
       const policy = (

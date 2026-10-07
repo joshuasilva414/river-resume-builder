@@ -1,6 +1,6 @@
 import { AiProvider, AiSelection, RecordId, Revision, WorkspacePreferences } from "@river/domain";
 import { Schema } from "effect";
-import { CommandKey } from "./evidence";
+import { CommandKey } from "./common";
 
 export const AiSelectionFields = { ai: Schema.optional(AiSelection) };
 export const SaveAiConnectionRequest = Schema.Struct({

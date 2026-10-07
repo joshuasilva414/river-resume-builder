@@ -55,12 +55,16 @@ export const Route = createFileRoute("/settings")({
   component: Settings,
 });
 const labels: Record<AgentScope, string> = {
+  "facts:read": "Read facts and contexts",
+  "facts:write": "Add and edit facts and contexts",
+  "content:read": "Read reusable content",
+  "content:write": "Add and edit reusable content",
+  "templates:read": "Read visual templates",
+  "templates:write": "Add and edit visual templates",
+  "resumes:read": "Read résumés and saved versions",
+  "resumes:write": "Add and edit résumés",
   "source:read": "Read sources",
   "source:write": "Add sources",
-  "evidence:read": "Read evidence",
-  "evidence:write": "Add and update evidence",
-  "evidence:merge": "Merge evidence",
-  "evidence:archive": "Delete and restore evidence",
   "jobs:read": "Read job targets",
   "jobs:write": "Add and update job targets",
 };
@@ -220,7 +224,13 @@ function Settings() {
                     )}
                   </div>
                   <p className="text-[13px] leading-6 text-muted-foreground">
-                    {credential.scopes.map((scope) => labels[scope]).join(" · ")}
+                    {credential.scopes
+                      .map(
+                        (scope) =>
+                          Object.entries(labels).find(([key]) => key === scope)?.[1] ??
+                          `${scope} (retired)`,
+                      )
+                      .join(" · ")}
                   </p>
                   <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
                     <span>
@@ -304,7 +314,8 @@ function Settings() {
                             }
                           />
                           <FieldLabel htmlFor={`scope-${scope}`} className="font-normal">
-                            {labels[scope]}
+                            {Object.entries(labels).find(([key]) => key === scope)?.[1] ??
+                              `${scope} (retired)`}
                           </FieldLabel>
                         </Field>
                       ))}

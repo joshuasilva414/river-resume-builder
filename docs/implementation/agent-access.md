@@ -1,3 +1,5 @@
+> Historical release record. The current replacement is described in [workspace-api.md](workspace-api.md). This file does not describe or authorize the replacement deployment.
+
 # Hosted Agent Credential acceptance
 
 Verified 2026-09-05 against personal staging after the Owner explicitly approved creation, testing and revocation of a temporary QA credential. No ACM UTSA resources were accessed.

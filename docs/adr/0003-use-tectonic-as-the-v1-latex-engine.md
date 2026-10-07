@@ -1,3 +1,5 @@
+> Superseded for active workflows by [ADR 0016](0016-use-facts-visual-documents-and-browser-pdf.md). Retained as historical context.
+
 # Use Tectonic as the V1 LaTeX engine
 
 Resume Builder will use a pinned Tectonic release, bundle, fonts, and assets for preview, validation, and export. The authoritative editor preview is a debounced Tectonic-generated PDF; obsolete compile requests are coalesced, and the last successful PDF remains visible with a stale or compiling state. Render results are content-addressed, draft previews expire through an R2 lifecycle policy, and checkpoint or exported artifacts are retained. An HTML approximation may be investigated later but cannot become the rendering source of truth.

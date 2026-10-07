@@ -2,10 +2,8 @@ import { applyD1Migrations } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { createRepository, schema } from "@river/db";
 import { newId, type Principal } from "@river/domain";
-import { syntheticResume } from "@river/templates";
 import { eq } from "drizzle-orm";
 import { beforeAll, expect, it } from "vitest";
-import { compositionFixture } from "./fixtures/composition";
 
 beforeAll(() => applyD1Migrations(env.DB, env.TEST_MIGRATIONS));
 async function account(administrator = false) {
@@ -29,7 +27,7 @@ it("restricts administrative reads and writes to the authenticated administrator
     kind: "agent",
     id: newId(),
     ownerId: admin.actor.id,
-    scopes: ["evidence:read"],
+    scopes: ["facts:read"],
   };
   for (const actor of [f.actor, agent]) {
     await expect(f.store.adminDashboard(actor, { query: "", offset: 0 })).rejects.toMatchObject({
@@ -53,63 +51,32 @@ it("restricts administrative reads and writes to the authenticated administrator
     ).rejects.toMatchObject({ code: "Forbidden" });
   }
 });
-it("returns cross-account identity and counts without private document or job content", async () => {
+it("returns counts without exposing another account's facts", async () => {
   const admin = await account(true),
-    f = await compositionFixture();
-  const privateTitle = "PRIVATE CONTENT MUST NOT LEAVE OWNER";
-  await f.repository.db
-    .update(schema.jobs)
-    .set({ details: { ...f.jobDetail.job.details, role: privateTitle } })
-    .where(eq(schema.jobs.ownerId, f.actor.ownerId));
-  await f.repository.beginSource(f.actor, {
-    title: privateTitle,
-    filename: "private-resume.txt",
-    mime: "text/plain",
-    kind: "pasted",
-    provenanceUrl: null,
-    note: privateTitle,
-    digest: "ab".repeat(32),
-    byteLength: 12,
-    idempotencyKey: "private-source",
+    f = await account(),
+    id = newId();
+  await f.store.saveWorkspaceRecord(f.actor, {
+    id,
+    revision: 0,
+    idempotencyKey: newId(),
+    payload: {
+      kind: "fact",
+      data: {
+        id,
+        key: "skill",
+        label: "PRIVATE FACT",
+        value: { kind: "skill", value: "PRIVATE VALUE" },
+        contextId: null,
+        sourceId: null,
+      },
+    },
   });
   const dashboard = await admin.store.adminDashboard(admin.actor, { query: "", offset: 0 });
-  const row = dashboard.accounts.find((value) => value.id === f.actor.id);
-  expect(row).toMatchObject({ jobs: 1, imports: 1, used: 0, reserved: 0, dailyLimit: 25 });
-  expect(dashboard.totals).toMatchObject({ users: 2, jobs: 1, imports: 1 });
-  expect(JSON.stringify(dashboard)).not.toContain(privateTitle);
-  expect(JSON.stringify(dashboard)).not.toContain("private-resume.txt");
-  expect(Object.keys(row ?? {}).sort()).toEqual(
-    [
-      "active",
-      "cancelled",
-      "dailyLimit",
-      "email",
-      "evidence",
-      "exports",
-      "failed",
-      "id",
-      "imports",
-      "jobs",
-      "name",
-      "override",
-      "processing",
-      "reserved",
-      "revision",
-      "scores",
-      "succeeded",
-      "templates",
-      "used",
-    ].sort(),
-  );
-  const filtered = await admin.store.adminDashboard(admin.actor, {
-    query: `${admin.actor.id}@example.test`,
-    offset: 0,
+  expect(dashboard.totals).toMatchObject({ users: 2, facts: 1 });
+  expect(JSON.stringify(dashboard)).not.toContain("PRIVATE");
+  await expect(admin.store.getWorkspaceRecord(admin.actor.ownerId, id)).rejects.toMatchObject({
+    code: "NotFound",
   });
-  expect(filtered.accounts).toHaveLength(1);
-  expect(filtered.totals).toEqual(dashboard.totals);
-  await expect(
-    admin.store.inspectJob(admin.actor.ownerId, { id: f.jobDetail.job.id }),
-  ).rejects.toMatchObject({ code: "NotFound" });
 });
 it("configures default and individual limits with revision guards and isolated overrides", async () => {
   const admin = await account(true),
@@ -157,16 +124,11 @@ it("resets one account exactly once, preserves pending reservations, and rejects
     { ownerId: f.actor.id, day, used: 7 },
     { ownerId: other.actor.id, day, used: 8 },
   ]);
-  const operationId = await f.store.startCompile(f.actor.id, "pending-fixture", {
-    document: syntheticResume,
-    theme: "classic",
-  });
-  await f.store.db.insert(schema.scoringReservations).values({
-    id: "pending-result",
-    ownerId: f.actor.id,
-    operationId,
-    state: "Reserved",
-    createdAt: Date.now(),
+  const run = await f.store.beginWorkspaceRun(f.actor, {
+    kind: "resume-score",
+    targetId: null,
+    input: "{}",
+    idempotencyKey: "pending-fixture",
   });
   const request = { ownerId: f.actor.id, day, used: 7, idempotencyKey: "reset-once" };
   const result = await admin.store.resetScoringAllowance(admin.actor, request);
@@ -194,7 +156,7 @@ it("resets one account exactly once, preserves pending reservations, and rejects
   await f.store.db
     .update(schema.scoringReservations)
     .set({ state: "Consumed" })
-    .where(eq(schema.scoringReservations.id, "pending-result"));
+    .where(eq(schema.scoringReservations.id, `${run.id}:0`));
   expect(await f.store.readScoringAllowance(f.actor)).toMatchObject({
     used: 1,
     reserved: 0,

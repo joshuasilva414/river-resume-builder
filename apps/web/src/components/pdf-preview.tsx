@@ -8,9 +8,11 @@ import { Button } from "./ui/button";
 /** Each page is rendered from the authoritative PDF. Zoom never recomposes résumé content. */
 export function PdfPreview({
   url,
+  blob,
   onDisplayChange,
 }: {
   url: string;
+  blob?: Blob;
   onDisplayChange?: (url: string, displayed: boolean) => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -46,18 +48,24 @@ export function PdfPreview({
       const pdfjs = await import("pdfjs-dist");
       if (disposed) return;
       pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
-      const task = pdfjs.getDocument({ url, withCredentials: true });
+      // Browser-generated previews use in-memory bytes; retained artifacts use authenticated URLs.
+      const input = blob
+        ? { data: new Uint8Array(await blob.arrayBuffer()) }
+        : { url, withCredentials: true };
+      if (disposed) return;
+      const task = pdfjs.getDocument(input);
       cleanup = () => task.destroy();
       const result = await task.promise;
       if (!disposed) setLoaded({ document: result, url });
-    })().catch(() => {
+    })().catch((error) => {
+      console.error("PDF preview:", error instanceof Error ? error.message : "Load failed");
       if (!disposed) setState("error");
     });
     return () => {
       disposed = true;
       void cleanup?.();
     };
-  }, [url, attempt]);
+  }, [url, blob, attempt]);
   useEffect(() => {
     if (!loaded) return;
     const { document, url: renderedUrl } = loaded;
@@ -87,7 +95,8 @@ export function PdfPreview({
       setHasPreview(true);
       setState("ready");
       displayChange.current?.(renderedUrl, true);
-    })().catch(() => {
+    })().catch((error) => {
+      console.error("PDF preview:", error instanceof Error ? error.message : "Load failed");
       if (!disposed) setState("error");
     });
     return () => {

@@ -53,6 +53,7 @@ export class BackupWorkflow extends WorkflowEntrypoint<Env, { operationId: strin
           !operation ||
           !("type" in operation.input) ||
           operation.input.type !== "database-backup" ||
+          typeof operation.input.date !== "string" ||
           !["Pending", "Running"].includes(operation.state)
         )
           return null;

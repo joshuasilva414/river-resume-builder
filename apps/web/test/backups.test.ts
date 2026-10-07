@@ -74,7 +74,7 @@ it("deduplicates daily dispatch atomically and records completion only after ret
   expect(await store.scheduleBackup(email, "2026-01-01")).toMatchObject({ manifest });
   const second = await store.scheduleBackup(email, "2026-01-02");
   if (!second) throw Error("Missing second backup");
-  await store.cancelOperation(id, second.operationId, "cancel-backup");
+  await store.cancelBackupOperation(id, second.operationId, "cancel-backup");
   expect(await store.completeBackup(second.date, second.operationId, manifest)).toBe(false);
   expect((await store.getBackup(second.date))?.manifest).toBeNull();
 });
@@ -252,7 +252,7 @@ it("serializes explicit daily retries, preserves old operations, and enforces th
       bytes: 20,
     }),
   ).toBe(false);
-  await store.cancelOperation(id, second.operationId, "cancel-second-backup");
+  await store.cancelBackupOperation(id, second.operationId, "cancel-second-backup");
   const third = await store.retryBackup(
     actor,
     { ...input, attempt: 2, idempotencyKey: "third-backup" },

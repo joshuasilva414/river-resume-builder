@@ -4,10 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useDeferredValue, useRef, useState } from "react";
 import { BackupSettings } from "~/components/backup-settings";
-import { EvidenceDialog, Failure, FormField, unwrap } from "~/components/evidence/shared";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
+import { Failure, FormField, unwrap, WorkspaceDialog } from "~/components/workspace/forms";
 import { WorkspaceShell } from "~/components/workspace-shell";
 import {
   getAdminDashboard,
@@ -91,7 +91,7 @@ function Administration() {
     activeUsers: "Active users · 30 days",
     jobs: "Jobs added",
     imports: "Imports",
-    evidence: "Evidence added",
+    facts: "Facts added",
     templates: "Saved templates",
     exports: "Exports",
     scores: "Successful scores",
@@ -180,7 +180,7 @@ function Administration() {
                     "Account",
                     "Jobs",
                     "Imports",
-                    "Evidence",
+                    "Facts",
                     "Templates",
                     "Exports",
                     "Scores",
@@ -204,13 +204,13 @@ function Administration() {
                         {item.active ? "Active in the last 30 days" : "No recent session activity"}
                       </p>
                     </td>
-                    {(
-                      ["jobs", "imports", "evidence", "templates", "exports", "scores"] as const
-                    ).map((key) => (
-                      <td className="p-4" key={key}>
-                        {item[key]}
-                      </td>
-                    ))}
+                    {(["jobs", "imports", "facts", "templates", "exports", "scores"] as const).map(
+                      (key) => (
+                        <td className="p-4" key={key}>
+                          {item[key]}
+                        </td>
+                      ),
+                    )}
                     <td className="p-4 text-xs">
                       <p>{item.processing} active</p>
                       <p className="mt-1 text-muted-foreground">
@@ -325,7 +325,7 @@ function AccountLimit({
   const [limit, setLimit] = useState(account.override === null ? "" : String(account.override)),
     save = useLimit(onClose);
   return (
-    <EvidenceDialog
+    <WorkspaceDialog
       title={`Scoring allowance · ${account.name}`}
       description={account.email}
       onClose={onClose}
@@ -368,6 +368,6 @@ function AccountLimit({
           <Button disabled={save.isPending || account.administrator}>Save allowance</Button>
         </div>
       </form>
-    </EvidenceDialog>
+    </WorkspaceDialog>
   );
 }

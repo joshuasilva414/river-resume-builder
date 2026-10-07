@@ -11,13 +11,22 @@ type AuthMail = { to: string; subject: string; text: string };
 
 /** Request-scoped auth avoids retaining one request's Cloudflare bindings in another. */
 export function createAuth(env: Env, deliver?: (message: AuthMail) => Promise<void>) {
+  const appUrl = new URL(env.APP_URL);
+  const loopbackHosts = ["localhost", "127.0.0.1"];
+  const localDevelopment =
+    env.ENVIRONMENT === "development" && loopbackHosts.includes(appUrl.hostname);
+  // Local host aliases share the configured protocol and port; hosted origins stay exact.
+  const trustedOrigins = localDevelopment
+    ? loopbackHosts.map((hostname) => {
+        const origin = new URL(appUrl);
+        origin.hostname = hostname;
+        return origin.origin;
+      })
+    : [env.APP_URL];
   const send = async (message: AuthMail) => {
     if (!isAccountAllowed(env, message.to)) return;
     if (deliver) return deliver(message);
-    if (
-      env.ENVIRONMENT === "development" &&
-      ["localhost", "127.0.0.1"].includes(new URL(env.APP_URL).hostname)
-    ) {
+    if (localDevelopment) {
       await env.ARTIFACTS.put(
         `development/auth/${await fingerprint(message.to.toLowerCase().trim())}/latest.json`,
         JSON.stringify(message),
@@ -38,7 +47,7 @@ export function createAuth(env: Env, deliver?: (message: AuthMail) => Promise<vo
     appName: "River",
     baseURL: env.APP_URL,
     secret: env.AUTH_SECRET,
-    trustedOrigins: [env.APP_URL],
+    trustedOrigins,
     database: drizzleAdapter(createDatabase(env.DB), {
       provider: "sqlite",
       schema,

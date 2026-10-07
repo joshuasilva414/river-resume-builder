@@ -1,31 +1,21 @@
 import {
-  CancelOperationRequest,
+  CancelBackupRequest,
   CreateCredentialRequest,
-  CreateSourceRequest,
   InspectSourceRequest,
   ReadBackupStatusRequest,
-  ResumeSourceRequest,
   RetryBackupRequest,
-  RetrySourceRequest,
   RevokeCredentialRequest,
-  StartProofRequest,
 } from "@river/contracts";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeaders } from "@tanstack/react-start/server";
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { createCredential, getAccessSettings, revokeCredential } from "./access";
 import { isAdministrator } from "./account-access";
 import { authenticate } from "./auth";
 import { readBackupStatus, retryBackup } from "./backups";
 import { bindings } from "./env";
-import { cancelOperation, dispatchPending, execute, listOperations, startProof } from "./services";
-import {
-  createSource,
-  inspectSource,
-  listSources,
-  resumeSourceUpload,
-  retrySource,
-} from "./sources";
+import { Actor, attempt, dispatchPending, execute, Store } from "./services";
+import { inspectSource, listSources } from "./sources";
 
 export const getSession = createServerFn({ method: "GET" }).handler(async () => {
   const env = bindings();
@@ -42,10 +32,6 @@ export const getSession = createServerFn({ method: "GET" }).handler(async () => 
     githubEnabled: Boolean(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET),
     environment: env.ENVIRONMENT,
   };
-});
-export const getOperations = createServerFn({ method: "GET" }).handler(async () => {
-  const env = bindings();
-  return execute(env, getRequestHeaders(), listOperations(env.ENVIRONMENT));
 });
 export const getSettings = createServerFn({ method: "GET" }).handler(async () =>
   execute(bindings(), getRequestHeaders(), getAccessSettings),
@@ -70,37 +56,6 @@ export const createAgentCredential = createServerFn({ method: "POST" })
 export const revokeAgentCredential = createServerFn({ method: "POST" })
   .validator(Schema.decodeUnknownSync(RevokeCredentialRequest))
   .handler(async ({ data }) => execute(bindings(), getRequestHeaders(), revokeCredential(data)));
-export const compileProof = createServerFn({ method: "POST" })
-  .validator(Schema.decodeUnknownSync(StartProofRequest))
-  .handler(async ({ data }) => {
-    const env = bindings();
-    const result = await execute(env, getRequestHeaders(), startProof(env.ENVIRONMENT, data));
-    if (result.ok) {
-      // The committed dispatch remains retryable even if Workflow creation is interrupted.
-      try {
-        await dispatchPending(env);
-      } catch {
-        /* The scheduled reconciler retries pending dispatches. */
-      }
-    }
-    return result;
-  });
-
-export const cancelDocumentOperation = createServerFn({ method: "POST" })
-  .validator(Schema.decodeUnknownSync(CancelOperationRequest))
-  .handler(async ({ data }) => {
-    const env = bindings();
-    const result = await execute(env, getRequestHeaders(), cancelOperation(data));
-    if (result.ok) {
-      try {
-        await dispatchPending(env);
-      } catch {
-        /* Durable cancellation is retried by the reconciler. */
-      }
-    }
-    return result;
-  });
-
 export const getSources = createServerFn({ method: "GET" }).handler(async () =>
   execute(bindings(), getRequestHeaders(), listSources, "source:read"),
 );
@@ -114,32 +69,21 @@ export const getSource = createServerFn({ method: "GET" })
       "source:read",
     ),
   );
-export const addSource = createServerFn({ method: "POST" })
-  .validator(Schema.decodeUnknownSync(CreateSourceRequest))
-  .handler(async ({ data }) => {
-    const env = bindings();
-    const result = await execute(env, getRequestHeaders(), createSource(env, data), "source:write");
-    if (result.ok) await dispatchPending(env).catch(() => {});
-    return result;
-  });
-export const reprocessSource = createServerFn({ method: "POST" })
-  .validator(Schema.decodeUnknownSync(RetrySourceRequest))
-  .handler(async ({ data }) => {
-    const env = bindings();
-    const result = await execute(env, getRequestHeaders(), retrySource(data), "source:write");
-    if (result.ok) await dispatchPending(env).catch(() => {});
-    return result;
-  });
 
-export const resumeUpload = createServerFn({ method: "POST" })
-  .validator(Schema.decodeUnknownSync(ResumeSourceRequest))
+export const cancelBackupOperation = createServerFn({ method: "POST" })
+  .validator(Schema.decodeUnknownSync(CancelBackupRequest))
   .handler(async ({ data }) => {
     const env = bindings();
     const result = await execute(
       env,
       getRequestHeaders(),
-      resumeSourceUpload(env, data),
-      "source:write",
+      Effect.gen(function* () {
+        const actor = yield* Actor,
+          store = yield* Store;
+        return yield* attempt(() =>
+          store.cancelBackupOperation(actor.ownerId, data.operationId, data.idempotencyKey),
+        );
+      }),
     );
     if (result.ok) await dispatchPending(env).catch(() => {});
     return result;

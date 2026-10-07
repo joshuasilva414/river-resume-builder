@@ -4,9 +4,9 @@ import { Link } from "@tanstack/react-router";
 import { useId, useState } from "react";
 import { authClient } from "~/lib/auth-client";
 import { getAiModels, getAiSettings } from "~/server/ai-settings-functions";
-import { Failure, FormField, selectClass, unwrap } from "./evidence/shared";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { Failure, FormField, selectClass, unwrap } from "./workspace/forms";
 
 export function useAiSettings() {
   const session = authClient.useSession();

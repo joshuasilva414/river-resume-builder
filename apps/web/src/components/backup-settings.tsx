@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import { cancelDocumentOperation, getBackupStatus, retryDailyBackup } from "~/server/functions";
+import { cancelBackupOperation, getBackupStatus, retryDailyBackup } from "~/server/functions";
 
 const procedure = "docs/implementation/recovery.md";
 const time = (value: number) => new Date(value).toLocaleString();
@@ -44,7 +44,7 @@ export function BackupSettings() {
     mutationFn: async (operationId: string) => {
       if (cancellation.current?.operationId !== operationId)
         cancellation.current = { operationId, idempotencyKey: crypto.randomUUID() };
-      const result = await cancelDocumentOperation({ data: cancellation.current });
+      const result = await cancelBackupOperation({ data: cancellation.current });
       if (!result.ok) throw Error(result.error.title);
     },
     onSettled: () => client.invalidateQueries({ queryKey: ["backup-status"] }),

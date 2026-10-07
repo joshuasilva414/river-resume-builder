@@ -1,7 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "river-local",
-  "browser": { "binding": "BROWSER" },
   "account_id": "a91c30d69981b341efe3b656a263f6da",
   "main": "src/server.ts",
   "compatibility_date": "2026-08-22",
@@ -9,8 +8,14 @@
   "observability": {
     "enabled": true,
     "redact_query_string": true,
-    "logs": { "enabled": true, "invocation_logs": false, "persist": false },
-    "traces": { "enabled": false }
+    "logs": {
+      "enabled": true,
+      "invocation_logs": false,
+      "persist": false
+    },
+    "traces": {
+      "enabled": false
+    }
   },
   "vars": {
     "ENVIRONMENT": "development",
@@ -35,66 +40,9 @@
   ],
   "workflows": [
     {
-      "binding": "DOCUMENT_WORKFLOW",
-      "name": "river-local-documents",
-      "class_name": "DocumentWorkflow"
-    },
-    {
-      "binding": "JOB_AI_WORKFLOW",
-      "name": "river-local-job-analysis",
-      "class_name": "JobAiWorkflow"
-    },
-    {
-      "binding": "SCORING_WORKFLOW",
-      "name": "river-local-scoring",
-      "class_name": "ScoringWorkflow"
-    },
-    {
-      "binding": "TEMPLATE_SCORING_WORKFLOW",
-      "name": "river-local-template-scoring",
-      "class_name": "TemplateScoringWorkflow"
-    },
-    {
       "binding": "BACKUP_WORKFLOW",
       "name": "river-local-backups",
       "class_name": "BackupWorkflow"
-    },
-    {
-      "binding": "WORDING_WORKFLOW",
-      "name": "river-local-wording",
-      "class_name": "WordingWorkflow"
-    },
-    {
-      "binding": "SOURCE_AI_WORKFLOW",
-      "name": "river-local-source-claims",
-      "class_name": "SourceAiWorkflow"
-    },
-    {
-      "binding": "DUPLICATE_AI_WORKFLOW",
-      "name": "river-local-duplicate-comparison",
-      "class_name": "DuplicateAiWorkflow"
-    },
-    {
-      "binding": "TEMPLATE_VALIDATION_WORKFLOW",
-      "name": "river-local-template-validation",
-      "class_name": "TemplateValidationWorkflow"
-    },
-    {
-      "binding": "TEMPLATE_AI_WORKFLOW",
-      "name": "river-local-template-ai",
-      "class_name": "TemplateAiWorkflow"
-    },
-    {
-      "binding": "SOURCE_REFINEMENT_WORKFLOW",
-      "name": "river-local-source-refinement",
-      "class_name": "SourceRefinementWorkflow"
-    }
-  ],
-  "services": [
-    {
-      "binding": "DOCUMENTS",
-      "service": "river-documents-local",
-      "entrypoint": "DocumentService"
     }
   ],
   "triggers": {
@@ -103,8 +51,11 @@
   "env": {
     "staging": {
       "name": "river-staging",
-      "browser": { "binding": "BROWSER" },
-      "tail_consumers": [{ "service": "river-telemetry-staging" }],
+      "tail_consumers": [
+        {
+          "service": "river-telemetry-staging"
+        }
+      ],
       "vars": {
         "ENVIRONMENT": "staging",
         "BACKUP_ACCOUNT_ID": "a91c30d69981b341efe3b656a263f6da",
@@ -124,66 +75,9 @@
       ],
       "workflows": [
         {
-          "binding": "DOCUMENT_WORKFLOW",
-          "name": "river-staging-documents",
-          "class_name": "DocumentWorkflow"
-        },
-        {
-          "binding": "JOB_AI_WORKFLOW",
-          "name": "river-staging-job-analysis",
-          "class_name": "JobAiWorkflow"
-        },
-        {
-          "binding": "SCORING_WORKFLOW",
-          "name": "river-staging-scoring",
-          "class_name": "ScoringWorkflow"
-        },
-        {
-          "binding": "TEMPLATE_SCORING_WORKFLOW",
-          "name": "river-staging-template-scoring",
-          "class_name": "TemplateScoringWorkflow"
-        },
-        {
           "binding": "BACKUP_WORKFLOW",
           "name": "river-staging-backups",
           "class_name": "BackupWorkflow"
-        },
-        {
-          "binding": "WORDING_WORKFLOW",
-          "name": "river-staging-wording",
-          "class_name": "WordingWorkflow"
-        },
-        {
-          "binding": "SOURCE_AI_WORKFLOW",
-          "name": "river-staging-source-claims",
-          "class_name": "SourceAiWorkflow"
-        },
-        {
-          "binding": "DUPLICATE_AI_WORKFLOW",
-          "name": "river-staging-duplicate-comparison",
-          "class_name": "DuplicateAiWorkflow"
-        },
-        {
-          "binding": "TEMPLATE_VALIDATION_WORKFLOW",
-          "name": "river-staging-template-validation",
-          "class_name": "TemplateValidationWorkflow"
-        },
-        {
-          "binding": "TEMPLATE_AI_WORKFLOW",
-          "name": "river-staging-template-ai",
-          "class_name": "TemplateAiWorkflow"
-        },
-        {
-          "binding": "SOURCE_REFINEMENT_WORKFLOW",
-          "name": "river-staging-source-refinement",
-          "class_name": "SourceRefinementWorkflow"
-        }
-      ],
-      "services": [
-        {
-          "binding": "DOCUMENTS",
-          "service": "river-documents-staging",
-          "entrypoint": "DocumentService"
         }
       ],
       "send_email": [
@@ -206,8 +100,11 @@
     },
     "production": {
       "name": "river-production",
-      "browser": { "binding": "BROWSER" },
-      "tail_consumers": [{ "service": "river-telemetry-production" }],
+      "tail_consumers": [
+        {
+          "service": "river-telemetry-production"
+        }
+      ],
       "vars": {
         "ENVIRONMENT": "production",
         "BACKUP_ACCOUNT_ID": "a91c30d69981b341efe3b656a263f6da",
@@ -227,66 +124,9 @@
       ],
       "workflows": [
         {
-          "binding": "DOCUMENT_WORKFLOW",
-          "name": "river-production-documents",
-          "class_name": "DocumentWorkflow"
-        },
-        {
-          "binding": "JOB_AI_WORKFLOW",
-          "name": "river-production-job-analysis",
-          "class_name": "JobAiWorkflow"
-        },
-        {
-          "binding": "SCORING_WORKFLOW",
-          "name": "river-production-scoring",
-          "class_name": "ScoringWorkflow"
-        },
-        {
-          "binding": "TEMPLATE_SCORING_WORKFLOW",
-          "name": "river-production-template-scoring",
-          "class_name": "TemplateScoringWorkflow"
-        },
-        {
           "binding": "BACKUP_WORKFLOW",
           "name": "river-production-backups",
           "class_name": "BackupWorkflow"
-        },
-        {
-          "binding": "WORDING_WORKFLOW",
-          "name": "river-production-wording",
-          "class_name": "WordingWorkflow"
-        },
-        {
-          "binding": "SOURCE_AI_WORKFLOW",
-          "name": "river-production-source-claims",
-          "class_name": "SourceAiWorkflow"
-        },
-        {
-          "binding": "DUPLICATE_AI_WORKFLOW",
-          "name": "river-production-duplicate-comparison",
-          "class_name": "DuplicateAiWorkflow"
-        },
-        {
-          "binding": "TEMPLATE_VALIDATION_WORKFLOW",
-          "name": "river-production-template-validation",
-          "class_name": "TemplateValidationWorkflow"
-        },
-        {
-          "binding": "TEMPLATE_AI_WORKFLOW",
-          "name": "river-production-template-ai",
-          "class_name": "TemplateAiWorkflow"
-        },
-        {
-          "binding": "SOURCE_REFINEMENT_WORKFLOW",
-          "name": "river-production-source-refinement",
-          "class_name": "SourceRefinementWorkflow"
-        }
-      ],
-      "services": [
-        {
-          "binding": "DOCUMENTS",
-          "service": "river-documents-production",
-          "entrypoint": "DocumentService"
         }
       ],
       "send_email": [

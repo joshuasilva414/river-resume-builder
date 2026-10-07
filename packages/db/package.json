@@ -16,7 +16,7 @@
     "effect": "4.0.0-rc.112",
     "@river/domain": "workspace:*",
     "@river/contracts": "workspace:*",
-    "@river/templates": "workspace:*"
+    "zod": "4.5.4"
   },
   "devDependencies": {
     "drizzle-kit": "0.31.10",

@@ -144,7 +144,9 @@ export function retainedObjects(db) {
   const add = (key, digest, kind) => {
     assert.equal(typeof key, "string");
     assert.ok(
-      key.startsWith("retained/"),
+      key.startsWith("retained/") ||
+        /^sources\/[^/]+\/[^/]+\/[a-f0-9]{64}\/(original|text\.json)$/.test(key) ||
+        /^workspace\/[^/]+\/exports\/[^/]+\/[a-f0-9]{64}\.pdf$/.test(key),
       "A retained reference must not point into transient storage.",
     );
     const previous = references.get(key);
@@ -158,6 +160,14 @@ export function retainedObjects(db) {
     add(row.object_key, row.digest, "original");
   for (const row of db.prepare("SELECT object_key, digest FROM source_processing_results").all())
     add(row.object_key, row.digest, "extraction");
+  if (
+    db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='workspace_exports'").get()
+  ) {
+    for (const row of db
+      .prepare("SELECT object_key, metadata FROM workspace_exports WHERE state='Complete'")
+      .all())
+      add(row.object_key, JSON.parse(row.metadata).digest, "pdf");
+  }
   for (const row of db
     .prepare("SELECT artifacts FROM operations WHERE artifacts IS NOT NULL")
     .all()) {
