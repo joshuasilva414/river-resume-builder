@@ -5,6 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #111318;
   --card: #ffffff;
@@ -30,6 +31,7 @@
   --color-editor: var(--primary);
 }
 .dark {
+  color-scheme: dark;
   --background: #0b0d12;
   --foreground: #f4f6fa;
   --card: #141821;
