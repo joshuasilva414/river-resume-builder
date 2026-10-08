@@ -1,16 +1,17 @@
 .visual-workspace {
-  --visual-blue: #1e5eff;
-  color: #111318;
-  background: #fff;
+  --visual-blue: var(--primary);
+  color: var(--foreground);
+  background: var(--background);
 }
 .visual-stage {
-  background: #f6f7f9;
+  background: var(--muted);
   padding: 28px 36px;
   overflow: auto;
   min-width: 0;
   outline: none;
 }
 .visual-paper {
+  color-scheme: light;
   background: white;
   color: #111318;
   min-height: 792pt;
@@ -177,9 +178,10 @@
   width: 290px;
   min-width: 290px;
   padding: 20px;
-  border-left: 1px solid #d9dde3;
+  border-left: 1px solid var(--border);
   overflow: auto;
-  background: white;
+  background: var(--card);
+  color: var(--card-foreground);
   max-height: calc(100vh - 160px);
   position: sticky;
   top: 0;
@@ -187,7 +189,7 @@
 .visual-tree {
   max-height: 270px;
   overflow: auto;
-  border: 1px solid #d9dde3;
+  border: 1px solid var(--border);
   border-radius: 4px;
   padding: 4px;
 }
@@ -202,11 +204,11 @@
   border-radius: 3px;
 }
 .visual-tree button[aria-selected="true"] {
-  background: #eef3ff;
-  color: #1e5eff;
+  background: var(--accent);
+  color: var(--accent-foreground);
 }
 .visual-tree button:hover {
-  background: #f6f7f9;
+  background: var(--muted);
 }
 .visual-selection-box {
   position: fixed;

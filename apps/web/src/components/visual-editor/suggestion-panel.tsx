@@ -154,7 +154,10 @@ export function SuggestionPanel({
         Find library alternatives
       </Button>
       {stale && (
-        <p role="alert" className="rounded bg-amber-50 p-3 text-xs">
+        <p
+          role="alert"
+          className="rounded bg-amber-50 p-3 text-xs text-amber-950 dark:bg-amber-950 dark:text-amber-100"
+        >
           The target or job changed. These previews cannot be applied. Request fresh suggestions.
         </p>
       )}

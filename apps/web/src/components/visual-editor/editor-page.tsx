@@ -263,7 +263,7 @@ function DocumentEditor({ initial, ownerId }: { initial: EditorRecord; ownerId: 
         </div>
       </header>
       {(error || c.commandError || c.draft.error || c.draft.storageError) && (
-        <div className="space-y-2 border-b bg-amber-50 px-6 py-3 text-sm">
+        <div className="space-y-2 border-b bg-amber-50 px-6 py-3 text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-100">
           <p role="alert">{error ?? c.commandError ?? c.draft.error ?? c.draft.storageError}</p>
           {c.draft.status === "conflict" ? (
             <div className="flex gap-2">
