@@ -4,15 +4,17 @@ import { Button } from "./ui/button";
 export function Appearance() {
   const [dark, setDark] = useState(false);
   useEffect(() => {
-    const next = localStorage.getItem("river-appearance") === "dark";
-    document.documentElement.classList.toggle("dark", next);
-    setDark(next);
+    setDark(document.documentElement.classList.contains("dark"));
   }, []);
   function toggle() {
-    const next = !dark;
+    const next = !document.documentElement.classList.contains("dark");
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("river-appearance", next ? "dark" : "light");
+    try {
+      localStorage.setItem("river-appearance", next ? "dark" : "light");
+    } catch {
+      // The toggle still works for this page when the browser cannot persist preferences.
+    }
   }
   return (
     <Button

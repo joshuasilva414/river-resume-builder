@@ -1,5 +1,12 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import {
+  createRootRouteWithContext,
+  HeadContent,
+  Outlet,
+  Scripts,
+  useRouter,
+} from "@tanstack/react-router";
+import { appearanceBootstrap } from "../components/appearance-bootstrap";
 import stylesheet from "../styles.css?url";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -32,9 +39,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   ),
 });
 function Root() {
+  const nonce = useRouter().options.ssr?.nonce;
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script nonce={nonce} suppressHydrationWarning>
+          {appearanceBootstrap}
+        </script>
         <HeadContent />
       </head>
       <body>
